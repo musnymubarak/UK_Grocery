@@ -42,8 +42,8 @@ class StockMovement(TimestampMixin, Base):
 
     # Relationships
     product = relationship("Product", back_populates="stock_movements")
-    store = relationship("Store", back_populates="outgoing_movements", foreign_keys=[store_id])
-    from_store = relationship("Store", back_populates="incoming_movements", foreign_keys=[from_store_id])
+    store = relationship("Store", back_populates="outgoing_movements", foreign_keys="StockMovement.store_id")
+    from_store = relationship("Store", back_populates="incoming_movements", foreign_keys="StockMovement.from_store_id")
 
     def __repr__(self):
         return (

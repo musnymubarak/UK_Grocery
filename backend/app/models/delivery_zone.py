@@ -25,7 +25,7 @@ class DeliveryZone(TimestampMixin, Base):
     postcode_patterns = Column(ARRAY(String), default=list, nullable=False)
 
     # Relationships
-    store = relationship("Store")
+    store = relationship("Store", back_populates="delivery_zones")
 
     def __repr__(self):
         return f"<DeliveryZone(id={self.id}, name='{self.name}')>"

@@ -15,9 +15,9 @@ from app.models.user import User  # noqa: F401
 from app.models.category import Category  # noqa: F401
 from app.models.product import Product  # noqa: F401
 from app.models.inventory import Inventory  # noqa: F401
-from app.models.sale import Sale, SaleItem  # noqa: F401
+from app.models.order import Order, OrderItem  # noqa: F401
 from app.models.stock_movement import StockMovement  # noqa: F401
-from app.models.sync_log import SyncLog  # noqa: F401
+from app.models.delivery_zone import DeliveryZone, PostcodeZoneMapping  # noqa: F401
 
 config = context.config
 
