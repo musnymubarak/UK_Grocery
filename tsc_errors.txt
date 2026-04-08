@@ -1,0 +1,5 @@
+﻿src/features/pos/POSScreen.tsx(327,36): error TS2345: Argument of type '{ client_id: `${string}-${string}-${string}-${string}-${string}`; store_id: string; synced: false; id: `${string}-${string}-${string}-${string}-${string}`; invoice_number: string; items: { product_name: string; product_sku: string; ... 4 more ...; total: number; }[]; ... 6 more ...; created_at: string; }' is not assignable to parameter of type 'LocalSale'.
+  Types of property 'items' are incompatible.
+    Type '{ product_name: string; product_sku: string; quantity: number; unit_price: number; discount_amount: number; tax_amount: number; total: number; }[]' is not assignable to type 'LocalSaleItem[]'.
+      Property 'product_id' is missing in type '{ product_name: string; product_sku: string; quantity: number; unit_price: number; discount_amount: number; tax_amount: number; total: number; }' but required in type 'LocalSaleItem'.
+src/offline/queue.ts(4,10): error TS2614: Module '"dexie"' has no exported member 'v4'. Did you mean to use 'import v4 from "dexie"' instead?

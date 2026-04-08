@@ -1,0 +1,100 @@
+pipeline {
+    agent any
+
+    triggers {
+        cron('H/30 * * * *')
+    }
+
+    environment {
+        AZURE_STORAGE_ACCOUNT = credentials('azure_storage_account')
+        AZURE_STORAGE_KEY = credentials('azure_storage_key')
+        AZURE_STORAGE_CONTAINER = credentials('azure_storage_container')
+        SLACK_WEBHOOK_URL = credentials('slack_webhook_url')
+    }
+
+    stages {
+        stage('Find & Download Backup') {
+            steps {
+                sh '''
+                    # Get timestamp for 1 hour ago
+                    ONE_HOUR_AGO=$(date -u -d "1 hour ago" '+%Y-%m-%dT%H:%M:%SZ')
+                    AZURE_URL="https://${AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/${AZURE_STORAGE_CONTAINER}/*"
+                    
+                    rm -f *.dump
+                    
+                    echo "Checking for backups uploaded after $ONE_HOUR_AGO"
+                    
+                    azcopy copy "$AZURE_URL" "./" --include-after "$ONE_HOUR_AGO" --account-key "${AZURE_STORAGE_KEY}"
+                    
+                    file_count=$(ls -1 *.dump 2>/dev/null | wc -l || true)
+                    
+                    if [ "$file_count" -eq 0 ]; then
+                        echo "No new backup found in the last hour. Skipping verification."
+                        echo "NO_NEW_BACKUP=true" > build_env.properties
+                    else
+                        LATEST_DUMP=$(ls -t *.dump | head -n 1)
+                        echo "Found backup to verify: $LATEST_DUMP"
+                        echo "NO_NEW_BACKUP=false" > build_env.properties
+                        echo "LATEST_DUMP=$LATEST_DUMP" >> build_env.properties
+                    fi
+                '''
+            }
+        }
+
+        stage('Verify Structural Integrity') {
+            steps {
+                script {
+                    def props = readProperties file: 'build_env.properties'
+                    if (props.NO_NEW_BACKUP == 'true') {
+                        echo "Skipping structural verification because no new backup was found."
+                        return
+                    }
+                    
+                    def dumpFile = props.LATEST_DUMP
+                    
+                    sh """
+                        echo 'Spinning up ephemeral PostgreSQL container...'
+                        docker run --name pg_verify_tmp -e POSTGRES_PASSWORD=verify -e POSTGRES_DB=pos -d postgres:16-alpine
+                        
+                        echo 'Waiting for PostgreSQL to initialize...'
+                        until docker exec pg_verify_tmp pg_isready -U postgres -d pos; do
+                            sleep 2
+                        done
+                        
+                        echo "Copying ${dumpFile} to container..."
+                        docker cp ${dumpFile} pg_verify_tmp:/tmp/backup.dump
+                        
+                        echo 'Restoring the backup...'
+                        docker exec pg_verify_tmp pg_restore -U postgres -d pos --clean --if-exists -Fc /tmp/backup.dump
+                        
+                        echo 'Running structural integrity validation...'
+                        docker exec pg_verify_tmp psql -U postgres -d pos -c 'SELECT count(*) FROM users;'
+                        
+                        echo 'Teardown ephemeral container...'
+                        docker rm -f pg_verify_tmp
+                        rm -f ${dumpFile}
+                        
+                        echo 'Validation Successful!'
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh "docker rm -f pg_verify_tmp || true"
+        }
+        success {
+            echo "Backup verification pipeline completed successfully."
+        }
+        failure {
+            echo "Backup verification failed! Sending alert..."
+            sh '''
+                if [ -n "$SLACK_WEBHOOK_URL" ]; then
+                    curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 POS Backup Verification Failed. Please check Jenkins."}' $SLACK_WEBHOOK_URL || true
+                fi
+            '''
+        }
+    }
+}
