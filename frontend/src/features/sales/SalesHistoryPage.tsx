@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAdminStore } from '../auth/AdminStoreContext';
-import { salesApi, storeApi, getErrorMessage } from '../../services/api';
+import { orderApi as salesApi, storeApi, getErrorMessage } from '../../services/api';
 import { Search, Receipt, Printer, XCircle, Share2, Filter, Info, History } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EntityHistoryPanel from '../../components/audit/EntityHistoryPanel';
@@ -9,7 +9,7 @@ import EntityHistoryPanel from '../../components/audit/EntityHistoryPanel';
 type TabStatus = 'all' | 'completed' | 'voided' | 'refunded';
 type DateFilter = 'today' | 'week' | 'month' | 'custom';
 
-const fmt = (n: number) => `₹${Number(n || 0).toFixed(2)}`;
+const fmt = (n: number) => `£${Number(n || 0).toFixed(2)}`;
 
 export default function SalesHistoryPage() {
     const { user, isManager, isCashier } = useAuth();

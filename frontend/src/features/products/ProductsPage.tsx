@@ -22,7 +22,7 @@ function calculateEAN13Checksum(digits12: string): string {
 }
 
 function generateEAN13(): string {
-    const prefix = '890'; // India/SL country code
+    const prefix = '501'; // UK country code (500-509)
     let body = '';
     for (let i = 0; i < 9; i++) body += String(Math.floor(Math.random() * 10));
     return calculateEAN13Checksum(prefix + body);
@@ -329,8 +329,8 @@ export default function ProductsPage() {
                                     <td><span className="badge badge-primary">{product.sku}</span></td>
                                     <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{product.barcode || '—'}</td>
                                     <td>{categories.find(c => c.id === product.category_id)?.name || '—'}</td>
-                                    <td>₹{Number(product.cost_price).toFixed(2)}</td>
-                                    <td style={{ color: 'var(--success)', fontWeight: 600 }}>₹{Number(product.selling_price).toFixed(2)}</td>
+                                    <td>£{Number(product.cost_price).toFixed(2)}</td>
+                                    <td style={{ color: 'var(--success)', fontWeight: 600 }}>£{Number(product.selling_price).toFixed(2)}</td>
                                     <td>{Number(product.tax_rate)}%</td>
                                     <td>
                                         <div style={{ display: 'flex', gap: 6 }}>
@@ -503,7 +503,7 @@ export default function ProductsPage() {
                                     }}>
                                         <div style={{ fontSize: '0.55rem', fontWeight: 500, opacity: 0.7 }}>RetailPOS</div>
                                         <div style={{ fontSize: '0.7rem', fontWeight: 600, margin: '2px 0' }}>{p.name}</div>
-                                        <div style={{ fontSize: '1rem', fontWeight: 800 }}>₹{Number(p.selling_price).toFixed(2)}</div>
+                                        <div style={{ fontSize: '1rem', fontWeight: 800 }}>£{Number(p.selling_price).toFixed(2)}</div>
                                         {p.barcode && (
                                             <>
                                                 <svg ref={(el) => {
@@ -527,7 +527,7 @@ export default function ProductsPage() {
                                     }}>
                                         <div style={{ fontSize: '7px', fontWeight: 500, opacity: 0.7 }}>RetailPOS</div>
                                         <div style={{ fontSize: '9px', fontWeight: 600, margin: '1px 0' }}>{p.name}</div>
-                                        <div style={{ fontSize: '14px', fontWeight: 800 }}>₹{Number(p.selling_price).toFixed(2)}</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 800 }}>£{Number(p.selling_price).toFixed(2)}</div>
                                         {p.barcode && (
                                             <svg ref={(el) => {
                                                 if (el && p.barcode) {
