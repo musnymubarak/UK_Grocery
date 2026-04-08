@@ -39,7 +39,7 @@ class Product(TimestampMixin, Base):
     organization = relationship("Organization", back_populates="products")
     category = relationship("Category", back_populates="products")
     inventory = relationship("Inventory", back_populates="product", lazy="selectin")
-    sale_items = relationship("SaleItem", back_populates="product", lazy="selectin")
+    order_items = relationship("OrderItem", back_populates="product", lazy="selectin")
     stock_movements = relationship("StockMovement", back_populates="product", lazy="selectin")
 
     def __repr__(self):
