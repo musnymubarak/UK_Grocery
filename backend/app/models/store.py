@@ -31,7 +31,7 @@ class Store(TimestampMixin, Base):
     organization = relationship("Organization", back_populates="stores")
     users = relationship("User", back_populates="store", lazy="selectin")
     inventory = relationship("Inventory", back_populates="store", lazy="selectin")
-    sales = relationship("Sale", back_populates="store", lazy="selectin")
+    orders = relationship("Order", back_populates="store", lazy="selectin")
     outgoing_movements = relationship(
         "StockMovement",
         back_populates="store",

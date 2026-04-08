@@ -59,7 +59,7 @@ class Order(TimestampMixin, Base):
 
     # Relationships
     organization = relationship("Organization")
-    store = relationship("Store")
+    store = relationship("Store", back_populates="orders")
     customer = relationship("Customer", back_populates="orders")
     delivery_address = relationship("CustomerAddress")
     delivery_boy = relationship("User", back_populates="assigned_orders")
@@ -92,7 +92,7 @@ class OrderItem(TimestampMixin, Base):
 
     # Relationships
     order = relationship("Order", back_populates="items")
-    product = relationship("Product")
+    product = relationship("Product", back_populates="order_items")
 
     def __repr__(self):
         return f"<OrderItem(id={self.id}, product='{self.product_name}', qty={self.quantity})>"
