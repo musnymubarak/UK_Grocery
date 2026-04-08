@@ -72,7 +72,7 @@ export default function DeliveryZonesPage() {
                                 <tr>
                                     <th>Zone Name</th>
                                     <th>Base Fee</th>
-                                    <th>Free Delivery >=</th>
+                                    <th>Free Delivery &gt;=</th>
                                     <th>Coverage (Postcodes)</th>
                                 </tr>
                             </thead>
@@ -80,8 +80,8 @@ export default function DeliveryZonesPage() {
                                 {zones.map((z: any) => (
                                     <tr key={z.id}>
                                         <td><strong>{z.name}</strong></td>
-                                        <td>${z.base_fee.toFixed(2)}</td>
-                                        <td>${z.min_order_for_free_delivery.toFixed(2)}</td>
+                                        <td>£{z.base_fee.toFixed(2)}</td>
+                                        <td>£{z.min_order_for_free_delivery.toFixed(2)}</td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                                                 {z.postcode_patterns.map((p: string, idx: number) => (
