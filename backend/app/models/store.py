@@ -35,15 +35,17 @@ class Store(TimestampMixin, Base):
     outgoing_movements = relationship(
         "StockMovement",
         back_populates="store",
-        foreign_keys="[StockMovement.store_id]",
+        foreign_keys="StockMovement.store_id",
         lazy="selectin",
     )
     incoming_movements = relationship(
         "StockMovement",
         back_populates="from_store",
-        foreign_keys="[StockMovement.from_store_id]",
+        foreign_keys="StockMovement.from_store_id",
         lazy="selectin",
     )
+
+    delivery_zones = relationship("DeliveryZone", back_populates="store", lazy="selectin")
 
     def __repr__(self):
         return f"<Store(id={self.id}, name='{self.name}')>"
