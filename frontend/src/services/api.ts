@@ -1,0 +1,140 @@
+/**
+ * Axios API client with JWT auth interceptor and 401 auto-logout.
+ */
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+
+const API_BASE_URL = '/api/v1';
+
+const api = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    timeout: 30000,
+});
+
+// Request interceptor: attach JWT token and clean params
+api.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+        const token = localStorage.getItem('pos_token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        // Automatically remove empty/nullish query parameters to prevent FastAPI 422 errors
+        if (config.params) {
+            Object.keys(config.params).forEach((key) => {
+                const val = config.params[key];
+                if (val === '' || val === null || val === undefined) {
+                    delete config.params[key];
+                }
+            });
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+// Response interceptor: handle 401
+api.interceptors.response.use(
+    (response) => response,
+    (error: AxiosError) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('pos_token');
+            localStorage.removeItem('pos_user');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
+export default api;
+
+export function getErrorMessage(err: any, fallback = 'An error occurred'): string {
+    const detail = err?.response?.data?.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail) && detail.length > 0) {
+        return detail.map((e: any) => e.msg || e.type || 'Validation error').join('; ');
+    }
+    return err?.message || fallback;
+}
+
+// --- Auth API ---
+export const authApi = {
+    login: (email: string, password: string) => api.post('/auth/login', { email, password }),
+    setup: (data: any) => api.post('/auth/setup', data),
+    me: () => api.get('/auth/me'),
+    createUser: (data: any) => api.post('/auth/users', data),
+    listUsers: () => api.get('/auth/users'),
+    updateUser: (id: string, data: any) => api.put(`/auth/users/${id}`, data),
+};
+
+// --- Store API ---
+export const storeApi = {
+    list: () => api.get('/stores'),
+    create: (data: any) => api.post('/stores', data),
+    get: (id: string) => api.get(`/stores/${id}`),
+    update: (id: string, data: any) => api.put(`/stores/${id}`, data),
+    delete: (id: string) => api.delete(`/stores/${id}`),
+};
+
+// --- Product API ---
+export const productApi = {
+    list: (params?: any) => api.get('/products', { params }),
+    create: (data: any) => api.post('/products', data),
+    get: (id: string) => api.get(`/products/${id}`),
+    update: (id: string, data: any) => api.put(`/products/${id}`, data),
+    delete: (id: string) => api.delete(`/products/${id}`),
+    lowStock: (storeId?: string) => api.get('/products/low-stock', { params: { store_id: storeId } }),
+};
+
+// --- Category API ---
+export const categoryApi = {
+    list: () => api.get('/categories'),
+    create: (data: any) => api.post('/categories', data),
+    update: (id: string, data: any) => api.put(`/categories/${id}`, data),
+    delete: (id: string) => api.delete(`/categories/${id}`),
+};
+
+// --- Inventory API ---
+export const inventoryApi = {
+    getStoreInventory: (storeId: string, params?: any) => api.get(`/inventory/${storeId}`, { params }),
+    adjust: (data: any) => api.post('/inventory/adjust', data),
+    transfer: (data: any) => api.post('/inventory/transfer', data),
+    purchase: (data: any) => api.post('/inventory/purchase', data),
+    movements: (storeId: string, params?: any) => api.get(`/inventory/${storeId}/movements`, { params }),
+};
+
+// --- Reports API ---
+export const reportApi = {
+    salesSummary: (params?: any) => api.get('/reports/sales-summary', { params }),
+    productPerformance: (params?: any) => api.get('/reports/product-performance', { params }),
+    cashierPerformance: (params?: any) => api.get('/reports/cashier-performance', { params }),
+    inventoryValuation: (params?: any) => api.get('/reports/inventory-valuation', { params }),
+};
+
+// --- Analytics / Audit API ---
+export const auditApi = {
+    list: (params?: any) => api.get('/audit', { params }),
+    export: (params?: any) => api.get('/audit/export', { responseType: 'blob', params }),
+};
+
+// --- Orders API ---
+export const orderApi = {
+    list: (params?: any) => api.get('/orders', { params }),
+    get: (id: string) => api.get(`/orders/${id}`),
+    updateStatus: (id: string, status: string) => api.patch(`/orders/${id}/status`, { status }),
+    assignDelivery: (id: string, delivery_boy_id: string) => api.patch(`/orders/${id}/assign`, { delivery_boy_id }),
+    deliveryList: (params?: any) => api.get('/orders/delivery/my-orders', { params }), // For delivery boys
+};
+
+// --- Customers API ---
+export const customerApi = {
+    list: (params?: any) => api.get('/customers', { params }),
+    // Additional B2C routes exist, but admin primarily lists
+};
+
+// --- Delivery Zones API ---
+export const deliveryZoneApi = {
+    list: (storeId: string) => api.get(`/delivery-zones`, { params: { store_id: storeId } }),
+    create: (storeId: string, data: any) => api.post(`/delivery-zones`, data, { params: { store_id: storeId } }),
+};
