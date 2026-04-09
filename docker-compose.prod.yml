@@ -8,6 +8,11 @@ services:
       - /app
       - /app/node_modules
 
+  client:
+    volumes:
+      - /app
+      - /app/node_modules
+
   nginx:
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
