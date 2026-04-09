@@ -4,14 +4,34 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { login, register, error, clearError } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/checkout');
+    setSubmitting(true);
+    clearError();
+    try {
+      if (isSignUp) {
+        await register(name, email, password);
+      } else {
+        await login(email, password);
+      }
+      navigate('/checkout');
+    } catch {
+      // Error is already set in AuthContext
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -27,21 +47,52 @@ export default function Login() {
                 <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-7v4h2v-4h3l-4-4-4 4h3z"/>
               </svg>
             </div>
-            <h2 className="text-3xl font-extrabold text-primary tracking-tight mb-2">Welcome Back</h2>
-            <p className="text-on-surface-variant text-sm font-medium">Join our organic garden of fresh produce</p>
+            <h2 className="text-3xl font-extrabold text-primary tracking-tight mb-2">
+              {isSignUp ? 'Create Account' : 'Welcome Back'}
+            </h2>
+            <p className="text-on-surface-variant text-sm font-medium">
+              {isSignUp ? 'Join our organic garden of fresh produce' : 'Sign in to continue to checkout'}
+            </p>
           </div>
 
           <div className="flex p-1 bg-surface-container-high rounded-full mb-8">
-            <button className="flex-1 py-2 text-sm font-bold rounded-full bg-surface-container-lowest text-primary shadow-sm transition-all duration-300">Login</button>
-            <button className="flex-1 py-2 text-sm font-bold rounded-full text-on-surface-variant hover:text-primary transition-all duration-300">Sign Up</button>
+            <button
+              onClick={() => { setIsSignUp(false); clearError(); }}
+              className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-300 ${!isSignUp ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'}`}
+            >Login</button>
+            <button
+              onClick={() => { setIsSignUp(true); clearError(); }}
+              className={`flex-1 py-2 text-sm font-bold rounded-full transition-all duration-300 ${isSignUp ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'}`}
+            >Sign Up</button>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          {error && (
+            <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg text-error text-sm font-medium">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
+              {isSignUp && (
+                <div className="group">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 px-1">Full Name</label>
+                  <input 
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-sm px-4 py-4 text-on-surface placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-highest transition-all outline-none text-sm"
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+              )}
               <div className="group">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 px-1">Email Address</label>
                 <input 
                   type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   className="w-full bg-surface-container-high border-none rounded-sm px-4 py-4 text-on-surface placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-highest transition-all outline-none text-sm"
                   placeholder="hello@conservatory.com"
                   required
@@ -53,9 +104,12 @@ export default function Login() {
                 <div className="relative">
                   <input 
                     type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
                     className="w-full bg-surface-container-high border-none rounded-sm px-4 py-4 text-on-surface placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-highest transition-all outline-none text-sm"
                     placeholder="••••••••"
                     required
+                    minLength={6}
                   />
                   <button 
                     type="button"
@@ -68,36 +122,16 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between px-1">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary/20 transition-all" />
-                <span className="text-xs font-semibold text-on-surface-variant group-hover:text-primary transition-colors">Remember me</span>
-              </label>
-              <a href="#" className="text-xs font-bold text-primary hover:underline underline-offset-4">Forgot Password?</a>
-            </div>
-
             <div className="space-y-4 pt-2">
               <button 
                 type="submit"
-                className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary py-4 rounded-xl font-bold text-base shadow-[0_8px_24px_rgba(44,104,46,0.2)] hover:shadow-[0_12px_32px_rgba(44,104,46,0.3)] active:scale-95 transition-all duration-300"
+                disabled={submitting}
+                className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary py-4 rounded-xl font-bold text-base shadow-[0_8px_24px_rgba(44,104,46,0.2)] hover:shadow-[0_12px_32px_rgba(44,104,46,0.3)] active:scale-95 transition-all duration-300 disabled:opacity-50"
               >
-                Continue
+                {submitting ? 'Please wait...' : isSignUp ? 'Create Account' : 'Continue'}
               </button>
-              <p className="text-center text-xs font-medium text-on-surface-variant leading-relaxed">
-                You will continue to checkout after logging in
-              </p>
             </div>
           </form>
-
-          <div className="mt-8 pt-8 border-t border-surface-container-high relative">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-container-lowest px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-outline">
-              Or Social Login
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <SocialButton icon="https://www.google.com/favicon.ico" label="Google" />
-              <SocialButton icon="https://www.apple.com/favicon.ico" label="Apple" />
-            </div>
-          </div>
         </div>
 
         {/* Desktop Decorative Side */}
@@ -118,14 +152,5 @@ export default function Login() {
         </div>
       </main>
     </Layout>
-  );
-}
-
-function SocialButton({ icon, label }: { icon: string; label: string }) {
-  return (
-    <button className="flex items-center justify-center gap-2 py-3 border border-outline-variant/30 rounded-xl hover:bg-surface-container-low transition-colors active:scale-95 duration-200">
-      <img src={icon} alt={label} className="w-4 h-4 opacity-70" referrerPolicy="no-referrer" />
-      <span className="text-xs font-bold text-on-surface-variant">{label}</span>
-    </button>
   );
 }

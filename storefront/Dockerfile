@@ -1,12 +1,13 @@
-FROM node:20-alpine
-
+# Stage 1: Build the storefront
+FROM node:20-alpine AS builder
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm install
-
+RUN npm ci --no-audit
 COPY . .
+RUN npm run build
 
-EXPOSE 3000
-
-CMD ["npm", "run", "dev"]
+# Stage 2: Serve static files via Nginx
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

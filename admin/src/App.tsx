@@ -1,5 +1,6 @@
 /**
  * App root — routing, auth protection, query provider.
+ * Admin Dashboard — staff/admin only.
  */
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -20,11 +21,6 @@ import AuditLogPage from './features/audit/AuditLogPage';
 import OrdersPage from './features/orders/OrdersPage';
 import CustomersPage from './features/customers/CustomersPage';
 import DeliveryZonesPage from './features/delivery/DeliveryZonesPage';
-import ShopLayout from './features/shop/ShopLayout';
-import ShopHome from './features/shop/ShopHome';
-import ShopCart from './features/shop/ShopCart';
-import ShopLogin from './features/shop/ShopLogin';
-import ShopRegister from './features/shop/ShopRegister';
 import DeliveryBoyDashboard from './features/delivery/DeliveryBoyDashboard';
 
 const queryClient = new QueryClient({
@@ -48,18 +44,8 @@ function AppRoutes() {
 
     return (
         <Routes>
-            {/* B2C Public Shop Routes */}
-            <Route path="/shop" element={<ShopLayout />}>
-                <Route index element={<ShopHome />} />
-                <Route path="cart" element={<ShopCart />} />
-                <Route path="login" element={<ShopLogin />} />
-                <Route path="register" element={<ShopRegister />} />
-            </Route>
-
             <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
-            
-            {/* Delivery Boy Mobile Interface could have a different layout, here we simplify to default layout */}
-            
+
             <Route
                 element={
                     <ProtectedRoute>
@@ -67,7 +53,6 @@ function AppRoutes() {
                     </ProtectedRoute>
                 }
             >
-                {/* Conditionally render dashboard based on role entirely */}
                 <Route path="/dashboard" element={user?.role === 'delivery_boy' ? <DeliveryBoyDashboard /> : <DashboardPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/customers" element={<CustomersPage />} />

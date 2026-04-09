@@ -1,10 +1,11 @@
 """
-RetailPOS Backend — FastAPI Application Entry Point
+UK Grocery Backend — FastAPI Application Entry Point
 """
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from app.core.config import settings
 from app.core.database import engine, Base
@@ -19,27 +20,28 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle: startup and shutdown."""
-    # Startup — create all tables if they don't exist
     logger.info("Creating database tables if not present...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables ready.")
     yield
-    # Shutdown
     await engine.dispose()
 
 
 def create_app() -> FastAPI:
     """Application factory."""
     application = FastAPI(
-        title=settings.APP_NAME,
+        title="UK Grocery API",
         version=settings.APP_VERSION,
-        description="Production-grade multi-location retail POS system",
+        description="Multi-location online grocery platform",
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
         lifespan=lifespan,
     )
+
+    # Gzip compression for API responses
+    application.add_middleware(GZipMiddleware, minimum_size=500)
 
     # CORS
     application.add_middleware(
