@@ -20,7 +20,7 @@ import { AnimatePresence } from 'motion/react';
 export default function App() {
   return (
     <CartProvider>
-      <Router>
+      <Router basename="/client">
         <AnimatePresence mode="wait">
           <Routes>
             <Route path="/" element={<Landing />} />
