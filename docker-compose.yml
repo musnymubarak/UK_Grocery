@@ -68,6 +68,25 @@ services:
       start_period: 60s
     command: npm run dev -- --host 0.0.0.0
 
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    deploy:
+      update_config:
+        order: start-first
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:3000 > /dev/null || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    command: npm run dev
+
   nginx:
     image: nginx:alpine
     container_name: pos_nginx
@@ -80,6 +99,7 @@ services:
     depends_on:
       - backend
       - frontend
+      - client
 
 volumes:
   postgres_data:
