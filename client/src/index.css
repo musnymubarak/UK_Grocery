@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Public+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-primary: #2c682e;
+  --color-primary-container: #458244;
+  --color-on-primary: #ffffff;
+  
+  --color-secondary: #5e5e5c;
+  --color-secondary-container: #e1dfdc;
+  
+  --color-tertiary: #8d4b00;
+  --color-tertiary-container: #ffdcc3;
+  --color-on-tertiary-container: #6e3900;
+  
+  --color-surface: #fafaf5;
+  --color-surface-container-low: #f4f4ef;
+  --color-surface-container: #eeeee9;
+  --color-surface-container-high: #e8e8e3;
+  --color-surface-container-highest: #e3e3de;
+  --color-surface-container-lowest: #ffffff;
+  
+  --color-on-surface: #1a1c19;
+  --color-on-surface-variant: #41493e;
+  
+  --color-outline: #71796d;
+  --color-outline-variant: #c1c9bb;
+  
+  --color-error: #ba1a1a;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-body;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
+  }
+}
