@@ -41,11 +41,18 @@ async def list_customers(
 @router.post("/register", response_model=CustomerResponse)
 async def register_customer(
     data: CustomerCreate,
-    org_id: UUID = Depends(get_org_context), # Assumes frontend sends org token or it's hardcoded for single org B2C
     db: AsyncSession = Depends(get_async_session)
 ):
-    """Register a new customer account."""
-    return await CustomerService.create_customer(db, org_id=org_id, data=data)
+    """Register a new customer account (public — no auth required)."""
+    from sqlalchemy import select as sa_select
+    from app.models.organization import Organization
+    # Auto-detect the default (first) organization for single-org deployment
+    result = await db.execute(sa_select(Organization).limit(1))
+    org = result.scalar_one_or_none()
+    if not org:
+        from app.core.exceptions import ValidationException
+        raise ValidationException("System is not set up yet. Please contact admin.")
+    return await CustomerService.create_customer(db, org_id=org.id, data=data)
 
 @router.post("/login", response_model=Token)
 async def login_customer(

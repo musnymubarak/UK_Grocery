@@ -23,7 +23,7 @@ export default function Cart() {
             {cart.length === 0 ? (
               <div className="text-center py-20 bg-surface-container-low rounded-lg">
                 <p className="text-secondary text-lg">Your basket is empty</p>
-                <Link to="/shop" className="text-primary font-bold mt-4 inline-block hover:underline">
+                <Link to="/browse" className="text-primary font-bold mt-4 inline-block hover:underline">
                   Start shopping
                 </Link>
               </div>

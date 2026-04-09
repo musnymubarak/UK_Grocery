@@ -54,7 +54,7 @@ export default function OrderSuccess() {
               Track Order
             </button>
             <button 
-              onClick={() => navigate('/shop')}
+              onClick={() => navigate('/browse')}
               className="w-full sm:w-auto px-10 py-5 bg-secondary-container text-on-secondary-container font-bold rounded-xl hover:bg-outline-variant/30 transition-all active:scale-95"
             >
               Continue Shopping

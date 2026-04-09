@@ -1,27 +1,56 @@
+# Production overrides — pre-built static files, no dev servers
 services:
   backend:
     volumes:
       - /app
+      - upload_data:/app/uploads
+    command: sh -c "(alembic upgrade head || true) && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
 
-  frontend:
+  admin:
+    # In production, admin is built at image build time.
+    # Nginx reads the dist files directly from the image via named volume.
     volumes:
-      - /app
-      - /app/node_modules
+      - admin_dist:/usr/share/nginx/html
+    command: ["true"]
+    restart: "no"
+    healthcheck:
+      disable: true
 
-  client:
+  storefront:
     volumes:
-      - /app
-      - /app/node_modules
+      - storefront_dist:/usr/share/nginx/html
+    command: ["true"]
+    restart: "no"
+    healthcheck:
+      disable: true
 
   nginx:
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - admin_dist:/usr/share/nginx/html/admin:ro
+      - storefront_dist:/usr/share/nginx/html/shop:ro
+      - upload_data:/data/uploads:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      - backend
+      - admin
+      - storefront
 
+  # Certbot for SSL certificate management
+  certbot:
+    image: certbot/certbot
+    container_name: grocery_certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+
+  # Database backup service
   db-backup:
     build:
       context: ./backup
       dockerfile: Dockerfile
-    container_name: pos_db_backup
+    container_name: grocery_db_backup
     restart: unless-stopped
     env_file: .env
     environment:
@@ -44,5 +73,15 @@ services:
       retries: 3
 
 volumes:
+  admin_dist:
+    driver: local
+  storefront_dist:
+    driver: local
+  upload_data:
+    driver: local
   postgres_backups:
+    driver: local
+  certbot_certs:
+    driver: local
+  certbot_www:
     driver: local

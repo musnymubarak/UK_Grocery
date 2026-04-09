@@ -1,42 +1,51 @@
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  unit: string;
-  image: string;
-  category: string;
-  isOrganic?: boolean;
-  isNewSeason?: boolean;
-  isFreshlyBaked?: boolean;
-}
-
 export interface Category {
   id: string;
   name: string;
-  image: string;
-  badge?: string;
+  description?: string;
+  image_url?: string;
 }
 
-export interface CartItem extends Product {
-  quantity: number;
-}
-
-export interface Order {
+export interface Product {
   id: string;
-  date: string;
-  status: 'In Progress' | 'Delivered' | 'Cancelled';
-  total: number;
-  items: CartItem[];
-  image: string;
+  name: string;
+  description?: string;
+  price: number;
+  unit?: string;
+  image_url?: string;
+  category_id?: string;
+  category_name?: string;
+  is_active?: boolean;
 }
 
 export interface Store {
   id: string;
   name: string;
-  address: string;
-  city: string;
-  postcode: string;
-  openUntil: string;
-  isNearest?: boolean;
+  address?: string;
+  city?: string;
+  postcode?: string;
+  phone?: string;
+  is_active?: boolean;
+}
+
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  description: string;
+  unit: string;
+}
+
+export interface Order {
+  id: string;
+  status: string;
+  total_amount?: number;
+  created_at: string;
+  items?: Array<{
+    product_id: string;
+    product_name?: string;
+    quantity: number;
+    unit_price?: number;
+  }>;
 }

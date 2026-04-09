@@ -1,33 +1,51 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { CartItem, Product, Store } from './types';
+
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  description: string;
+  unit: string;
+}
+
+export interface SelectedStore {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  postcode: string;
+  openUntil: string;
+}
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product) => void;
+  addToCart: (item: CartItem) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, delta: number) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
-  selectedStore: Store | null;
-  setSelectedStore: (store: Store) => void;
+  selectedStore: SelectedStore | null;
+  setSelectedStore: (store: SelectedStore) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [selectedStore, setSelectedStore] = useState<SelectedStore | null>(null);
 
-  const addToCart = (product: Product) => {
+  const addToCart = (item: CartItem) => {
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      const existing = prev.find(i => i.id === item.id);
       if (existing) {
-        return prev.map(item => 
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        return prev.map(i => 
+          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...item, quantity: 1 }];
     });
   };
 

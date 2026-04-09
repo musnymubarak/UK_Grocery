@@ -1,20 +1,70 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { CATEGORIES, PRODUCTS } from '../constants';
+import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../CartContext';
+import { catalogApi } from '../services/api';
+import { Loader2 } from 'lucide-react';
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  unit?: string;
+  image_url?: string;
+  category_id?: string;
+  category_name?: string;
+  description?: string;
+}
 
 export default function Aisle() {
   const { id } = useParams();
-  const category = CATEGORIES.find(c => c.id === id);
-  const products = PRODUCTS.filter(p => p.category === id);
   const { totalItems, totalPrice } = useCart();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categoryName, setCategoryName] = useState('');
 
-  if (!category) return <div>Category not found</div>;
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    catalogApi.getProducts({ category_id: id })
+      .then(res => {
+        const items = res.data.items || res.data;
+        setProducts(items);
+        if (items.length > 0 && items[0].category_name) {
+          setCategoryName(items[0].category_name);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, [id]);
+
+  // Also try to get category name if not from products
+  useEffect(() => {
+    if (!id || categoryName) return;
+    catalogApi.getCategories()
+      .then(res => {
+        const cat = res.data.find((c: { id: string; name: string }) => c.id === id);
+        if (cat) setCategoryName(cat.name);
+      })
+      .catch(() => {});
+  }, [id, categoryName]);
+
+  if (loading) {
+    return (
+      <Layout title="Loading..." showBack>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="animate-spin text-primary" size={40} />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
-    <Layout title={category.name} showBack>
+    <Layout title={categoryName || 'Products'} showBack>
       <div className="max-w-7xl mx-auto px-6 pb-32">
         {/* Filter Chips */}
         <section className="py-6 overflow-x-auto no-scrollbar flex items-center gap-3">
@@ -27,17 +77,29 @@ export default function Aisle() {
           <button className="flex-shrink-0 px-6 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium hover:bg-surface-container-highest transition-colors">
             Price: Low to High
           </button>
-          <button className="flex-shrink-0 px-6 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium hover:bg-surface-container-highest transition-colors">
-            Organic Only
-          </button>
         </section>
 
         {/* Product Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-10 gap-x-6 lg:gap-x-10 mt-4">
           {products.map(product => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product.id} product={{
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              unit: product.unit || 'each',
+              image: product.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=2C682E&color=fff&size=400`,
+              description: product.description || '',
+              category: product.category_id || '',
+            }} />
           ))}
         </div>
+
+        {products.length === 0 && (
+          <div className="text-center py-20 text-on-surface-variant">
+            <p className="text-lg">No products in this category yet.</p>
+            <Link to="/browse" className="text-primary font-bold mt-4 inline-block">Browse other aisles</Link>
+          </div>
+        )}
 
         {/* Sticky Cart Bar */}
         {totalItems > 0 && (
