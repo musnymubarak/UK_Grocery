@@ -347,6 +347,10 @@ export default function ProductsPage() {
                                 <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No products yet</td></tr>
                             ) : products.map((product) => (
                                 <tr key={product.id}>
+                                    <td>
+                                        <input type="checkbox"
+                                            checked={selectedIds.has(product.id)}
+                                            onChange={() => toggleSelect(product.id)}
                                             style={{ accentColor: 'var(--primary)', cursor: 'pointer' }} />
                                     </td>
                                     <td>
