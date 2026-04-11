@@ -47,6 +47,29 @@ async def my_orders(
     result = await db.execute(query)
     return list(result.scalars().all())
 
+@router.get("/me/{order_id}", response_model=OrderResponse)
+async def get_my_order(
+    order_id: UUID,
+    current_customer: Customer = Depends(get_current_customer),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Get details of a specific order for the logged-in customer."""
+    from sqlalchemy import select
+    from app.models.order import Order
+    from app.core.exceptions import NotFoundException
+
+    query = select(Order).where(
+        Order.id == order_id, 
+        Order.customer_id == current_customer.id
+    )
+    result = await db.execute(query)
+    order = result.scalar_one_or_none()
+    
+    if not order:
+        raise NotFoundException("Order", order_id)
+        
+    return order
+
 
 # ====================
 # ADMIN / STAFF ROUTES

@@ -14,10 +14,13 @@ from app.models.stock_movement import StockMovement
 from app.repositories.base import BaseRepository
 from app.schemas.product import ProductCreate, ProductUpdate
 from app.core.exceptions import NotFoundException, ConflictException
-from fastapi import Request
 from app.models.user import User
 from app.services.audit import AuditService
 from app.constants.audit_actions import AuditAction
+from app.core.config import settings
+from fastapi import Request, UploadFile
+import os
+import shutil
 
 class ProductService:
     def __init__(self, db: AsyncSession):
@@ -232,3 +235,30 @@ class ProductService:
                 "threshold": product.low_stock_threshold,
             })
         return items
+
+    async def upload_product_image(self, product_id: UUID, image: UploadFile, org_id: UUID) -> Product:
+        """Upload and save product image locally."""
+        product = await self.repo.get_by_id(product_id)
+        if not product or product.organization_id != org_id:
+            raise NotFoundException("Product", product_id)
+
+        # Ensure sub-directory exists
+        product_dir = os.path.join(settings.UPLOAD_DIR, "products")
+        if not os.path.exists(product_dir):
+            os.makedirs(product_dir, exist_ok=True)
+
+        # Generate unique filename
+        ext = os.path.splitext(image.filename)[1] if image.filename else ".jpg"
+        filename = f"product_{str(product.id)}_{uuid.uuid4().hex[:8]}{ext}"
+        file_path = os.path.join(product_dir, filename)
+
+        # Save file to disk
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        # Update database with relative path
+        # Note: We use forward slashes for the URL
+        image_url = f"/uploads/products/{filename}"
+        await self.repo.update(product_id, {"image_url": image_url})
+        
+        return product

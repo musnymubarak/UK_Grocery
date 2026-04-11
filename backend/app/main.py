@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.core.config import settings
 from app.core.database import engine, Base
@@ -54,6 +56,13 @@ def create_app() -> FastAPI:
 
     # Routers
     application.include_router(api_router, prefix="/api/v1")
+
+    # Ensure uploads directory exists
+    if not os.path.exists(settings.UPLOAD_DIR):
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    
+    # Mount static files for dev access to uploads
+    application.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
     return application
 

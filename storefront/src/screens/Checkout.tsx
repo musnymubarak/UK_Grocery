@@ -37,7 +37,7 @@ export default function Checkout() {
     setError(null);
 
     try {
-      await orderApi.checkout(selectedStore.id, {
+      const res = await orderApi.checkout(selectedStore.id, {
         items: cart.map(item => ({
           product_id: item.id,
           quantity: item.quantity,
@@ -47,7 +47,8 @@ export default function Checkout() {
         notes,
       });
       clearCart();
-      navigate('/success');
+      const orderId = res.data.id;
+      navigate(`/tracking/${orderId}`);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to place order. Please try again.'));
     } finally {

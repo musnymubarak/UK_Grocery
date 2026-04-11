@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { productApi, categoryApi, storeApi, getErrorMessage } from '../../services/api';
 import type { Product, Category, Store } from '../../types';
-import { Plus, Edit2, Trash2, Search, Printer, Check, Zap, ScanBarcode, History } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Printer, Check, Zap, ScanBarcode, History, Image as ImageIcon, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import JsBarcode from 'jsbarcode';
 import EntityHistoryPanel from '../../components/audit/EntityHistoryPanel';
@@ -62,6 +62,7 @@ export default function ProductsPage() {
         cost_price: '', selling_price: '', tax_rate: '0', unit: 'pcs', low_stock_threshold: '10',
         store_id: '', initial_stock: '0',
     });
+    const [uploading, setUploading] = useState(false);
 
     const [historyEntityId, setHistoryEntityId] = useState<string | null>(null);
     const [historyEntityName, setHistoryEntityName] = useState<string>('');
@@ -71,6 +72,7 @@ export default function ProductsPage() {
     const [scanMode, setScanMode] = useState(false);
     const barcodeInputRef = useRef<HTMLInputElement>(null);
     const barcodePreviewRef = useRef<SVGSVGElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Label print state
     const [showLabelModal, setShowLabelModal] = useState(false);
@@ -206,6 +208,31 @@ export default function ProductsPage() {
         }
     };
 
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !editProduct) return;
+
+        // Basic validation
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image too large (max 5MB)');
+            return;
+        }
+
+        setUploading(true);
+        try {
+            await productApi.uploadImage(editProduct.id, file);
+            toast.success('Image uploaded');
+            // Refresh data to show new image
+            loadData();
+            // Close modal after success to show the update in list
+            setShowModal(false);
+        } catch (err) {
+            toast.error(getErrorMessage(err, 'Upload failed'));
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleDelete = async (id: string) => {
         if (!confirm('Delete this product?')) return;
         try {
@@ -302,6 +329,7 @@ export default function ProductsPage() {
                                         onChange={toggleSelectAll}
                                         style={{ accentColor: 'var(--primary)', cursor: 'pointer' }} />
                                 </th>
+                                <th>Image</th>
                                 <th>Name</th>
                                 <th>SKU</th>
                                 <th>Barcode</th>
@@ -319,11 +347,16 @@ export default function ProductsPage() {
                                 <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No products yet</td></tr>
                             ) : products.map((product) => (
                                 <tr key={product.id}>
-                                    <td>
-                                        <input type="checkbox"
-                                            checked={selectedIds.has(product.id)}
-                                            onChange={() => toggleSelect(product.id)}
                                             style={{ accentColor: 'var(--primary)', cursor: 'pointer' }} />
+                                    </td>
+                                    <td>
+                                        <div style={{ width: 40, height: 40, borderRadius: 6, background: 'var(--bg-secondary)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
+                                            {product.image_url ? (
+                                                <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <ImageIcon size={20} style={{ opacity: 0.3 }} />
+                                            )}
+                                        </div>
                                     </td>
                                     <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{product.name}</td>
                                     <td><span className="badge badge-primary">{product.sku}</span></td>
@@ -355,6 +388,34 @@ export default function ProductsPage() {
                             <h3 className="modal-title">{editProduct ? 'Edit Product' : 'New Product'}</h3>
                             <button className="btn-icon" onClick={() => setShowModal(false)}><CloseIcon size={16} /></button>
                         </div>
+
+                        {/* Image Section (Edit only) */}
+                        {editProduct && (
+                            <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', gap: 20 }}>
+                                <div style={{ width: 100, height: 100, borderRadius: 12, background: '#fff', border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {products.find(p => p.id === editProduct.id)?.image_url ? (
+                                        <img src={products.find(p => p.id === editProduct.id)?.image_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <ImageIcon size={32} style={{ opacity: 0.2 }} />
+                                    )}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <h4 style={{ margin: '0 0 4px 0', fontSize: '0.95rem' }}>Product Photo</h4>
+                                    <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>JPG or PNG, max 5MB</p>
+                                    <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={uploading}
+                                        style={{ height: 36, fontSize: '0.85rem' }}
+                                    >
+                                        <Upload size={14} /> {uploading ? 'Uploading...' : 'Change Photo'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <form onSubmit={handleSubmit}>
                             <div className="input-group">
                                 <div className="form-group" style={{ flex: 1 }}>

@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Search, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
 
 interface Category {
@@ -16,6 +16,9 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     catalogApi.getCategories()
@@ -28,6 +31,26 @@ export default function Home() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setIsSearching(true);
+      catalogApi.getProducts({ search: searchQuery, limit: 12 })
+        .then(res => {
+          setSearchResults(res.data.items || []);
+          setIsSearching(false);
+        })
+        .catch(() => setIsSearching(false));
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fallback images for categories without images
   const categoryImages: Record<string, string> = {
@@ -82,12 +105,61 @@ export default function Home() {
               type="text"
               placeholder="Search for fresh organic produce..."
               className="w-full bg-surface-container-high border-none rounded-xl py-5 pl-14 pr-6 text-on-surface focus:ring-2 focus:ring-primary/20 placeholder-secondary transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {isSearching && (
+              <div className="absolute inset-y-0 right-5 flex items-center">
+                <Loader2 className="animate-spin text-primary" size={20} />
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Category Grid */}
-        <section>
+        {searchQuery ? (
+          /* Search Results Section */
+          <section className="mb-20 min-h-[40vh]">
+             <div className="flex justify-between items-end mb-8">
+              <div>
+                <h2 className="text-3xl font-extrabold tracking-tighter text-on-surface mb-1">Search Results</h2>
+                <p className="text-secondary font-medium">Found {searchResults.length} items for "{searchQuery}"</p>
+              </div>
+            </div>
+
+            {searchResults.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {searchResults.map((product) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-surface-container-low p-4 rounded-xl border border-outline-variant hover:border-primary transition-all group"
+                  >
+                    <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-white">
+                      <img 
+                        src={product.image_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400'} 
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    </div>
+                    <h4 className="font-bold text-sm text-on-surface line-clamp-1">{product.name}</h4>
+                    <p className="text-secondary text-xs mb-2">Each</p>
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-on-surface">£{Number(product.selling_price).toFixed(2)}</span>
+                      <Link to={`/aisle/${product.category_id}`} className="text-primary text-[10px] font-bold uppercase tracking-wider">View</Link>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : !isSearching && (
+              <div className="text-center py-10 text-secondary">
+                <p>No products found matching your search.</p>
+              </div>
+            )}
+          </section>
+        ) : (
+          /* Category Grid */
+          <section>
           <div className="flex justify-between items-end mb-8">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tighter text-on-surface mb-1">Aisles & Collections</h2>
@@ -126,6 +198,7 @@ export default function Home() {
             </div>
           )}
         </section>
+        )}
 
         {/* Editorial Block */}
         <section className="my-20">
