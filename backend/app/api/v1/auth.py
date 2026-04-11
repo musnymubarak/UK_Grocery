@@ -22,7 +22,8 @@ from app.schemas.auth import (
     OrganizationResponse,
 )
 from app.models.user import User
-from app.core.exceptions import NotFoundException
+from app.models.organization import Organization
+from app.core.exceptions import NotFoundException, ForbiddenException
 from pydantic import BaseModel, EmailStr, Field
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -39,6 +40,11 @@ class SetupRequest(BaseModel):
 @router.post("/setup", summary="Bootstrap: Create organization + admin")
 async def setup_organization(data: SetupRequest, db: AsyncSession = Depends(get_db)):
     """One-time setup: create organization and initial admin user."""
+    # Security: check if any organization already exists
+    existing_org = await db.execute(select(Organization).limit(1))
+    if existing_org.scalar_one_or_none():
+        raise ForbiddenException("Organization already exists. Setup is locked.")
+
     service = AuthService(db)
     result = await service.setup_organization(
         name=data.org_name,

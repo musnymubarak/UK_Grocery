@@ -24,7 +24,7 @@ class CustomerService:
             phone=data.phone
         )
         db.add(customer)
-        await db.commit()
+        await db.flush()
         await db.refresh(customer)
         return customer
 
@@ -65,7 +65,7 @@ class CustomerService:
         if data.is_active is not None:
             customer.is_active = data.is_active
             
-        await db.commit()
+        await db.flush()
         await db.refresh(customer)
         return customer
 
@@ -90,7 +90,7 @@ class CustomerService:
             is_default=data.is_default or len(customer.addresses) == 0
         )
         db.add(address)
-        await db.commit()
+        await db.flush()
         await db.refresh(address)
         return address
 
@@ -100,4 +100,4 @@ class CustomerService:
         if not address:
             raise NotFoundException("Address not found")
         await db.delete(address)
-        await db.commit()
+        await db.flush()
