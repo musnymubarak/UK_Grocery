@@ -86,9 +86,9 @@ class OrderService:
                 product_name=product.name,
                 product_sku=product.sku,
                 quantity=item_data.quantity,
-                unit_price=product.price,
+                unit_price=product.selling_price,
                 tax_amount=0, # Simplified
-                total=product.price * item_data.quantity
+                total=product.selling_price * item_data.quantity
             )
             self.db.add(order_item)
             
@@ -102,7 +102,7 @@ class OrderService:
             )
             
         order.total = order.subtotal + order.delivery_fee - order.discount
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(order)
         return order
 
@@ -156,7 +156,7 @@ class OrderService:
             if order.payment_method == "cod":
                 order.payment_status = "paid"
 
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(order)
         return order
 
@@ -171,6 +171,6 @@ class OrderService:
             raise ValidationException("Delivery boy must belong to the same store")
 
         order.assigned_to = delivery_boy_id
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(order)
         return order

@@ -6,6 +6,10 @@ services:
       - upload_data:/app/uploads
     command: sh -c "(alembic upgrade head || true) && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
 
+  postgres:
+    # Disable host port mapping in production for security
+    ports: []
+
   admin:
     # In production, admin is built at image build time.
     # Nginx reads the dist files directly from the image via named volume.

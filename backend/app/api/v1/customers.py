@@ -12,7 +12,7 @@ from app.core.dependencies import get_current_user, require_role, get_org_contex
 from app.core.security import create_access_token
 from app.core.exceptions import UnauthorizedException
 from app.models.user import User
-from app.models.customer import Customer
+from app.models.customer import Customer, CustomerAddress
 from app.schemas.customer import (
     CustomerCreate, CustomerResponse, CustomerUpdate, 
     CustomerAddressCreate, CustomerAddressResponse,
