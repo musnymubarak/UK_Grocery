@@ -1,8 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import ProductCard from '../components/ProductCard';
+import { ProductCard } from '../components/ProductCard';
 import { useCart } from '../CartContext';
 import { catalogApi } from '../services/api';
 import { Loader2 } from 'lucide-react';

@@ -85,6 +85,13 @@ export const productApi = {
     update: (id: string, data: any) => api.put(`/products/${id}`, data),
     delete: (id: string) => api.delete(`/products/${id}`),
     lowStock: (storeId?: string) => api.get('/products/low-stock', { params: { store_id: storeId } }),
+    uploadImage: (id: string, file: File) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        return api.post(`/products/${id}/image`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
 };
 
 // --- Category API ---

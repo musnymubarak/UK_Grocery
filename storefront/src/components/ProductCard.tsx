@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion } from 'motion/react';
 import { Plus, Minus } from 'lucide-react';
 import { useCart } from '../CartContext';
@@ -14,9 +15,10 @@ interface ProductCardProduct {
 
 interface ProductCardProps {
   product: ProductCardProduct;
+  key?: React.Key;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { cart, addToCart, updateQuantity } = useCart();
   const cartItem = cart.find(item => item.id === product.id);
 

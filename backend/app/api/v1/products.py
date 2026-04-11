@@ -4,7 +4,7 @@ Product management API routes.
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db, get_current_user, require_role, get_org_context
@@ -107,3 +107,16 @@ async def delete_product(
     service = ProductService(db)
     await service.delete_product(product_id, org_id, user=current_user, request=request)
     return {"message": "Product deleted", "success": True}
+
+
+@router.post("/{product_id}/image", response_model=ProductResponse, summary="Upload product image")
+async def upload_product_image(
+    product_id: UUID,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(["admin"])),
+    org_id: UUID = Depends(get_org_context),
+):
+    """Upload product image (admin/manager only)."""
+    service = ProductService(db)
+    return await service.upload_product_image(product_id, image, org_id)

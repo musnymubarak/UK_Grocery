@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     CORS_ORIGINS: str = "http://localhost,http://localhost:5173"
+    UPLOAD_DIR: str = "uploads"
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://pos_user:pos_password@localhost:5432/pos_db"

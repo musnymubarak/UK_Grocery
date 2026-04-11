@@ -65,7 +65,8 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
           <NavLink to="/shop" icon={<Leaf size={24} />} label="Categories" active={location.pathname === '/shop' || location.pathname.startsWith('/aisle')} />
           <NavLink to="/stores" icon={<Search size={24} />} label="Stores" active={location.pathname === '/stores'} />
           <NavLink to="/cart" icon={<ShoppingBasket size={24} />} label="Cart" active={location.pathname === '/cart'} />
-          <NavLink to="/history" icon={<User size={24} />} label="Orders" active={location.pathname === '/history' || location.pathname === '/tracking' || location.pathname === '/success'} />
+          <NavLink to="/history" icon={<ShoppingBasket size={24} />} label="Orders" active={location.pathname === '/history' || location.pathname.startsWith('/tracking') || location.pathname === '/success'} />
+          <NavLink to="/profile" icon={<User size={24} />} label="Account" active={location.pathname === '/profile'} />
         </nav>
       )}
     </div>

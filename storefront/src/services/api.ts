@@ -114,6 +114,8 @@ export const orderApi = {
   }) => api.post(`/orders/checkout?store_id=${storeId}`, data),
 
   myOrders: () => api.get('/orders/me'),
+  
+  getMyOrder: (id: string) => api.get(`/orders/me/${id}`),
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────

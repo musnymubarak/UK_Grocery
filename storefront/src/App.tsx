@@ -13,6 +13,7 @@ import OrderSuccess from './screens/OrderSuccess';
 import OrderTracking from './screens/OrderTracking';
 import OrderHistory from './screens/OrderHistory';
 import StoreSelection from './screens/StoreSelection';
+import Profile from './screens/Profile';
 import Login from './screens/Login';
 import { AnimatePresence } from 'motion/react';
 
@@ -29,8 +30,9 @@ export default function App() {
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/success" element={<OrderSuccess />} />
-              <Route path="/tracking" element={<OrderTracking />} />
+              <Route path="/tracking/:id" element={<OrderTracking />} />
               <Route path="/history" element={<OrderHistory />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/stores" element={<StoreSelection />} />
               <Route path="/login" element={<Login />} />
             </Routes>

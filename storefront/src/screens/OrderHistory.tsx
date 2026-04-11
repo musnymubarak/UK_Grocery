@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 interface OrderData {
   id: string;
   status: string;
-  total_amount?: number;
+  total: number;
   created_at: string;
   items?: Array<{ product_name?: string; quantity: number }>;
 }
@@ -36,7 +36,7 @@ export default function OrderHistory() {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'delivered': return 'bg-primary/10 text-primary';
-      case 'pending': case 'confirmed': return 'bg-tertiary-container text-on-tertiary-container';
+      case 'received': case 'packed': case 'on_delivery': return 'bg-tertiary-container text-on-tertiary-container';
       case 'cancelled': return 'bg-error/10 text-error';
       default: return 'bg-secondary-container text-on-secondary-container';
     }
@@ -99,10 +99,13 @@ export default function OrderHistory() {
                     <p className="text-on-surface-variant text-sm">Placed on {formatDate(order.created_at)}</p>
                   </div>
                   <div className="md:text-right flex flex-row md:flex-col justify-between md:justify-center items-center md:items-end gap-2 md:pl-8 md:border-l md:border-surface-container">
-                    {order.total_amount && (
-                      <p className="text-2xl font-bold text-primary">£{Number(order.total_amount).toFixed(2)}</p>
+                    {order.total && (
+                      <p className="text-2xl font-bold text-primary">£{Number(order.total).toFixed(2)}</p>
                     )}
-                    <button className="flex items-center gap-1 text-sm font-bold text-primary hover:opacity-70 transition-opacity">
+                    <button 
+                      onClick={() => navigate(`/tracking/${order.id}`)}
+                      className="flex items-center gap-1 text-sm font-bold text-primary hover:opacity-70 transition-opacity"
+                    >
                       View Details
                       <ChevronRight size={18} />
                     </button>
