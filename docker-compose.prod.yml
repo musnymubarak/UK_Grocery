@@ -32,7 +32,7 @@ services:
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - admin_dist:/usr/share/nginx/html/admin:ro
-      - storefront_dist:/usr/share/nginx/html/shop:ro
+      - storefront_dist:/usr/share/nginx/html:ro
       - upload_data:/data/uploads:ro
       - certbot_certs:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro

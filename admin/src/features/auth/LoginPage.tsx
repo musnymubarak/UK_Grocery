@@ -5,6 +5,7 @@ import React, { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { ShoppingBag } from 'lucide-react';
+import { getErrorMessage } from '../../services/api';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -21,9 +22,9 @@ export default function LoginPage() {
 
         try {
             await login(email, password);
-            navigate('/pos');
+            navigate('/dashboard');
         } catch (err: any) {
-            setError(err?.response?.data?.detail || 'Login failed. Please check your credentials.');
+            setError(getErrorMessage(err, 'Login failed. Please check your credentials.'));
         } finally {
             setLoading(false);
         }

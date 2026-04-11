@@ -41,7 +41,10 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             localStorage.removeItem('pos_token');
             localStorage.removeItem('pos_user');
-            window.location.href = '/login';
+            // Only redirect/reload if we aren't already on the login page
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }

@@ -56,12 +56,11 @@ services:
     depends_on:
       - backend
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:5173 > /dev/null || exit 1" ]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:80 > /dev/null || exit 1" ]
       interval: 10s
       timeout: 10s
       retries: 10
       start_period: 60s
-    command: npm run dev -- --host 0.0.0.0
 
   storefront:
     build:
@@ -72,12 +71,11 @@ services:
       - ./storefront:/app
       - /app/node_modules
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:3000 > /dev/null || exit 1" ]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:80 > /dev/null || exit 1" ]
       interval: 10s
       timeout: 10s
       retries: 10
       start_period: 60s
-    command: npm run dev
 
   nginx:
     image: nginx:alpine
