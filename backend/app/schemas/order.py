@@ -21,6 +21,8 @@ class OrderItemResponse(OrderItemBase):
     total: Decimal
     created_at: datetime
     updated_at: datetime
+    is_substituted: bool = False
+    substituted_product_id: Optional[UUID] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -35,7 +37,7 @@ class OrderCreate(OrderBase):
     items: List[OrderItemCreate]
 
 class OrderUpdateStatus(BaseModel):
-    status: str # received, packed, on_delivery, delivered, cancelled
+    status: str # placed, confirmed, picking, substitution_pending, ready_for_collection, assigned_to_driver, out_for_delivery, delivered, rejected, delivery_failed, refund_requested, refunded, cancelled
 
 class OrderAssign(BaseModel):
     delivery_boy_id: UUID
@@ -56,6 +58,16 @@ class OrderResponse(OrderBase):
     delivered_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    
+    # shop.md extensions
+    order_type: str
+    service_fee: Decimal
+    tip_amount: Decimal
+    coupon_code: Optional[str] = None
+    confirmed_at: Optional[datetime] = None
+    picked_at: Optional[datetime] = None
+    dispatched_at: Optional[datetime] = None
+    rejected_reason: Optional[str] = None
     items: List[OrderItemResponse] = []
 
     model_config = ConfigDict(from_attributes=True)

@@ -52,6 +52,18 @@ class ProductCreate(BaseModel):
     store_id: Optional[UUID] = None  # store to initialize stock for
     initial_stock: int = Field(default=0, ge=0)  # initial quantity
 
+    # shop.md extensions
+    member_price: Optional[Decimal] = Field(None, ge=0)
+    promo_price: Optional[Decimal] = Field(None, ge=0)
+    promo_start: Optional[datetime] = None
+    promo_end: Optional[datetime] = None
+    is_age_restricted: bool = False
+    age_restriction_type: Optional[str] = None
+    allergens: Optional[List[str]] = None
+    nutritional_info: Optional[dict] = None
+    weight_unit: Optional[str] = None
+    calories_per_100g: Optional[Decimal] = None
+
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -64,6 +76,18 @@ class ProductUpdate(BaseModel):
     unit: Optional[str] = None
     low_stock_threshold: Optional[int] = Field(None, ge=0)
     image_url: Optional[str] = None
+
+    # shop.md extensions
+    member_price: Optional[Decimal] = Field(None, ge=0)
+    promo_price: Optional[Decimal] = Field(None, ge=0)
+    promo_start: Optional[datetime] = None
+    promo_end: Optional[datetime] = None
+    is_age_restricted: Optional[bool] = None
+    age_restriction_type: Optional[str] = None
+    allergens: Optional[List[str]] = None
+    nutritional_info: Optional[dict] = None
+    weight_unit: Optional[str] = None
+    calories_per_100g: Optional[Decimal] = None
 
 
 class ProductResponse(BaseModel):
@@ -83,6 +107,18 @@ class ProductResponse(BaseModel):
     image_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+
+    # shop.md extensions
+    member_price: Optional[Decimal] = None
+    promo_price: Optional[Decimal] = None
+    promo_start: Optional[datetime] = None
+    promo_end: Optional[datetime] = None
+    is_age_restricted: bool
+    age_restriction_type: Optional[str] = None
+    allergens: Optional[List[str]] = None
+    nutritional_info: Optional[dict] = None
+    weight_unit: Optional[str] = None
+    calories_per_100g: Optional[Decimal] = None
 
     model_config = {"from_attributes": True}
 

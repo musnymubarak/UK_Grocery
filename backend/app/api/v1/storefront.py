@@ -90,6 +90,17 @@ async def list_products(
             "unit": getattr(p, 'unit', None),
             "is_active": getattr(p, 'is_active', True),
             "stock": qty if qty is not None else 0,
+            
+            # shop.md extensions
+            "member_price": float(p.member_price) if p.member_price is not None else None,
+            "promo_price": float(p.promo_price) if p.promo_price is not None else None,
+            "promo_start": p.promo_start.isoformat() if p.promo_start else None,
+            "promo_end": p.promo_end.isoformat() if p.promo_end else None,
+            "is_age_restricted": p.is_age_restricted,
+            "allergens": p.allergens,
+            "nutritional_info": p.nutritional_info,
+            "weight_unit": p.weight_unit,
+            "calories_per_100g": float(p.calories_per_100g) if p.calories_per_100g is not None else None,
         }
         items.append(item)
 
@@ -146,6 +157,14 @@ async def get_product(
         "category_name": cat_name,
         "image_url": getattr(product, 'image_url', None),
         "unit": getattr(product, 'unit', None),
+
+        # shop.md extensions
+        "member_price": float(product.member_price) if product.member_price is not None else None,
+        "promo_price": float(product.promo_price) if product.promo_price is not None else None,
+        "is_age_restricted": product.is_age_restricted,
+        "allergens": product.allergens,
+        "nutritional_info": product.nutritional_info,
+        "weight_unit": product.weight_unit,
     }
 
 
@@ -199,6 +218,16 @@ async def list_stores(
             "postcode": getattr(s, 'postcode', None),
             "phone": getattr(s, 'phone', None),
             "is_active": getattr(s, 'is_active', True),
+
+            # shop.md extensions
+            "slug": s.slug,
+            "store_type": s.store_type,
+            "logo_url": s.logo_url,
+            "banner_url": s.banner_url,
+            "delivery_fee": float(s.default_delivery_fee),
+            "free_delivery_threshold": float(s.free_delivery_threshold),
+            "min_order_value": float(s.min_order_value),
+            "is_open": s.is_open,
         }
         for s in stores
     ]

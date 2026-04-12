@@ -1,7 +1,7 @@
 """
 Customer model — B2C users who purchase products.
 """
-from sqlalchemy import Column, String, ForeignKey, Boolean, Text, Numeric
+from sqlalchemy import Column, String, ForeignKey, Boolean, Text, Numeric, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -26,6 +26,16 @@ class Customer(TimestampMixin, Base):
     membership_tier = Column(String(50), default="standard", nullable=False) # standard, premium, vip
     lifetime_value = Column(Numeric(12, 2), default=0.00, nullable=False)
     discount_rate = Column(Numeric(5, 2), default=0.00, nullable=False)
+
+    # shop.md extensions
+    dob = Column(Date, nullable=True)
+    wallet_balance = Column(Numeric(12, 2), default=0.00, nullable=False)
+    referral_code = Column(String(20), unique=True, nullable=True, index=True)
+    referred_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("customers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     # Relationships
     organization = relationship("Organization")

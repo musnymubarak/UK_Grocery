@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 
 class CustomerAddressBase(BaseModel):
@@ -39,9 +39,9 @@ class CustomerCreate(CustomerBase):
     password: str
 
 class CustomerUpdate(BaseModel):
-    full_name: Optional[str] = None
     phone: Optional[str] = None
     is_active: Optional[bool] = None
+    dob: Optional[date] = None
 
 class CustomerResponse(CustomerBase):
     id: UUID
@@ -52,6 +52,12 @@ class CustomerResponse(CustomerBase):
     discount_rate: Decimal
     created_at: datetime
     updated_at: datetime
+    
+    # shop.md extensions
+    dob: Optional[date] = None
+    wallet_balance: Decimal
+    referral_code: Optional[str] = None
+    referred_by: Optional[UUID] = None
     addresses: List[CustomerAddressResponse] = []
 
     class Config:

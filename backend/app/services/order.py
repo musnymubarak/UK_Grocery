@@ -18,11 +18,26 @@ from app.services.inventory import InventoryService
 from app.core.exceptions import NotFoundException, ValidationException
 
 VALID_TRANSITIONS = {
-    "received":    ["packed", "cancelled"],
-    "packed":      ["on_delivery", "cancelled"],
-    "on_delivery": ["delivered"],
-    "delivered":   [],
-    "cancelled":   []
+    "placed":                ["confirmed", "rejected", "cancelled"],
+    "confirmed":             ["picking", "cancelled"],
+    "picking":               ["substitution_pending", "ready_for_collection", "assigned_to_driver"],
+    "substitution_pending":  ["picking"],
+    "ready_for_collection":  ["delivered"],
+    "assigned_to_driver":    ["out_for_delivery"],
+    "out_for_delivery":      ["delivered", "delivery_failed"],
+    "delivered":             ["refund_requested"],
+    "rejected":              [],
+    "delivery_failed":       [],
+    "refund_requested":      ["refunded"],
+    "refunded":              [],
+    "cancelled":             [],
+}
+
+# Backward compatibility mapping
+STATUS_ALIASES = {
+    "received": "placed",
+    "packed": "confirmed",
+    "on_delivery": "out_for_delivery"
 }
 
 class OrderService:
@@ -65,10 +80,13 @@ class OrderService:
             customer_id=customer_id,
             delivery_address_id=data.delivery_address_id,
             order_number=self._generate_order_number(),
-            status="received",
+            status="placed",
             payment_method=data.payment_method,
             notes=data.notes,
-            delivery_instructions=data.delivery_instructions
+            delivery_instructions=data.delivery_instructions,
+            order_type=data.order_type,
+            service_fee=Decimal("0.50"), # Fixed service fee for now
+            tip_amount=Decimal("0.00"),
         )
         self.db.add(order)
         await self.db.flush()
@@ -109,19 +127,30 @@ class OrderService:
     async def update_status(self, order_id: UUID, new_status: str, user: User) -> Order:
         order = await self.get_order(order_id)
         
+        # Normalize status (backward compatibility)
+        new_status = STATUS_ALIASES.get(new_status, new_status)
+        current_status = STATUS_ALIASES.get(order.status, order.status)
+        
         if new_status not in VALID_TRANSITIONS:
             raise ValidationException(f"Invalid status: {new_status}")
             
-        if new_status not in VALID_TRANSITIONS.get(order.status, []):
-            raise ValidationException(f"Cannot transition from {order.status} to {new_status}")
+        if new_status not in VALID_TRANSITIONS.get(current_status, []):
+            raise ValidationException(f"Cannot transition from {current_status} to {new_status}")
 
         old_status = order.status
         order.status = new_status
         order.updated_at = datetime.now(timezone.utc)
 
-        # Triggers
-        if new_status == "packed":
+        # Timestamps and triggers
+        if new_status == "confirmed":
+            order.confirmed_at = datetime.now(timezone.utc)
+        elif new_status == "picking":
+            order.picked_at = datetime.now(timezone.utc)
+        elif new_status == "out_for_delivery":
+            order.dispatched_at = datetime.now(timezone.utc)
+        if new_status == "confirmed":
             # HARD COMMIT. Deduct inventory via FOR UPDATE lock
+            # Note: Previously this was on 'packed' which is now 'confirmed'
             for item in order.items:
                 await self.inventory_service.deduct_for_order(
                     product_id=item.product_id,
@@ -132,8 +161,9 @@ class OrderService:
                 )
                 
         elif new_status == "cancelled":
-            if old_status == "packed" or old_status == "on_delivery":
-                # Restore stock fully since we hard-deducted
+            if old_status in ["confirmed", "picking", "ready_for_collection", "assigned_to_driver", "out_for_delivery"]:
+                # Restore stock fully since we hard-deducted (or were about to)
+                # Note: mapped from 'packed' or 'on_delivery' logic
                 for item in order.items:
                     await self.inventory_service.restore_for_cancelled_after_pack(
                         product_id=item.product_id,
