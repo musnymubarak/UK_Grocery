@@ -134,7 +134,7 @@ class RewardsService:
         )
         spends = (await self.db.execute(query)).scalars().all()
         # Sum generic spend across all stores for UI simplicity if global tiers exist
-        total_spend = sum(s.spend_amount for s in spends)
+        total_spend = sum((s.spend_amount for s in spends), Decimal("0.00"))
 
         # Get earned rewards
         ev_query = select(RewardEvent).options(selectinload(RewardEvent.tier)).where(
