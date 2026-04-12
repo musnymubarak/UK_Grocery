@@ -36,7 +36,7 @@ class InventoryService:
         )
         inv = result.scalar_one_or_none()
         if not inv:
-            inv = Inventory(product_id=product_id, store_id=store_id, quantity=0)
+            inv = Inventory(product_id=product_id, store_id=store_id, quantity=0, reserved_quantity=0)
             self.db.add(inv)
             await self.db.flush()
             await self.db.refresh(inv)

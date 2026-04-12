@@ -2,6 +2,7 @@
 Order router - endpoints for managing orders (creation, status updates, assignment).
 """
 from typing import List, Optional
+import traceback
 from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,10 +41,10 @@ async def my_orders(
     db: AsyncSession = Depends(get_async_session)
 ):
     """List customer's orders."""
-    # Simplified: Ideally this needs to be a method in OrderService to get by customer_id
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
     from app.models.order import Order
-    query = select(Order).where(Order.customer_id == current_customer.id).order_by(Order.created_at.desc())
+    query = select(Order).options(selectinload(Order.items)).where(Order.customer_id == current_customer.id).order_by(Order.created_at.desc())
     result = await db.execute(query)
     return list(result.scalars().all())
 
@@ -55,10 +56,11 @@ async def get_my_order(
 ):
     """Get details of a specific order for the logged-in customer."""
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
     from app.models.order import Order
     from app.core.exceptions import NotFoundException
 
-    query = select(Order).where(
+    query = select(Order).options(selectinload(Order.items)).where(
         Order.id == order_id, 
         Order.customer_id == current_customer.id
     )
