@@ -47,10 +47,18 @@ async def list_products(
     """
     org = await _get_default_org(db)
 
-    query = select(Product).where(
+    query = select(Product, Inventory.quantity).where(
         Product.organization_id == org.id,
         Product.is_deleted == False,
     )
+
+    if store_id:
+        # Join with inventory and filter by store_id
+        # This ensures ONLY products in that store appear
+        query = query.join(Inventory, (Inventory.product_id == Product.id) & (Inventory.store_id == store_id))
+    else:
+        # If no store_id, use outerjoin so we still get results (though storefront usually requires one)
+        query = query.outerjoin(Inventory, (Inventory.product_id == Product.id))
 
     if category_id:
         query = query.where(Product.category_id == category_id)
@@ -65,11 +73,11 @@ async def list_products(
     # Paginate
     query = query.order_by(Product.name).offset(skip).limit(limit)
     result = await db.execute(query)
-    products = list(result.scalars().all())
+    rows = result.all()
 
     # If store_id provided, attach stock info
     items = []
-    for p in products:
+    for p, qty in rows:
         item = {
             "id": str(p.id),
             "name": p.name,
@@ -81,11 +89,12 @@ async def list_products(
             "image_url": getattr(p, 'image_url', None),
             "unit": getattr(p, 'unit', None),
             "is_active": getattr(p, 'is_active', True),
+            "stock": qty if qty is not None else 0,
         }
         items.append(item)
 
     # Batch load category names
-    cat_ids = {p.category_id for p in products if p.category_id}
+    cat_ids = {item["category_id"] for item in items if item["category_id"]}
     if cat_ids:
         cat_result = await db.execute(
             select(Category).where(Category.id.in_(cat_ids))

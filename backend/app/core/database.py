@@ -17,7 +17,7 @@ engine = create_async_engine(
     echo=False,
     pool_size=10,
     max_overflow=5,
-    pool_pre_ping=True,
+    pool_pre_ping=False,  # Disabled to fix MissingGreenlet error with asyncpg
     pool_recycle=300,
 )
 

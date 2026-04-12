@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import { Search, Loader2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
+import { useCart } from '../CartContext';
 
 interface Category {
   id: string;
@@ -13,6 +14,7 @@ interface Category {
 }
 
 export default function Home() {
+  const { selectedStore } = useCart();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,11 @@ export default function Home() {
 
     const timer = setTimeout(() => {
       setIsSearching(true);
-      catalogApi.getProducts({ search: searchQuery, limit: 12 })
+      catalogApi.getProducts({ 
+        search: searchQuery, 
+        store_id: selectedStore?.id,
+        limit: 12 
+      })
         .then(res => {
           setSearchResults(res.data.items || []);
           setIsSearching(false);

@@ -2,6 +2,7 @@ from uuid import UUID
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.models.customer import Customer, CustomerAddress
 from app.schemas.customer import CustomerCreate, CustomerUpdate, CustomerAddressCreate
@@ -21,16 +22,18 @@ class CustomerService:
             email=data.email,
             hashed_password=hash_password(data.password),
             full_name=data.full_name,
-            phone=data.phone
+            phone=data.phone,
         )
         db.add(customer)
         await db.flush()
-        await db.refresh(customer)
-        return customer
+        # Loading the customer again with addresses to ensure serialization works
+        return await CustomerService.get_customer(db, customer.id)
 
     @staticmethod
     async def get_customer(db: AsyncSession, customer_id: UUID) -> Customer:
-        customer = await db.get(Customer, customer_id)
+        stmt = select(Customer).where(Customer.id == customer_id).options(selectinload(Customer.addresses))
+        result = await db.execute(stmt)
+        customer = result.scalar_one_or_none()
         if not customer:
             raise NotFoundException("Customer not found")
         return customer

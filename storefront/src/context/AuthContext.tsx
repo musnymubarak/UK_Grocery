@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const profileRes = await customerAuthApi.getProfile();
       const customerData: Customer = {
         id: profileRes.data.id,
-        name: profileRes.data.name,
+        name: profileRes.data.full_name,
         email: profileRes.data.email,
         phone: profileRes.data.phone,
       };
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     setIsLoading(true);
     try {
-      await customerAuthApi.register({ name, email, password, phone });
+      await customerAuthApi.register({ full_name: name, email, password, phone });
       // Auto-login after registration
       await login(email, password);
     } catch (err) {
