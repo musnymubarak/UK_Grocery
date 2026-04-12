@@ -4,24 +4,53 @@ import { MapPin, CreditCard, ShieldCheck, Leaf, Lock, ShoppingBasket, Loader2 } 
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderApi, couponApi, getErrorMessage } from '../services/api';
-import { useState } from 'react';
+import { orderApi, couponApi, customerAuthApi, getErrorMessage } from '../services/api';
+import { useState, useEffect } from 'react';
 import React from 'react';
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { cart, totalPrice, clearCart, selectedStore } = useCart();
   const { isAuthenticated } = useAuth();
+  
+  // States
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  const [isNewAddress, setIsNewAddress] = useState(false);
+  
   const [postcode, setPostcode] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
+  
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
+  const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '' });
+  
   const [submitting, setSubmitting] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setIsLoadingProfile(true);
+      customerAuthApi.getProfile()
+        .then(res => {
+          const addrs = res.data.addresses || [];
+          setAddresses(addrs);
+          const defaultAddr = addrs.find((a: any) => a.is_default) || addrs[0];
+          if (defaultAddr) {
+            setSelectedAddressId(defaultAddr.id);
+          } else {
+            setIsNewAddress(true);
+          }
+        })
+        .finally(() => setIsLoadingProfile(false));
+    }
+  }, [isAuthenticated]);
 
   const finalTotal = Math.max(0, totalPrice - appliedDiscount);
 
@@ -73,8 +102,10 @@ export default function Checkout() {
           product_id: item.id,
           quantity: item.quantity,
         })),
-        delivery_address: `${address}, ${postcode}`,
-        delivery_postcode: postcode,
+        delivery_address_id: !isNewAddress ? selectedAddressId : undefined,
+        delivery_address: isNewAddress ? address : undefined,
+        delivery_postcode: isNewAddress ? postcode : undefined,
+        payment_method: paymentMethod,
         notes,
         coupon_code: appliedDiscount > 0 ? promoCode.trim().toUpperCase() : undefined,
       });
@@ -103,26 +134,70 @@ export default function Checkout() {
         )}
 
         <div className="space-y-6">
-          {/* Delivery Address */}
           <section className="bg-surface-container-low p-8 rounded-lg">
-            <div className="flex items-center gap-3 mb-6">
-              <MapPin className="text-primary" size={24} />
-              <h3 className="text-xl font-bold">Delivery Address</h3>
-            </div>
-            <div className="grid grid-cols-1 gap-5">
-              <Input label="Postcode" placeholder="e.g. SW1A 1AA" value={postcode} onChange={setPostcode} />
-              <Input label="Street Address" placeholder="123 Conservatory Lane" value={address} onChange={setAddress} />
-              <Input label="Contact Number" placeholder="+44 7700 900000" type="tel" value={phone} onChange={setPhone} />
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Delivery Notes</label>
-                <textarea 
-                  className="w-full bg-surface-container-high border-none rounded-sm px-4 py-3 focus:ring-2 focus:ring-primary/20 transition-shadow resize-none"
-                  placeholder="Gate code, leave by the porch, etc."
-                  rows={3}
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                />
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <MapPin className="text-primary" size={24} />
+                <h3 className="text-xl font-bold">Delivery Address</h3>
               </div>
+              {addresses.length > 0 && (
+                <button 
+                  onClick={() => setIsNewAddress(!isNewAddress)}
+                  className="text-xs font-bold text-primary uppercase tracking-widest hover:underline"
+                >
+                  {isNewAddress ? "Use Saved" : "Add New"}
+                </button>
+              )}
+            </div>
+
+            {isLoadingProfile ? (
+              <div className="flex items-center gap-3 text-on-surface-variant py-4">
+                <Loader2 className="animate-spin" size={18} />
+                <span className="text-sm">Fetching your addresses...</span>
+              </div>
+            ) : !isNewAddress && addresses.length > 0 ? (
+              <div className="space-y-4">
+                {addresses.map((addr) => (
+                  <div 
+                    key={addr.id}
+                    onClick={() => setSelectedAddressId(addr.id)}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      selectedAddressId === addr.id 
+                        ? 'border-primary bg-primary/5 shadow-sm' 
+                        : 'border-outline-variant hover:border-primary/30 bg-surface'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-on-surface">{addr.street}</p>
+                        <p className="text-sm text-on-surface-variant font-medium">{addr.city}, {addr.postcode}</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        selectedAddressId === addr.id ? 'border-primary bg-primary' : 'border-outline-variant'
+                      }`}>
+                        {selectedAddressId === addr.id && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                <Input label="Postcode" placeholder="e.g. SW1A 1AA" value={postcode} onChange={setPostcode} />
+                <Input label="Street Address" placeholder="123 Conservatory Lane" value={address} onChange={setAddress} />
+                <Input label="Contact Number" placeholder="+44 7700 900000" type="tel" value={phone} onChange={setPhone} />
+              </div>
+            )}
+            
+            <div className="mt-6 space-y-1.5 pt-6 border-t border-outline-variant/10">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Delivery Notes</label>
+              <textarea 
+                className="w-full bg-surface-container-high border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary/20 transition-shadow resize-none"
+                placeholder="Gate code, leave by the porch, etc."
+                rows={3}
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+              />
             </div>
           </section>
 
@@ -133,13 +208,56 @@ export default function Checkout() {
               <h3 className="text-xl font-bold">Payment Method</h3>
             </div>
             <div className="grid grid-cols-1 gap-4">
-              <button className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-md shadow-sm border border-outline-variant/10 hover:bg-surface-container transition-colors">
+              <button 
+                onClick={() => setPaymentMethod('cod')}
+                className={`flex items-center justify-between p-5 rounded-xl border-2 transition-all ${
+                  paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/20 bg-surface'
+                }`}
+              >
                 <div className="flex items-center gap-3">
-                  <span className="font-bold">Cash on Delivery</span>
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <ShoppingBasket size={20} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold">Cash on Delivery</p>
+                    <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Pay at your doorstep</p>
+                  </div>
                 </div>
-                <ShieldCheck className="text-primary" size={20} />
+                {paymentMethod === 'cod' && <ShieldCheck className="text-primary" size={24} />}
+              </button>
+
+              <button 
+                onClick={() => setPaymentMethod('online')}
+                className={`flex items-center justify-between p-5 rounded-xl border-2 transition-all ${
+                  paymentMethod === 'online' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/20 bg-surface'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <CreditCard size={20} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold">Card Payment</p>
+                    <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Visa, Mastercard, Amex</p>
+                  </div>
+                </div>
+                {paymentMethod === 'online' && <ShieldCheck className="text-primary" size={24} />}
               </button>
             </div>
+
+            {paymentMethod === 'online' && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mt-6 space-y-4 pt-6 border-t border-outline-variant/10 overflow-hidden"
+              >
+                <Input label="Card Number" placeholder="**** **** **** ****" value={cardDetails.number} onChange={v => setCardDetails({...cardDetails, number: v})} />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input label="Expiry Date" placeholder="MM/YY" value={cardDetails.expiry} onChange={v => setCardDetails({...cardDetails, expiry: v})} />
+                  <Input label="CVV" placeholder="***" type="password" value={cardDetails.cvv} onChange={v => setCardDetails({...cardDetails, cvv: v})} />
+                </div>
+              </motion.div>
+            )}
           </section>
 
           {/* Trust Indicators */}

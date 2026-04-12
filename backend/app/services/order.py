@@ -14,6 +14,7 @@ from fastapi import Request
 
 from app.models.order import Order, OrderItem
 from app.models.user import User
+from app.models.customer import CustomerAddress
 from app.schemas.order import OrderCreate, OrderUpdateStatus
 from app.services.inventory import InventoryService
 from app.services.coupon import CouponService
@@ -76,13 +77,28 @@ class OrderService:
         if not data.items:
             raise ValidationException("Order must have at least one item")
 
-        # Handle free-text delivery address if ID is missing
+        # Handle delivery address
         delivery_instr = data.delivery_instructions or ""
-        if data.delivery_address:
-            addr_str = f"Address: {data.delivery_address}"
+        
+        if data.delivery_address_id:
+            db_addr = await self.db.get(CustomerAddress, data.delivery_address_id)
+            if not db_addr or db_addr.customer_id != customer_id:
+                raise ValidationException("Invalid delivery address")
+            
+            addr_str = f"Saved Address: {db_addr.street}, {db_addr.city}, {db_addr.postcode}"
+            delivery_instr = f"{addr_str}\n{delivery_instr}".strip()
+            
+        elif data.delivery_address:
+            addr_str = f"Manual Address: {data.delivery_address}"
             if data.delivery_postcode:
                 addr_str += f" ({data.delivery_postcode})"
             delivery_instr = f"{addr_str}\n{delivery_instr}".strip()
+
+        # Payment Status Logic
+        pm = data.payment_method or "cod"
+        ps = "pending"
+        if pm == "online":
+            ps = "paid" # Mock success
 
         # Create Order
         order = Order(
@@ -92,11 +108,12 @@ class OrderService:
             delivery_address_id=data.delivery_address_id,
             order_number=self._generate_order_number(),
             status="placed",
-            payment_method=data.payment_method,
+            payment_method=pm,
+            payment_status=ps,
             notes=data.notes,
             delivery_instructions=delivery_instr,
             order_type=data.order_type,
-            service_fee=Decimal("0.50"), # Fixed service fee for now
+            service_fee=Decimal("0.50"),
             tip_amount=Decimal("0.00"),
         )
         self.db.add(order)

@@ -107,7 +107,7 @@ export default function Cart() {
             </div>
             <div className="pt-4">
               <Link 
-                to="/login"
+                to="/checkout"
                 className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary py-5 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3"
               >
                 Proceed to Checkout
