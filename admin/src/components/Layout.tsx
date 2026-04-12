@@ -23,8 +23,8 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-    { label: 'Dashboard', section: 'Main', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'manager'] },
-    { label: 'Orders', section: 'Main', path: '/orders', icon: ShoppingBag, roles: ['admin', 'manager'] },
+    { label: 'Dashboard', section: 'Main', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'cashier'] },
+    { label: 'Orders', section: 'Main', path: '/orders', icon: ShoppingBag, roles: ['admin', 'manager', 'cashier'] },
     { label: 'Customers', section: 'Main', path: '/customers', icon: Users2, roles: ['admin', 'manager'] },
     { label: 'My Deliveries', section: 'Delivery', path: '/dashboard', icon: Truck, roles: ['delivery_boy'] }, // We route delivery boys to dashboard for now
     { label: 'Delivery Zones', section: 'Operations', path: '/delivery-zones', icon: MapPin, roles: ['admin', 'manager'] },

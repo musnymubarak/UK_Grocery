@@ -6,9 +6,9 @@ import toast from 'react-hot-toast';
 import { PackageOpen, Truck, CheckCircle, XCircle } from 'lucide-react';
 
 const COLUMNS = [
-    { id: 'received', label: 'Received', color: 'var(--primary)', icon: PackageOpen },
-    { id: 'packed', label: 'Packed', color: 'var(--warning)', icon: PackageOpen },
-    { id: 'on_delivery', label: 'On Delivery', color: 'var(--info)', icon: Truck },
+    { id: 'placed', label: 'Placed', color: 'var(--primary)', icon: PackageOpen },
+    { id: 'picking', label: 'Packing', color: 'var(--warning)', icon: PackageOpen },
+    { id: 'out_for_delivery', label: 'In Transit', color: 'var(--info)', icon: Truck },
     { id: 'delivered', label: 'Delivered', color: 'var(--success)', icon: CheckCircle },
     { id: 'cancelled', label: 'Cancelled', color: 'var(--danger)', icon: XCircle },
 ];
@@ -121,7 +121,7 @@ export default function DashboardPage() {
                                             {order.items.length} items
                                         </div>
                                         {/* Optional visual cue for assignment */}
-                                        {col.id === 'packed' && !order.assigned_to && (
+                                        {col.id === 'picking' && !order.assigned_to && (
                                             <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: 'var(--warning)', fontWeight: 600 }}>
                                                 Needs Delivery Assignment
                                             </div>

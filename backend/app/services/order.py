@@ -19,16 +19,16 @@ from app.services.inventory import InventoryService
 from app.core.exceptions import NotFoundException, ValidationException
 
 VALID_TRANSITIONS = {
-    "placed":                ["confirmed", "rejected", "cancelled"],
-    "confirmed":             ["picking", "cancelled"],
-    "picking":               ["substitution_pending", "ready_for_collection", "assigned_to_driver"],
-    "substitution_pending":  ["picking"],
-    "ready_for_collection":  ["delivered"],
-    "assigned_to_driver":    ["out_for_delivery"],
-    "out_for_delivery":      ["delivered", "delivery_failed"],
+    "placed":                ["confirmed", "picking", "substitution_pending", "ready_for_collection", "assigned_to_driver", "out_for_delivery", "delivered", "rejected", "cancelled"],
+    "confirmed":             ["picking", "substitution_pending", "ready_for_collection", "assigned_to_driver", "out_for_delivery", "delivered", "cancelled"],
+    "picking":               ["substitution_pending", "ready_for_collection", "assigned_to_driver", "out_for_delivery", "delivered", "cancelled"],
+    "substitution_pending":  ["picking", "ready_for_collection", "assigned_to_driver", "out_for_delivery", "delivered", "cancelled"],
+    "ready_for_collection":  ["assigned_to_driver", "out_for_delivery", "delivered", "cancelled"],
+    "assigned_to_driver":    ["out_for_delivery", "delivered", "cancelled"],
+    "out_for_delivery":      ["delivered", "delivery_failed", "cancelled"],
     "delivered":             ["refund_requested"],
     "rejected":              [],
-    "delivery_failed":       [],
+    "delivery_failed":       ["refund_requested"],
     "refund_requested":      ["refunded"],
     "refunded":              [],
     "cancelled":             [],
@@ -157,9 +157,9 @@ class OrderService:
             order.picked_at = datetime.now(timezone.utc)
         elif new_status == "out_for_delivery":
             order.dispatched_at = datetime.now(timezone.utc)
-        if new_status == "confirmed":
+        working_statuses = ["confirmed", "picking", "substitution_pending", "ready_for_collection", "assigned_to_driver", "out_for_delivery", "delivered"]
+        if old_status == "placed" and new_status in working_statuses:
             # HARD COMMIT. Deduct inventory via FOR UPDATE lock
-            # Note: Previously this was on 'packed' which is now 'confirmed'
             for item in order.items:
                 await self.inventory_service.deduct_for_order(
                     product_id=item.product_id,
@@ -170,9 +170,8 @@ class OrderService:
                 )
                 
         elif new_status == "cancelled":
-            if old_status in ["confirmed", "picking", "ready_for_collection", "assigned_to_driver", "out_for_delivery"]:
+            if old_status in working_statuses:
                 # Restore stock fully since we hard-deducted (or were about to)
-                # Note: mapped from 'packed' or 'on_delivery' logic
                 for item in order.items:
                     await self.inventory_service.restore_for_cancelled_after_pack(
                         product_id=item.product_id,

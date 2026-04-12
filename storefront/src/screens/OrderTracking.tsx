@@ -48,28 +48,63 @@ export default function OrderTracking() {
     );
   }
 
-  // Status mapping
-  const statuses = ['received', 'packed', 'on_delivery', 'delivered'];
-  const currentStatusIdx = statuses.indexOf(order.status);
+  // Map backend status to the UI 4-step progress bar index
+  const getTrackingIndex = (status: string) => {
+    switch (status) {
+      case 'placed':
+      case 'confirmed':
+        return 0; // Placed
+      case 'picking':
+      case 'substitution_pending':
+      case 'ready_for_collection':
+      case 'packed':
+        return 1; // Packing
+      case 'assigned_to_driver':
+      case 'out_for_delivery':
+      case 'on_delivery':
+        return 2; // In Transit
+      case 'delivered':
+        return 3; // Arrived
+      default:
+        return -1;
+    }
+  };
+
+  const currentStatusIdx = getTrackingIndex(order.status);
   
   const getStatusText = () => {
     switch(order.status) {
-      case 'received': return 'Your order is confirmed and waiting for the kitchen.';
-      case 'packed': return 'Our curators are hand-picking your fresh harvest now.';
-      case 'on_delivery': return 'Your order is on its way to your conservatory.';
+      case 'placed': return 'Your order has been placed and is awaiting confirmation.';
+      case 'confirmed': return 'Your order is confirmed and waiting for the curating team.';
+      case 'picking': case 'packed': return 'Our curators are hand-picking your fresh harvest now.';
+      case 'substitution_pending': return 'We are reviewing alternatives for some items.';
+      case 'ready_for_collection': return 'Your harvest is packed and waiting for the courier.';
+      case 'assigned_to_driver': return 'A courier has been assigned to your harvest.';
+      case 'out_for_delivery': case 'on_delivery': return 'Your order is on its way to your conservatory.';
       case 'delivered': return 'Your harvest has arrived! Enjoy your fresh produce.';
       case 'cancelled': return 'This order has been cancelled.';
+      case 'rejected': return 'This order was rejected. Please contact support.';
+      case 'delivery_failed': return 'Delivery failed. Our team will contact you.';
       default: return 'Processing your request...';
     }
   };
 
-  const statusTitle = {
-    received: 'Your order is confirmed.',
+  const statusTitleMap: Record<string, string> = {
+    placed: 'Order Placed.',
+    confirmed: 'Your order is confirmed.',
+    picking: 'Preparing your harvest.',
     packed: 'Almost ready for dispatch.',
+    substitution_pending: 'Reviewing items.',
+    ready_for_collection: 'Almost ready for dispatch.',
+    assigned_to_driver: 'Courier assigned.',
+    out_for_delivery: 'Your harvest is on its way.',
     on_delivery: 'Your harvest is on its way.',
     delivered: 'Welcome home, harvest.',
-    cancelled: 'Order Cancelled'
-  }[order.status as keyof typeof statusTitle] || 'Tracking your order';
+    cancelled: 'Order Cancelled',
+    rejected: 'Order Rejected',
+    delivery_failed: 'Delivery Failed'
+  };
+  const currentTitle = statusTitleMap[order.status] || 'Tracking your order';
   return (
     <Layout title="Order Tracking" showBack>
       <div className="max-w-screen-xl mx-auto px-6 pt-8 pb-32 space-y-12">
@@ -80,7 +115,7 @@ export default function OrderTracking() {
               <span className="text-tertiary font-bold tracking-widest uppercase text-xs">
                 {order.status === 'delivered' ? 'Delivered' : 'Arriving Soon'}
               </span>
-              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-primary">{statusTitle}</h2>
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-primary">{currentTitle}</h2>
               <p className="text-on-surface-variant text-lg max-w-md">{getStatusText()}</p>
             </div>
 
@@ -123,7 +158,7 @@ export default function OrderTracking() {
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent"></div>
-            {order.status === 'on_delivery' && (
+            {['assigned_to_driver', 'out_for_delivery', 'on_delivery'].includes(order.status) && (
               <div className="absolute bottom-6 left-6 right-6 bg-surface-container-lowest/90 backdrop-blur-md rounded-lg p-4 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary">
                   <img 

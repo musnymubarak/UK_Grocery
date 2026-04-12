@@ -1,10 +1,12 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orderApi } from '../../services/api';
 import { useAdminStore } from '../auth/AdminStoreContext';
+import toast from 'react-hot-toast';
 
 export default function OrdersPage() {
     const { selectedStore } = useAdminStore();
+    const queryClient = useQueryClient();
 
     const { data: orders = [], isLoading } = useQuery({
         queryKey: ['orders_list', selectedStore?.id],
@@ -14,6 +16,18 @@ export default function OrdersPage() {
             return res.data;
         },
         enabled: !!selectedStore?.id,
+    });
+
+    const updateStatus = useMutation({
+        mutationFn: ({ id, status }: { id: string; status: string }) => orderApi.updateStatus(id, status),
+        onSuccess: () => {
+            toast.success('Order status updated');
+            queryClient.invalidateQueries({ queryKey: ['orders_list'] });
+            queryClient.invalidateQueries({ queryKey: ['orders'] }); // Invalidate dashboard too
+        },
+        onError: () => {
+            toast.error('Failed to update status');
+        }
     });
 
     if (!selectedStore) {
@@ -51,13 +65,29 @@ export default function OrdersPage() {
                                     <td>{order.items?.length || 0} items</td>
                                     <td>£{Number(order.total).toFixed(2)}</td>
                                     <td>
-                                        <span className={`badge badge-${
-                                            order.status === 'delivered' ? 'success' :
-                                            order.status === 'cancelled' ? 'danger' :
-                                            order.status === 'packed' ? 'warning' : 'primary'
-                                        }`}>
-                                            {order.status}
-                                        </span>
+                                        <select
+                                            value={order.status}
+                                            onChange={(e) => updateStatus.mutate({ id: order.id, status: e.target.value })}
+                                            disabled={updateStatus.isPending && updateStatus.variables?.id === order.id}
+                                            style={{
+                                                padding: '4px 8px',
+                                                borderRadius: 'var(--radius-sm)',
+                                                border: '1px solid var(--border)',
+                                                background: 'var(--bg-primary)',
+                                                outline: 'none',
+                                                fontSize: '0.85rem'
+                                            }}
+                                        >
+                                            <option value="placed">Placed</option>
+                                            <option value="confirmed">Confirmed</option>
+                                            <option value="picking">Picking</option>
+                                            <option value="ready_for_collection">Ready for Collection</option>
+                                            <option value="assigned_to_driver">Assigned</option>
+                                            <option value="out_for_delivery">Out for Delivery</option>
+                                            <option value="delivered">Delivered</option>
+                                            <option value="cancelled">Cancelled</option>
+                                            <option value="rejected">Rejected</option>
+                                        </select>
                                     </td>
                                     <td>{order.payment_method}</td>
                                 </tr>
