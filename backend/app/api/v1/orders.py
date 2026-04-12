@@ -74,7 +74,7 @@ async def get_my_order(
 # ====================
 # ADMIN / STAFF ROUTES
 # ====================
-@router.get("/", response_model=List[OrderResponse])
+@router.get("", response_model=List[OrderResponse])
 async def list_orders(
     skip: int = 0,
     limit: int = 100,

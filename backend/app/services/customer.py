@@ -40,7 +40,7 @@ class CustomerService:
 
     @staticmethod
     async def get_customers(db: AsyncSession, org_id: UUID, skip: int = 0, limit: int = 100) -> List[Customer]:
-        stmt = select(Customer).where(Customer.organization_id == org_id).offset(skip).limit(limit)
+        stmt = select(Customer).where(Customer.organization_id == org_id).options(selectinload(Customer.addresses)).offset(skip).limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars().all())
 

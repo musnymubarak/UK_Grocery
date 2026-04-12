@@ -39,8 +39,8 @@ class Customer(TimestampMixin, Base):
 
     # Relationships
     organization = relationship("Organization")
-    addresses = relationship("CustomerAddress", back_populates="customer", cascade="all, delete-orphan")
-    orders = relationship("Order", back_populates="customer")
+    addresses = relationship("CustomerAddress", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
+    orders = relationship("Order", back_populates="customer", lazy="selectin")
 
     def __repr__(self):
         return f"<Customer(id={self.id}, email='{self.email}')>"
