@@ -53,3 +53,12 @@ class RewardEventResponse(BaseModel):
     tier: Optional[RewardsTierResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RewardsProgressResponse(BaseModel):
+    current_month: str
+    total_spend: Decimal
+    store_breakdown: List[CustomerMonthlySpendResponse]
+    events: List[RewardEventResponse]
+
+    model_config = ConfigDict(from_attributes=True)

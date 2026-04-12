@@ -52,5 +52,10 @@ class RewardEvent(TimestampMixin, Base):
     tier_id = Column(UUID(as_uuid=True), ForeignKey("rewards_tiers.id", ondelete="CASCADE"), nullable=False)
     coupon_id = Column(UUID(as_uuid=True), ForeignKey("coupons.id", ondelete="SET NULL"), nullable=True)
 
+    # Relationships
+    customer = relationship("Customer", lazy="select")
+    tier = relationship("RewardsTier")
+    coupon = relationship("Coupon")
+
     def __repr__(self):
         return f"<RewardEvent(customer_id={self.customer_id}, tier={self.tier_id})>"

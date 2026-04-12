@@ -76,7 +76,7 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
       {/* Bottom Navigation */}
       {!isAuthPage && (
         <nav className="fixed bottom-0 left-0 w-full bg-surface/80 backdrop-blur-xl border-t border-outline-variant/10 px-4 pb-8 pt-4 flex justify-around items-center rounded-t-[3rem] z-50 shadow-[0_-8px_32px_rgba(0,0,0,0.04)]">
-          <NavLink to="/shop" icon={<Leaf size={24} />} label="Categories" active={location.pathname === '/shop' || location.pathname.startsWith('/aisle')} />
+          <NavLink to="/browse" icon={<Leaf size={24} />} label="Categories" active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')} />
           <NavLink to="/stores" icon={<Search size={24} />} label="Stores" active={location.pathname === '/stores'} />
           <NavLink to="/cart" icon={<ShoppingBasket size={24} />} label="Cart" active={location.pathname === '/cart'} />
           <NavLink to="/history" icon={<ShoppingBasket size={24} />} label="Orders" active={location.pathname === '/history' || location.pathname.startsWith('/tracking') || location.pathname === '/success'} />

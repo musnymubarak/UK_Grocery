@@ -8,7 +8,7 @@ from app.core.dependencies import get_current_user, require_role, get_org_contex
 from app.models.user import User
 from app.models.customer import Customer
 
-from app.schemas.rewards import RewardsTierCreate, RewardsTierUpdate, RewardsTierResponse
+from app.schemas.rewards import RewardsTierCreate, RewardsTierUpdate, RewardsTierResponse, RewardsProgressResponse
 from app.services.rewards import RewardsService
 
 router = APIRouter(prefix="/rewards", tags=["Rewards"])
@@ -57,7 +57,7 @@ async def delete_tier(
 
 
 # --- Customer Routes ---
-@router.get("/me/progress")
+@router.get("/me/progress", response_model=RewardsProgressResponse)
 async def get_my_progress(
     current_customer: Customer = Depends(get_current_customer),
     db: AsyncSession = Depends(get_async_session)
