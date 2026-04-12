@@ -27,8 +27,11 @@ class OrderItemResponse(OrderItemBase):
     model_config = ConfigDict(from_attributes=True)
 
 class OrderBase(BaseModel):
-    customer_id: UUID
+    customer_id: Optional[UUID] = None
     delivery_address_id: Optional[UUID] = None
+    delivery_address: Optional[str] = None
+    delivery_postcode: Optional[str] = None
+    order_type: str = "delivery"
     payment_method: str = "cod"
     notes: Optional[str] = None
     delivery_instructions: Optional[str] = None

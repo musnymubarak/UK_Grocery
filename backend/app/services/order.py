@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import random
 import string
 from typing import List, Optional
+from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -73,6 +74,14 @@ class OrderService:
         if not data.items:
             raise ValidationException("Order must have at least one item")
 
+        # Handle free-text delivery address if ID is missing
+        delivery_instr = data.delivery_instructions or ""
+        if data.delivery_address:
+            addr_str = f"Address: {data.delivery_address}"
+            if data.delivery_postcode:
+                addr_str += f" ({data.delivery_postcode})"
+            delivery_instr = f"{addr_str}\n{delivery_instr}".strip()
+
         # Create Order
         order = Order(
             organization_id=org_id,
@@ -83,7 +92,7 @@ class OrderService:
             status="placed",
             payment_method=data.payment_method,
             notes=data.notes,
-            delivery_instructions=data.delivery_instructions,
+            delivery_instructions=delivery_instr,
             order_type=data.order_type,
             service_fee=Decimal("0.50"), # Fixed service fee for now
             tip_amount=Decimal("0.00"),

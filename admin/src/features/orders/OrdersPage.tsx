@@ -49,7 +49,7 @@ export default function OrdersPage() {
                                     <td>{new Date(order.created_at).toLocaleString()}</td>
                                     <td>{order.customer_id}</td>
                                     <td>{order.items?.length || 0} items</td>
-                                    <td>${order.total.toFixed(2)}</td>
+                                    <td>£{Number(order.total).toFixed(2)}</td>
                                     <td>
                                         <span className={`badge badge-${
                                             order.status === 'delivered' ? 'success' :
