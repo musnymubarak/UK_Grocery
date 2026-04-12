@@ -4,7 +4,7 @@ import { MapPin, CreditCard, ShieldCheck, Leaf, Lock, ShoppingBasket, Loader2 } 
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderApi, getErrorMessage } from '../services/api';
+import { orderApi, couponApi, getErrorMessage } from '../services/api';
 import { useState } from 'react';
 import React from 'react';
 
@@ -18,6 +18,37 @@ export default function Checkout() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+
+  const finalTotal = Math.max(0, totalPrice - appliedDiscount);
+
+  const handleValidatePromo = async () => {
+    if (!promoCode.trim() || !selectedStore) return;
+    setIsValidatingPromo(true);
+    setError(null);
+    try {
+      const res = await couponApi.validate({
+        code: promoCode.trim(),
+        store_id: selectedStore.id,
+        subtotal: totalPrice,
+        delivery_fee: 0
+      });
+      if (res.data.valid) {
+        setAppliedDiscount(res.data.discount_amount);
+      } else {
+        setAppliedDiscount(0);
+        setError(res.data.message || 'Invalid promo code');
+      }
+    } catch (err) {
+      setAppliedDiscount(0);
+      setError(getErrorMessage(err, 'Failed to validate promo code'));
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
 
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
@@ -45,6 +76,7 @@ export default function Checkout() {
         delivery_address: `${address}, ${postcode}`,
         delivery_postcode: postcode,
         notes,
+        coupon_code: appliedDiscount > 0 ? promoCode.trim().toUpperCase() : undefined,
       });
       clearCart();
       const orderId = res.data.id;
@@ -117,6 +149,20 @@ export default function Checkout() {
             <TrustItem icon={<Lock size={20} />} label="Encrypted" />
           </div>
 
+          {/* Promo Code */}
+          <section className="bg-surface-container-low p-8 rounded-lg flex gap-3 items-end">
+            <div className="flex-1">
+              <Input label="Promo Code" placeholder="Enter discount code" value={promoCode} onChange={setPromoCode} />
+            </div>
+            <button 
+              onClick={handleValidatePromo} 
+              disabled={isValidatingPromo || !promoCode}
+              className="h-[46px] px-6 bg-primary/10 text-primary font-bold rounded-sm border-none hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              {isValidatingPromo ? 'Validating...' : 'Apply'}
+            </button>
+          </section>
+
           {/* Summary */}
           <section className="bg-surface-container-highest p-8 rounded-lg shadow-inner">
             <h3 className="text-lg font-bold mb-6">Order Summary</h3>
@@ -137,9 +183,15 @@ export default function Checkout() {
                 <span className="text-on-surface-variant">Delivery Fee</span>
                 <span className="text-primary font-bold">FREE</span>
               </div>
+              {appliedDiscount > 0 && (
+                <div className="flex justify-between items-center text-primary">
+                  <span className="font-bold">Discount Applied</span>
+                  <span className="font-bold">-£{appliedDiscount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="pt-4 mt-4 border-t border-outline-variant/20 flex justify-between items-center">
                 <span className="text-xl font-extrabold">Total</span>
-                <span className="text-2xl font-extrabold text-primary">£{totalPrice.toFixed(2)}</span>
+                <span className="text-2xl font-extrabold text-primary">£{finalTotal.toFixed(2)}</span>
               </div>
             </div>
           </section>

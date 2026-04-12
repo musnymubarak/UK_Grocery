@@ -38,6 +38,7 @@ class OrderBase(BaseModel):
 
 class OrderCreate(OrderBase):
     items: List[OrderItemCreate]
+    coupon_code: Optional[str] = None
 
 class OrderUpdateStatus(BaseModel):
     status: str # placed, confirmed, picking, substitution_pending, ready_for_collection, assigned_to_driver, out_for_delivery, delivered, rejected, delivery_failed, refund_requested, refunded, cancelled

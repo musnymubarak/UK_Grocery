@@ -127,8 +127,30 @@ class OrderService:
                 store_id=store_id,
                 quantity=int(item_data.quantity)
             )
+
+        # Apply Coupon
+        if data.coupon_code:
+            from app.services.coupon import CouponService
+            coupon_service = CouponService(self.db)
+            validation_resp = await coupon_service.validate_coupon(
+                org_id=org_id,
+                code=data.coupon_code,
+                customer_id=customer_id,
+                store_id=store_id,
+                subtotal=order.subtotal,
+                delivery_fee=order.delivery_fee
+            )
+            if not validation_resp.valid:
+                raise ValidationException(validation_resp.message or "Invalid coupon")
+                
+            order.discount = validation_resp.discount_amount
+            order.coupon_id = validation_resp.coupon_id
+            order.coupon_code = data.coupon_code
             
-        order.total = order.subtotal + order.delivery_fee - order.discount
+            # Record redemption
+            await coupon_service.record_redemption(validation_resp.coupon_id, customer_id, order.id)
+            
+        order.total = max(Decimal("0.00"), order.subtotal + order.delivery_fee + order.service_fee + order.tip_amount - order.discount)
         await self.db.flush()
         await self.db.refresh(order)
         return order

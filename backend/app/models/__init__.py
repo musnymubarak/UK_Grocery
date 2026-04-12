@@ -12,6 +12,8 @@ from app.models.order import Order, OrderItem
 from app.models.delivery_zone import DeliveryZone, PostcodeZoneMapping
 from app.models.stock_movement import StockMovement
 from app.models.audit import AuditLog
+from app.models.coupon import Coupon, CouponRedemption
+from app.models.config import PlatformConfig, FeatureFlag
 
 __all__ = [
     "Organization",
@@ -28,4 +30,8 @@ __all__ = [
     "PostcodeZoneMapping",
     "StockMovement",
     "AuditLog",
+    "Coupon",
+    "CouponRedemption",
+    "PlatformConfig",
+    "FeatureFlag",
 ]
