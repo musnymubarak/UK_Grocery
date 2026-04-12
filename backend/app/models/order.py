@@ -42,6 +42,8 @@ class Order(TimestampMixin, Base):
     
     order_number = Column(String(50), unique=True, nullable=False, index=True)
     status = Column(String(20), default="placed", nullable=False) # placed, confirmed, picking...
+    delivery_address = Column(Text, nullable=True)
+    delivery_postcode = Column(String(20), nullable=True)
     
     # shop.md extensions
     order_type = Column(String(20), default="delivery", nullable=False) # delivery, collection
@@ -73,7 +75,7 @@ class Order(TimestampMixin, Base):
     organization = relationship("Organization")
     store = relationship("Store", back_populates="orders")
     customer = relationship("Customer", back_populates="orders")
-    delivery_address = relationship("CustomerAddress")
+    delivery_address_record = relationship("CustomerAddress")
     delivery_boy = relationship("User", back_populates="assigned_orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan", lazy="selectin")
 

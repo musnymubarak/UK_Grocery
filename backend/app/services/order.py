@@ -55,13 +55,19 @@ class OrderService:
         return f"{prefix}-{random_suffix}"
 
     async def get_order(self, order_id: UUID, org_id: Optional[UUID] = None) -> Order:
-        order = await self.db.get(Order, order_id)
-        if not order or (org_id and order.organization_id != org_id):
+        from sqlalchemy.orm import selectinload
+        query = select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+        if org_id:
+            query = query.where(Order.organization_id == org_id)
+        result = await self.db.execute(query)
+        order = result.scalar_one_or_none()
+        if not order:
             raise NotFoundException("Order not found")
         return order
 
     async def get_orders(self, org_id: UUID, store_id: Optional[UUID] = None, skip: int = 0, limit: int = 100) -> List[Order]:
-        query = select(Order).where(Order.organization_id == org_id)
+        from sqlalchemy.orm import selectinload
+        query = select(Order).options(selectinload(Order.items)).where(Order.organization_id == org_id)
         if store_id:
             query = query.where(Order.store_id == store_id)
         query = query.order_by(Order.created_at.desc()).offset(skip).limit(limit)
@@ -69,7 +75,8 @@ class OrderService:
         return list(result.scalars().all())
         
     async def get_assigned_orders(self, user_id: UUID, skip: int = 0, limit: int = 50) -> List[Order]:
-        query = select(Order).where(Order.assigned_to == user_id).order_by(Order.created_at.desc()).offset(skip).limit(limit)
+        from sqlalchemy.orm import selectinload
+        query = select(Order).options(selectinload(Order.items)).where(Order.assigned_to == user_id).order_by(Order.created_at.desc()).offset(skip).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
@@ -106,6 +113,8 @@ class OrderService:
             store_id=store_id,
             customer_id=customer_id,
             delivery_address_id=data.delivery_address_id,
+            delivery_address=data.delivery_address,
+            delivery_postcode=data.delivery_postcode,
             order_number=self._generate_order_number(),
             status="placed",
             payment_method=pm,
@@ -113,6 +122,9 @@ class OrderService:
             notes=data.notes,
             delivery_instructions=delivery_instr,
             order_type=data.order_type,
+            subtotal=Decimal("0.00"),
+            delivery_fee=Decimal("0.00"),
+            discount=Decimal("0.00"),
             service_fee=Decimal("0.50"),
             tip_amount=Decimal("0.00"),
         )
@@ -171,8 +183,7 @@ class OrderService:
             
         order.total = max(Decimal("0.00"), order.subtotal + order.delivery_fee + order.service_fee + order.tip_amount - order.discount)
         await self.db.flush()
-        await self.db.refresh(order)
-        return order
+        return await self.get_order(order.id)
 
     async def update_status(self, order_id: UUID, new_status: str, user: User) -> Order:
         order = await self.get_order(order_id)

@@ -112,8 +112,10 @@ export default function Checkout() {
       clearCart();
       const orderId = res.data.id;
       navigate(`/tracking/${orderId}`);
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to place order. Please try again.'));
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      const message = typeof detail === 'string' ? detail : getErrorMessage(err, 'Failed to place order. Please try again.');
+      setError(message);
     } finally {
       setSubmitting(false);
     }
