@@ -85,17 +85,28 @@ export const customerAuthApi = {
   getProfile: () => api.get('/customers/me'),
 
   updateProfile: (data: {
+    name?: string;
     full_name?: string;
     phone?: string;
-  }) => api.put('/customers/me', data),
+  }) => api.put('/customers/me', {
+    full_name: data.full_name || data.name,
+    phone: data.phone
+  }),
 
   addAddress: (data: {
     line1: string;
     line2?: string;
     city: string;
+    state?: string;
     postcode: string;
     is_default?: boolean;
-  }) => api.post('/customers/me/addresses', data),
+  }) => api.post('/customers/me/addresses', {
+    street: data.line1 + (data.line2 ? `, ${data.line2}` : ''),
+    city: data.city,
+    state: data.state || '',
+    postcode: data.postcode,
+    is_default: data.is_default || false
+  }),
 
   removeAddress: (id: string) => api.delete(`/customers/me/addresses/${id}`),
 };
