@@ -168,3 +168,11 @@ export const featureFlagApi = {
     list: () => api.get('/config/flags'),
     upsert: (data: any) => api.put('/config/flags', data),
 };
+
+// --- Rewards API ---
+export const rewardsApi = {
+    listTiers: () => api.get('/rewards/tiers'),
+    createTier: (data: any) => api.post('/rewards/tiers', data),
+    updateTier: (id: string, data: any) => api.put(`/rewards/tiers/${id}`, data),
+    deleteTier: (id: string) => api.delete(`/rewards/tiers/${id}`)
+};

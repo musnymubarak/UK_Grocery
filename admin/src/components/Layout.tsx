@@ -21,7 +21,8 @@ import {
     Users2,
     Truck,
     Ticket,
-    Settings
+    Settings,
+    Star
 } from 'lucide-react';
 
 const navItems = [
@@ -31,6 +32,7 @@ const navItems = [
     { label: 'My Deliveries', section: 'Delivery', path: '/dashboard', icon: Truck, roles: ['delivery_boy'] }, // We route delivery boys to dashboard for now
     { label: 'Delivery Zones', section: 'Operations', path: '/delivery-zones', icon: MapPin, roles: ['admin', 'manager'] },
     { label: 'Coupons', section: 'Operations', path: '/coupons', icon: Ticket, roles: ['admin', 'manager'] },
+    { label: 'Rewards', section: 'Operations', path: '/rewards', icon: Star, roles: ['admin', 'manager'] },
     { label: 'Products', section: 'Catalog', path: '/products', icon: Package, roles: ['admin', 'manager'] },
     { label: 'Categories', section: 'Catalog', path: '/categories', icon: Tags, roles: ['admin', 'manager'] },
     { label: 'Inventory', section: 'Operations', path: '/inventory', icon: Warehouse, roles: ['admin', 'manager'] },

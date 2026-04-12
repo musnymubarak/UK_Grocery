@@ -138,6 +138,10 @@ export const couponApi = {
   }) => api.post('/coupons/validate', data),
 };
 
+export const rewardsApi = {
+  myProgress: () => api.get('/rewards/me/progress'),
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────
 
 export function getErrorMessage(err: unknown, fallback = 'An error occurred'): string {

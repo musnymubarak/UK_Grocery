@@ -24,6 +24,7 @@ import DeliveryZonesPage from './features/delivery/DeliveryZonesPage';
 import DeliveryBoyDashboard from './features/delivery/DeliveryBoyDashboard';
 import CouponsPage from './features/coupons/CouponsPage';
 import PlatformSettingsPage from './features/settings/PlatformSettingsPage';
+import RewardsPage from './features/rewards/RewardsPage';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -68,6 +69,7 @@ function AppRoutes() {
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/audit" element={<AuditLogPage />} />
                 <Route path="/settings" element={<PlatformSettingsPage />} />
+                <Route path="/rewards" element={<RewardsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

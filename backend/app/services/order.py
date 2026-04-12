@@ -16,6 +16,8 @@ from app.models.order import Order, OrderItem
 from app.models.user import User
 from app.schemas.order import OrderCreate, OrderUpdateStatus
 from app.services.inventory import InventoryService
+from app.services.coupon import CouponService
+from app.services.rewards import RewardsService
 from app.core.exceptions import NotFoundException, ValidationException
 
 VALID_TRANSITIONS = {
@@ -215,6 +217,15 @@ class OrderService:
             order.delivered_at = datetime.now(timezone.utc)
             if order.payment_method == "cod":
                 order.payment_status = "paid"
+                
+            # Trigger loyalty tracking
+            rewards_service = RewardsService(self.db)
+            await rewards_service.log_order_spend(
+                org_id=order.organization_id,
+                customer_id=order.customer_id,
+                store_id=order.store_id,
+                amount=order.total
+            )
 
         await self.db.flush()
         await self.db.refresh(order)
