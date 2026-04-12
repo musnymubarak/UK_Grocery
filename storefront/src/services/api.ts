@@ -119,8 +119,11 @@ export const orderApi = {
       product_id: string;
       quantity: number;
     }>;
+    delivery_address_id?: string;
     delivery_address?: string;
     delivery_postcode?: string;
+    payment_method?: string;
+    coupon_code?: string;
     notes?: string;
   }) => api.post(`/orders/checkout?store_id=${storeId}`, data),
 
