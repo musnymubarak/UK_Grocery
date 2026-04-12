@@ -129,6 +129,15 @@ export const orderApi = {
   getMyOrder: (id: string) => api.get(`/orders/me/${id}`),
 };
 
+export const couponApi = {
+  validate: (data: {
+    code: string;
+    store_id: string;
+    subtotal: number;
+    delivery_fee: number;
+  }) => api.post('/coupons/validate', data),
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────
 
 export function getErrorMessage(err: unknown, fallback = 'An error occurred'): string {

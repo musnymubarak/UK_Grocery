@@ -22,6 +22,8 @@ import OrdersPage from './features/orders/OrdersPage';
 import CustomersPage from './features/customers/CustomersPage';
 import DeliveryZonesPage from './features/delivery/DeliveryZonesPage';
 import DeliveryBoyDashboard from './features/delivery/DeliveryBoyDashboard';
+import CouponsPage from './features/coupons/CouponsPage';
+import PlatformSettingsPage from './features/settings/PlatformSettingsPage';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -59,11 +61,13 @@ function AppRoutes() {
                 <Route path="/delivery-zones" element={<DeliveryZonesPage />} />
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/coupons" element={<CouponsPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/stores" element={<StoresPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/audit" element={<AuditLogPage />} />
+                <Route path="/settings" element={<PlatformSettingsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

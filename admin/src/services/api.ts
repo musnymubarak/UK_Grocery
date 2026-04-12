@@ -148,3 +148,23 @@ export const deliveryZoneApi = {
     list: (storeId: string) => api.get(`/delivery-zones`, { params: { store_id: storeId } }),
     create: (storeId: string, data: any) => api.post(`/delivery-zones`, data, { params: { store_id: storeId } }),
 };
+
+// --- Coupons API ---
+export const couponApi = {
+    list: (params?: any) => api.get('/coupons', { params }),
+    create: (data: any) => api.post('/coupons', data),
+    update: (id: string, data: any) => api.put(`/coupons/${id}`, data),
+    delete: (id: string) => api.delete(`/coupons/${id}`),
+};
+
+// --- Config & Settings API ---
+export const configApi = {
+    list: () => api.get('/config/settings'),
+    upsert: (data: any) => api.put('/config/settings', data),
+};
+
+// --- Feature Flags API ---
+export const featureFlagApi = {
+    list: () => api.get('/config/flags'),
+    upsert: (data: any) => api.put('/config/flags', data),
+};

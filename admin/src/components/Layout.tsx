@@ -19,7 +19,9 @@ import {
     FileSearch,
     ShoppingBag,
     Users2,
-    Truck
+    Truck,
+    Ticket,
+    Settings
 } from 'lucide-react';
 
 const navItems = [
@@ -28,6 +30,7 @@ const navItems = [
     { label: 'Customers', section: 'Main', path: '/customers', icon: Users2, roles: ['admin', 'manager'] },
     { label: 'My Deliveries', section: 'Delivery', path: '/dashboard', icon: Truck, roles: ['delivery_boy'] }, // We route delivery boys to dashboard for now
     { label: 'Delivery Zones', section: 'Operations', path: '/delivery-zones', icon: MapPin, roles: ['admin', 'manager'] },
+    { label: 'Coupons', section: 'Operations', path: '/coupons', icon: Ticket, roles: ['admin', 'manager'] },
     { label: 'Products', section: 'Catalog', path: '/products', icon: Package, roles: ['admin', 'manager'] },
     { label: 'Categories', section: 'Catalog', path: '/categories', icon: Tags, roles: ['admin', 'manager'] },
     { label: 'Inventory', section: 'Operations', path: '/inventory', icon: Warehouse, roles: ['admin', 'manager'] },
@@ -35,6 +38,7 @@ const navItems = [
     { label: 'Stores', section: 'Admin', path: '/stores', icon: StoreIcon, roles: ['admin'] },
     { label: 'Users', section: 'Admin', path: '/users', icon: Users, roles: ['admin'] },
     { label: 'Audit Logs', section: 'Admin', path: '/audit', icon: FileSearch, roles: ['admin', 'manager'] },
+    { label: 'Settings', section: 'Admin', path: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
 export default function Layout() {
