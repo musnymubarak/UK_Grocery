@@ -1,7 +1,7 @@
 """
 Order router - endpoints for managing orders (creation, status updates, assignment).
 """
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,8 +79,8 @@ async def list_orders(
     skip: int = 0,
     limit: int = 100,
     org_id: UUID = Depends(get_org_context),
-    store_scope: getattr(UUID, 'Optional', UUID) = Depends(get_store_scope),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
+    current_user: User = Depends(require_role(["admin", "manager", "cashier"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     order_service = OrderService(db)
@@ -90,8 +90,8 @@ async def list_orders(
 async def get_order_details(
     order_id: UUID,
     org_id: UUID = Depends(get_org_context),
-    store_scope: getattr(UUID, 'Optional', UUID) = Depends(get_store_scope),
-    current_user: User = Depends(require_role(["admin", "manager", "delivery_boy"])),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
+    current_user: User = Depends(require_role(["admin", "manager", "delivery_boy", "cashier"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     order_service = OrderService(db)
@@ -105,8 +105,8 @@ async def update_order_status(
     order_id: UUID,
     data: OrderUpdateStatus,
     org_id: UUID = Depends(get_org_context),
-    store_scope: getattr(UUID, 'Optional', UUID) = Depends(get_store_scope),
-    current_user: User = Depends(require_role(["admin", "manager", "delivery_boy"])),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
+    current_user: User = Depends(require_role(["admin", "manager", "delivery_boy", "cashier"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     order_service = OrderService(db)
@@ -127,7 +127,7 @@ async def assign_order(
     order_id: UUID,
     data: OrderAssign,
     org_id: UUID = Depends(get_org_context),
-    store_scope: getattr(UUID, 'Optional', UUID) = Depends(get_store_scope),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
     current_user: User = Depends(require_role(["admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):
