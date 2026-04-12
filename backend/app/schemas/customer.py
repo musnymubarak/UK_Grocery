@@ -8,7 +8,7 @@ class CustomerAddressBase(BaseModel):
     label: Optional[str] = "home"
     street: str
     city: str
-    state: str
+    state: Optional[str] = None
     postcode: str
     country: Optional[str] = "United Kingdom"
     lat: Optional[Decimal] = None
@@ -39,6 +39,7 @@ class CustomerCreate(CustomerBase):
     password: str
 
 class CustomerUpdate(BaseModel):
+    full_name: Optional[str] = None
     phone: Optional[str] = None
     is_active: Optional[bool] = None
     dob: Optional[date] = None

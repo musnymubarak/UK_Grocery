@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingBag, Leaf, Search, ShoppingBasket, User } from 'lucide-react';
 import { useCart } from '../CartContext';
+import { useAuth } from '../context/AuthContext';
 import { motion } from 'motion/react';
 import React from 'react';
 
@@ -13,6 +14,7 @@ interface LayoutProps {
 
 export default function Layout({ children, title = 'The Conservatory', subtitle, showBack = false }: LayoutProps) {
   const { totalItems, selectedStore } = useCart();
+  const { isAuthenticated, customer } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -42,7 +44,19 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {isAuthenticated ? (
+            <Link to="/profile" className="flex items-center gap-2 text-sm font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-full transition-colors">
+              <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs border border-primary/20">
+                {customer?.name?.charAt(0).toUpperCase() || 'U'}
+              </span>
+              <span className="hidden sm:inline">Profile</span>
+            </Link>
+          ) : (
+            <Link to="/login" className="text-sm font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-full transition-colors border border-primary/20">
+              Login / Sign Up
+            </Link>
+          )}
           <Link to="/cart" className="relative p-2 text-primary hover:bg-primary/5 rounded-full transition-colors active:scale-95">
             <ShoppingBag size={24} />
             {totalItems > 0 && (
@@ -66,7 +80,7 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
           <NavLink to="/stores" icon={<Search size={24} />} label="Stores" active={location.pathname === '/stores'} />
           <NavLink to="/cart" icon={<ShoppingBasket size={24} />} label="Cart" active={location.pathname === '/cart'} />
           <NavLink to="/history" icon={<ShoppingBasket size={24} />} label="Orders" active={location.pathname === '/history' || location.pathname.startsWith('/tracking') || location.pathname === '/success'} />
-          <NavLink to="/profile" icon={<User size={24} />} label="Account" active={location.pathname === '/profile'} />
+          <NavLink to={isAuthenticated ? "/profile" : "/login"} icon={<User size={24} />} label={isAuthenticated ? "Account" : "Log In"} active={location.pathname === '/profile' || location.pathname === '/login'} />
         </nav>
       )}
     </div>

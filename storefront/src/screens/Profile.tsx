@@ -24,7 +24,7 @@ export default function Profile() {
     customerAuthApi.getProfile()
       .then(res => {
         setProfile(res.data);
-        setName(res.data.name);
+        setName(res.data.full_name || '');
         setPhone(res.data.phone || '');
         setLoading(false);
       })
