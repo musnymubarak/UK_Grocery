@@ -1,7 +1,7 @@
 """
 Order model — Customer orders and items.
 """
-from sqlalchemy import Column, String, ForeignKey, Numeric, Text, DateTime
+from sqlalchemy import Column, String, ForeignKey, Numeric, Text, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -41,7 +41,19 @@ class Order(TimestampMixin, Base):
     )
     
     order_number = Column(String(50), unique=True, nullable=False, index=True)
-    status = Column(String(20), default="received", nullable=False) # received, packed, on_delivery, delivered, cancelled
+    status = Column(String(20), default="placed", nullable=False) # placed, confirmed, picking...
+    
+    # shop.md extensions
+    order_type = Column(String(20), default="delivery", nullable=False) # delivery, collection
+    service_fee = Column(Numeric(10, 2), default=0.00, nullable=False)
+    tip_amount = Column(Numeric(10, 2), default=0.00, nullable=False)
+    coupon_id = Column(UUID(as_uuid=True), nullable=True) # FK added in Phase 2
+    coupon_code = Column(String(50), nullable=True)
+    
+    confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    picked_at = Column(DateTime(timezone=True), nullable=True)
+    dispatched_at = Column(DateTime(timezone=True), nullable=True)
+    rejected_reason = Column(Text, nullable=True)
     
     subtotal = Column(Numeric(12, 2), default=0.00, nullable=False)
     delivery_fee = Column(Numeric(10, 2), default=0.00, nullable=False)
@@ -90,9 +102,18 @@ class OrderItem(TimestampMixin, Base):
     tax_amount = Column(Numeric(12, 2), default=0.00, nullable=False)
     total = Column(Numeric(12, 2), nullable=False)
 
+    # shop.md extensions
+    is_substituted = Column(Boolean, default=False, nullable=False)
+    substituted_product_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("products.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     # Relationships
     order = relationship("Order", back_populates="items")
-    product = relationship("Product", back_populates="order_items")
+    product = relationship("Product", back_populates="order_items", foreign_keys=[product_id])
+    substituted_product = relationship("Product", foreign_keys=[substituted_product_id])
 
     def __repr__(self):
         return f"<OrderItem(id={self.id}, product='{self.product_name}', qty={self.quantity})>"

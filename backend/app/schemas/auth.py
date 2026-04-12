@@ -6,6 +6,7 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
+from decimal import Decimal
 
 
 # --- Auth ---
@@ -87,6 +88,21 @@ class StoreCreate(BaseModel):
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
 
+    # shop.md extensions
+    slug: Optional[str] = None
+    store_type: Optional[str] = None
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    lat: Optional[Decimal] = None
+    lng: Optional[Decimal] = None
+    opening_hours: Optional[dict] = None
+    default_delivery_fee: Decimal = Decimal("1.99")
+    free_delivery_threshold: Decimal = Decimal("30.00")
+    min_order_value: Decimal = Decimal("10.00")
+    avg_prep_time_min: int = 15
+    is_open: bool = True
+
 
 class StoreUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -97,6 +113,22 @@ class StoreUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = None
+
+    # shop.md extensions
+    slug: Optional[str] = None
+    store_type: Optional[str] = None
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    lat: Optional[Decimal] = None
+    lng: Optional[Decimal] = None
+    opening_hours: Optional[dict] = None
+    default_delivery_fee: Optional[Decimal] = None
+    free_delivery_threshold: Optional[Decimal] = None
+    min_order_value: Optional[Decimal] = None
+    avg_prep_time_min: Optional[int] = None
+    is_open: Optional[bool] = None
+    temporarily_closed_reason: Optional[str] = None
 
 
 class StoreResponse(BaseModel):
@@ -112,6 +144,22 @@ class StoreResponse(BaseModel):
     email: Optional[str] = None
     is_active: bool
     created_at: datetime
+
+    # shop.md extensions
+    slug: Optional[str] = None
+    store_type: Optional[str] = None
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    lat: Optional[Decimal] = None
+    lng: Optional[Decimal] = None
+    opening_hours: Optional[dict] = None
+    default_delivery_fee: Decimal
+    free_delivery_threshold: Decimal
+    min_order_value: Decimal
+    avg_prep_time_min: int
+    is_open: bool
+    temporarily_closed_reason: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

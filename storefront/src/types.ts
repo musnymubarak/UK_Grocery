@@ -15,6 +15,14 @@ export interface Product {
   category_id?: string;
   category_name?: string;
   is_active?: boolean;
+
+  // shop.md extensions
+  member_price?: number;
+  promo_price?: number;
+  is_age_restricted?: boolean;
+  allergens?: string[];
+  nutritional_info?: any;
+  weight_unit?: string;
 }
 
 export interface Store {
@@ -25,6 +33,16 @@ export interface Store {
   postcode?: string;
   phone?: string;
   is_active?: boolean;
+
+  // shop.md extensions
+  slug?: string;
+  store_type?: string;
+  logo_url?: string;
+  banner_url?: string;
+  delivery_fee?: number;
+  free_delivery_threshold?: number;
+  min_order_value?: number;
+  is_open?: boolean;
 }
 
 export interface CartItem {
@@ -48,4 +66,10 @@ export interface Order {
     quantity: number;
     unit_price?: number;
   }>;
+
+  // shop.md extensions
+  order_type: string;
+  service_fee: number;
+  tip_amount: number;
+  coupon_code?: string;
 }

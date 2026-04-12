@@ -39,6 +39,10 @@ class ProductService:
             "tax_rate": float(p.tax_rate) if p.tax_rate is not None else None,
             "is_deleted": p.is_deleted,
             "category_id": str(p.category_id) if p.category_id else None,
+            "member_price": float(p.member_price) if p.member_price is not None else None,
+            "promo_price": float(p.promo_price) if p.promo_price is not None else None,
+            "allergens": p.allergens,
+            "is_age_restricted": p.is_age_restricted,
         }
 
     def _generate_sku(self, name: str, org_id: UUID) -> str:

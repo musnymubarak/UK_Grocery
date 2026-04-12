@@ -1,8 +1,8 @@
 """
 Store model — physical retail locations within an organization.
 """
-from sqlalchemy import Column, String, Text, Boolean, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Text, Boolean, ForeignKey, Numeric, Integer
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base, TimestampMixin
@@ -26,6 +26,22 @@ class Store(TimestampMixin, Base):
     phone = Column(String(50), nullable=True)
     email = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+
+    # shop.md extensions
+    slug = Column(String(100), unique=True, nullable=True, index=True)
+    store_type = Column(String(50), nullable=True)  # Nisa, SPAR, Independent
+    description = Column(Text, nullable=True)
+    logo_url = Column(String(500), nullable=True)
+    banner_url = Column(String(500), nullable=True)
+    lat = Column(Numeric(10, 7), nullable=True)
+    lng = Column(Numeric(10, 7), nullable=True)
+    opening_hours = Column(JSONB, nullable=True)
+    default_delivery_fee = Column(Numeric(10, 2), default=1.99, nullable=False)
+    free_delivery_threshold = Column(Numeric(10, 2), default=30.00, nullable=False)
+    min_order_value = Column(Numeric(10, 2), default=10.00, nullable=False)
+    avg_prep_time_min = Column(Integer, default=15, nullable=False)
+    is_open = Column(Boolean, default=True, nullable=False)
+    temporarily_closed_reason = Column(Text, nullable=True)
 
     # Relationships
     organization = relationship("Organization", back_populates="stores")
