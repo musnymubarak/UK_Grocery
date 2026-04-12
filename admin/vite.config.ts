@@ -15,7 +15,11 @@ export default defineConfig({
         allowedHosts: ['mcube.duckdns.org', 'localhost', '127.0.0.1'],
         proxy: {
             '/api': {
-                target: 'http://backend:8000',
+                target: 'http://localhost:8000',
+                changeOrigin: true,
+            },
+            '/uploads': {
+                target: 'http://localhost:8000',
                 changeOrigin: true,
             },
         },

@@ -29,8 +29,10 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
     class Config:
-        env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
+        # Look for .env in current dir, project root (if in backend/), or app parent
+        env_file = (".env", "../.env", "../../.env")
 
 
 settings = Settings()

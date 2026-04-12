@@ -31,3 +31,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local
+start-local.ps1
+uploads/
+LOCAL_DEVELOPMENT.md

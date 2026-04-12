@@ -16,11 +16,12 @@ interface Product {
   category_id?: string;
   category_name?: string;
   description?: string;
+  stock?: number;
 }
 
 export default function Aisle() {
   const { id } = useParams();
-  const { totalItems, totalPrice } = useCart();
+  const { totalItems, totalPrice, selectedStore } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryName, setCategoryName] = useState('');
@@ -28,7 +29,10 @@ export default function Aisle() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    catalogApi.getProducts({ category_id: id })
+    catalogApi.getProducts({ 
+      category_id: id,
+      store_id: selectedStore?.id 
+    })
       .then(res => {
         const items = res.data.items || res.data;
         setProducts(items);
@@ -40,7 +44,7 @@ export default function Aisle() {
       .catch(() => {
         setLoading(false);
       });
-  }, [id]);
+  }, [id, selectedStore?.id]);
 
   // Also try to get category name if not from products
   useEffect(() => {
@@ -90,6 +94,7 @@ export default function Aisle() {
               image: product.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=2C682E&color=fff&size=400`,
               description: product.description || '',
               category: product.category_id || '',
+              stock: product.stock,
             }} />
           ))}
         </div>

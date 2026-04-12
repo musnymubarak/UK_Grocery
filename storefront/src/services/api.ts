@@ -71,7 +71,7 @@ export const catalogApi = {
 
 export const customerAuthApi = {
   register: (data: {
-    name: string;
+    full_name: string;
     email: string;
     password: string;
     phone?: string;
@@ -85,7 +85,7 @@ export const customerAuthApi = {
   getProfile: () => api.get('/customers/me'),
 
   updateProfile: (data: {
-    name?: string;
+    full_name?: string;
     phone?: string;
   }) => api.put('/customers/me', data),
 
