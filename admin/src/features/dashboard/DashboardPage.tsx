@@ -114,7 +114,7 @@ export default function DashboardPage() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                             <strong>{order.order_number}</strong>
                                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                ${order.total.toFixed(2)}
+                                                £{Number(order.total).toFixed(2)}
                                             </span>
                                         </div>
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>

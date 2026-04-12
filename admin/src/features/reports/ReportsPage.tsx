@@ -17,7 +17,7 @@ const COLORS = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const fmtDate = (d: Date) => d.toISOString().split('T')[0];
-const fmtCurrency = (v: number) => `$${Number(v).toFixed(2)}`;
+const fmtCurrency = (v: number) => `£${Number(v).toFixed(2)}`;
 
 const getInitialDates = (period: string) => {
     const today = new Date();
@@ -235,7 +235,7 @@ export default function ReportsPage() {
                                 </div>
                                 <div className="stat-card">
                                     <div className="stat-icon green"><Package size={22} /></div>
-                                    <div><div className="stat-value">{salesSummary.average_items?.toFixed(1)}</div><div className="stat-label">Avg Items / Sale</div></div>
+                                    <div><div className="stat-value">{Number(salesSummary.average_items || 0).toFixed(1)}</div><div className="stat-label">Avg Items / Sale</div></div>
                                 </div>
                             </div>
 
@@ -378,7 +378,7 @@ export default function ReportsPage() {
                                                         <td>{i + 1}</td>
                                                         <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{p.product_name} <br /><span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}>{p.category_name}</span></td>
                                                         <td>{p.total_quantity}</td>
-                                                        <td style={{ color: p.margin_percent < 20 ? 'var(--danger)' : 'var(--success)' }}>{p.margin_percent.toFixed(1)}%</td>
+                                                        <td style={{ color: p.margin_percent < 20 ? 'var(--danger)' : 'var(--success)' }}>{Number(p.margin_percent).toFixed(1)}%</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -439,7 +439,7 @@ export default function ReportsPage() {
                                                     <td>{c.total_sales}</td>
                                                     <td style={{ color: 'var(--success)', fontWeight: 600 }}>{fmtCurrency(c.total_revenue)}</td>
                                                     <td>{fmtCurrency(c.avg_sale)}</td>
-                                                    <td style={{ color: c.refund_rate > 5 ? 'var(--danger)' : 'var(--text-secondary)' }}>{c.refund_rate.toFixed(1)}%</td>
+                                                    <td style={{ color: c.refund_rate > 5 ? 'var(--danger)' : 'var(--text-secondary)' }}>{Number(c.refund_rate).toFixed(1)}%</td>
                                                 </tr>
                                             ))}
                                             {cashierPerf.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No data</td></tr>}
@@ -529,7 +529,7 @@ export default function ReportsPage() {
                                                     <td>{fmtCurrency(r.retail)}</td>
                                                     <td>{fmtCurrency(r.stock_value)}</td>
                                                     <td>{fmtCurrency(r.retail_value)}</td>
-                                                    <td style={{ color: 'var(--success)' }}>{r.margin.toFixed(1)}%</td>
+                                                    <td style={{ color: 'var(--success)' }}>{Number(r.margin).toFixed(1)}%</td>
                                                 </tr>
                                             ))}
                                             {(!valuation.inventoryTable || valuation.inventoryTable.length === 0) && (

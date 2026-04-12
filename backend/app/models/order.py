@@ -45,8 +45,8 @@ class Order(TimestampMixin, Base):
     
     # shop.md extensions
     order_type = Column(String(20), default="delivery", nullable=False) # delivery, collection
-    service_fee = Column(Numeric(10, 2), default=0.00, nullable=False)
-    tip_amount = Column(Numeric(10, 2), default=0.00, nullable=False)
+    service_fee = Column(Numeric(10, 2), default=0, nullable=False)
+    tip_amount = Column(Numeric(10, 2), default=0, nullable=False)
     coupon_id = Column(UUID(as_uuid=True), nullable=True) # FK added in Phase 2
     coupon_code = Column(String(50), nullable=True)
     
@@ -55,10 +55,10 @@ class Order(TimestampMixin, Base):
     dispatched_at = Column(DateTime(timezone=True), nullable=True)
     rejected_reason = Column(Text, nullable=True)
     
-    subtotal = Column(Numeric(12, 2), default=0.00, nullable=False)
-    delivery_fee = Column(Numeric(10, 2), default=0.00, nullable=False)
-    discount = Column(Numeric(10, 2), default=0.00, nullable=False)
-    total = Column(Numeric(12, 2), default=0.00, nullable=False)
+    subtotal = Column(Numeric(12, 2), default=0, nullable=False)
+    delivery_fee = Column(Numeric(10, 2), default=0, nullable=False)
+    discount = Column(Numeric(10, 2), default=0, nullable=False)
+    total = Column(Numeric(12, 2), default=0, nullable=False)
     
     payment_method = Column(String(20), default="cod", nullable=False) # cod, online, wallet
     payment_status = Column(String(20), default="pending", nullable=False) # pending, paid, refunded
