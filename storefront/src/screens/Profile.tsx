@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { User, Phone, MapPin, Plus, Trash2, Loader2, Save } from 'lucide-react';
-import { customerAuthApi, getErrorMessage } from '../services/api';
+import { User, Phone, MapPin, Plus, Trash2, Loader2, Save, Star, Award, Gift } from 'lucide-react';
+import { customerAuthApi, rewardsApi, getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Profile() {
@@ -9,6 +9,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [rewardsProgress, setRewardsProgress] = useState<any>(null);
   
   // Form fields
   const [name, setName] = useState('');
@@ -29,6 +30,13 @@ export default function Profile() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    rewardsApi.myProgress()
+      .then(res => setRewardsProgress(res.data))
+      .catch(err => {
+        console.error("Rewards API error:", err);
+        setRewardsProgress({ total_spend: 0, events: [] });
+      });
   }, []);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -139,6 +147,46 @@ export default function Profile() {
             </div>
           </form>
         </section>
+
+        {rewardsProgress && (
+          <section className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-2xl p-8 mb-12 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10">
+              <Star size={120} />
+            </div>
+            <div className="relative z-10 flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                <Star size={24} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold tracking-tight">Your Rewards</h3>
+                <p className="text-on-surface-variant font-medium">Monthly spend: <strong className="text-primary text-xl">£{rewardsProgress.total_spend}</strong></p>
+              </div>
+            </div>
+            
+            {rewardsProgress.events?.length > 0 && (
+              <div className="mt-8 border-t border-outline-variant pt-6">
+                <h4 className="font-bold text-sm uppercase tracking-widest text-on-surface-variant mb-4">Earned Coupons</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {rewardsProgress.events.map((ev: any) => (
+                    <div key={ev.id} className="bg-surface p-4 rounded-xl border border-outline flex items-center gap-4 shadow-sm">
+                      <div className="bg-success/10 text-success p-3 rounded-full">
+                        <Gift size={20} />
+                      </div>
+                      <div>
+                        {ev.tier?.name ? (
+                          <div className="font-bold">{ev.tier.name} Unlocked!</div>
+                        ) : (
+                          <div className="font-bold">Reward Unlocked!</div>
+                        )}
+                        <div className="text-xs text-on-surface-variant mt-1">Check checkout for coupons</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="space-y-6">
           <div className="flex justify-between items-center">

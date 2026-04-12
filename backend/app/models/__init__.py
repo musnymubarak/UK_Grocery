@@ -14,6 +14,7 @@ from app.models.stock_movement import StockMovement
 from app.models.audit import AuditLog
 from app.models.coupon import Coupon, CouponRedemption
 from app.models.config import PlatformConfig, FeatureFlag
+from app.models.rewards import RewardsTier, CustomerMonthlySpend, RewardEvent
 
 __all__ = [
     "Organization",
@@ -34,4 +35,7 @@ __all__ = [
     "CouponRedemption",
     "PlatformConfig",
     "FeatureFlag",
+    "RewardsTier",
+    "CustomerMonthlySpend",
+    "RewardEvent",
 ]
