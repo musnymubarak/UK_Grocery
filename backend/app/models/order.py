@@ -117,5 +117,12 @@ class OrderItem(TimestampMixin, Base):
     product = relationship("Product", back_populates="order_items", foreign_keys=[product_id])
     substituted_product = relationship("Product", foreign_keys=[substituted_product_id])
 
+    @property
+    def product_image_url(self) -> str | None:
+        """Expose the product image URL via the product relationship."""
+        if self.product:
+            return getattr(self.product, 'image_url', None)
+        return None
+
     def __repr__(self):
         return f"<OrderItem(id={self.id}, product='{self.product_name}', qty={self.quantity})>"

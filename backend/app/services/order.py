@@ -56,7 +56,9 @@ class OrderService:
 
     async def get_order(self, order_id: UUID, org_id: Optional[UUID] = None) -> Order:
         from sqlalchemy.orm import selectinload
-        query = select(Order).options(selectinload(Order.items)).where(Order.id == order_id)
+        query = select(Order).options(
+            selectinload(Order.items).selectinload(OrderItem.product)
+        ).where(Order.id == order_id)
         if org_id:
             query = query.where(Order.organization_id == org_id)
         result = await self.db.execute(query)

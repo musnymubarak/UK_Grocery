@@ -43,8 +43,10 @@ async def my_orders(
     """List customer's orders."""
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
-    from app.models.order import Order
-    query = select(Order).options(selectinload(Order.items)).where(Order.customer_id == current_customer.id).order_by(Order.created_at.desc())
+    from app.models.order import Order, OrderItem
+    query = select(Order).options(
+        selectinload(Order.items).selectinload(OrderItem.product)
+    ).where(Order.customer_id == current_customer.id).order_by(Order.created_at.desc())
     result = await db.execute(query)
     return list(result.scalars().all())
 
@@ -57,10 +59,12 @@ async def get_my_order(
     """Get details of a specific order for the logged-in customer."""
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
-    from app.models.order import Order
+    from app.models.order import Order, OrderItem
     from app.core.exceptions import NotFoundException
 
-    query = select(Order).options(selectinload(Order.items)).where(
+    query = select(Order).options(
+        selectinload(Order.items).selectinload(OrderItem.product)
+    ).where(
         Order.id == order_id, 
         Order.customer_id == current_customer.id
     )

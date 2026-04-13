@@ -7,7 +7,7 @@ from typing import Optional, List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, func
+from sqlalchemy import select, func, literal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -47,18 +47,20 @@ async def list_products(
     """
     org = await _get_default_org(db)
 
-    query = select(Product, Inventory.quantity).where(
-        Product.organization_id == org.id,
-        Product.is_deleted == False,
-    )
-
     if store_id:
-        # Join with inventory and filter by store_id
-        # This ensures ONLY products in that store appear
-        query = query.join(Inventory, (Inventory.product_id == Product.id) & (Inventory.store_id == store_id))
+        # If store_id provided, join with inventory and filter by store_id
+        # This ensures ONLY products in that store appear and with their specific stock
+        query = select(Product, Inventory.quantity).where(
+            Product.organization_id == org.id,
+            Product.is_deleted == False,
+        ).join(Inventory, (Inventory.product_id == Product.id) & (Inventory.store_id == store_id))
     else:
-        # If no store_id, use outerjoin so we still get results (though storefront usually requires one)
-        query = query.outerjoin(Inventory, (Inventory.product_id == Product.id))
+        # If no store_id, do NOT join with inventory (prevents duplicate rows for multi-store products)
+        # We return products with 0 stock as a placeholder
+        query = select(Product, literal(0)).where(
+            Product.organization_id == org.id,
+            Product.is_deleted == False,
+        )
 
     if category_id:
         query = query.where(Product.category_id == category_id)

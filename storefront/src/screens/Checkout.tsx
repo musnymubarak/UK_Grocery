@@ -123,7 +123,7 @@ export default function Checkout() {
 
   return (
     <Layout title="Checkout" showBack>
-      <div className="max-w-2xl mx-auto px-6 pt-8 pb-40">
+      <div className="max-w-2xl mx-auto px-6 pt-8 pb-64">
         <div className="mb-10">
           <h2 className="text-4xl font-extrabold tracking-tight text-primary leading-tight">Review & Secure Checkout</h2>
           <p className="text-on-surface-variant mt-2 font-medium">Finalize your harvest details below.</p>
@@ -318,8 +318,8 @@ export default function Checkout() {
         </div>
       </div>
 
-      {/* Sticky Bottom Button */}
-      <div className="fixed bottom-0 left-0 w-full p-6 bg-surface/80 backdrop-blur-xl border-t border-outline-variant/5 z-50">
+      {/* Sticky Bottom Button - Stacked above nav on mobile */}
+      <div className="fixed bottom-[104px] md:bottom-0 left-0 w-full p-6 bg-surface/80 backdrop-blur-xl border-t border-outline-variant/5 z-50">
         <div className="max-w-2xl mx-auto">
           <button 
             onClick={handlePlaceOrder}

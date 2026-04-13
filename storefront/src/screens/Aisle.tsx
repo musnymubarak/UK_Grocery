@@ -34,10 +34,12 @@ export default function Aisle() {
       store_id: selectedStore?.id 
     })
       .then(res => {
-        const items = res.data.items || res.data;
-        setProducts(items);
-        if (items.length > 0 && items[0].category_name) {
-          setCategoryName(items[0].category_name);
+        const items = res.data.items || res.data || [];
+        // deduplicate as a safety measure
+        const uniqueItems = Array.from(new Map(items.map((item: any) => [item.id, item])).values());
+        setProducts(uniqueItems as Product[]);
+        if (uniqueItems.length > 0 && (uniqueItems[0] as Product).category_name) {
+          setCategoryName((uniqueItems[0] as Product).category_name!);
         }
         setLoading(false);
       })
@@ -69,7 +71,7 @@ export default function Aisle() {
 
   return (
     <Layout title={categoryName || 'Products'} showBack>
-      <div className="max-w-7xl mx-auto px-6 pb-32">
+      <div className="max-w-7xl mx-auto px-6 pb-60">
         {/* Filter Chips */}
         <section className="py-6 overflow-x-auto no-scrollbar flex items-center gap-3">
           <button className="flex-shrink-0 px-6 py-2 rounded-full bg-primary text-on-primary text-sm font-semibold transition-all">
@@ -106,12 +108,12 @@ export default function Aisle() {
           </div>
         )}
 
-        {/* Sticky Cart Bar */}
+        {/* Sticky Cart Bar - Stacked above nav on mobile */}
         {totalItems > 0 && (
           <motion.div 
             initial={{ y: 100 }}
             animate={{ y: 0 }}
-            className="fixed bottom-[96px] left-0 w-full px-6 z-40 pointer-events-none"
+            className="fixed bottom-[112px] md:bottom-6 left-0 w-full px-6 z-40 pointer-events-none"
           >
             <Link 
               to="/cart"
