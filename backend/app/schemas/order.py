@@ -16,6 +16,7 @@ class OrderItemResponse(OrderItemBase):
     order_id: UUID
     product_name: str
     product_sku: Optional[str] = None
+    product_image_url: Optional[str] = None
     unit_price: Decimal
     tax_amount: Decimal
     total: Decimal

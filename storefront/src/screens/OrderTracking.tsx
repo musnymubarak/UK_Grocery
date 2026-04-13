@@ -196,7 +196,7 @@ export default function OrderTracking() {
                     name={item.product_name} 
                     desc={`Qty: ${Number(item.quantity)}`} 
                     price={Number(item.total).toFixed(2)} 
-                    img="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200" 
+                    img={item.product_image_url || `https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200`}
                   />
                 ))}
               </div>

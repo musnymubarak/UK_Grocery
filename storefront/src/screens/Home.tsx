@@ -173,26 +173,38 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
             {categories.map((category, index) => (
               <motion.div
                 key={category.id}
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.04 }}
               >
-                <Link to={`/aisle/${category.id}`} className="group block">
-                  <div className="aspect-[4/5] rounded-lg overflow-hidden bg-surface-container-low mb-4 relative shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-1">
+                <Link to={`/aisle/${category.id}`} className="group block h-full">
+                  <div className="relative aspect-square overflow-hidden rounded-[1.8rem] bg-surface-container shadow-sm group-hover:shadow-[0_20px_40px_rgba(44,104,46,0.12)] transition-all duration-700 active:scale-[0.98]">
                     <img 
                       src={getCategoryImage(category)} 
                       alt={category.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 brightness-[0.9] group-hover:brightness-100"
                       referrerPolicy="no-referrer"
                     />
+                    
+                    {/* Compact 'Well-Arranged' Glassmorphism Overlay */}
+                    <div className="absolute inset-x-2 bottom-2 rounded-[1.4rem] bg-white/10 backdrop-blur-2xl border border-white/30 p-2 sm:p-2.5 shadow-[inset_0_0_8px_rgba(255,255,255,0.2)]">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-[10px] sm:text-[12px] font-bold text-white tracking-tight leading-tight line-clamp-1 flex-1">
+                          {category.name}
+                        </h3>
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white text-primary flex-shrink-0 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="sm:w-3.5 sm:h-3.5">
+                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-bold text-on-surface group-hover:text-primary transition-colors">
-                    {category.name}
-                  </h3>
                 </Link>
               </motion.div>
             ))}

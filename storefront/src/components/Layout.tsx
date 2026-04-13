@@ -19,6 +19,7 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
   const navigate = useNavigate();
 
   const isAuthPage = location.pathname === '/login';
+  const hideBottomNav = isAuthPage;
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
@@ -68,14 +69,14 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
         </div>
       </header>
 
-      {/* Main Content - Added pb-32 to fix botton nav occlusion */}
-      <main className="flex-grow pb-32 md:pb-0">
+      {/* Main Content - pb-32 ensures content clears the fixed bottom nav */}
+      <main className="flex-grow pb-32">
         {children}
       </main>
 
       {/* Bottom Navigation */}
-      {!isAuthPage && (
-        <nav className="fixed bottom-0 left-0 w-full bg-surface/80 backdrop-blur-2xl border-t border-outline-variant/10 px-4 pb-8 pt-4 flex justify-around items-center rounded-t-[2.5rem] z-50 shadow-[0_-12px_40px_rgba(0,0,0,0.06)] md:hidden">
+      {!hideBottomNav && (
+        <nav className="fixed bottom-0 left-0 w-full bg-surface/80 backdrop-blur-2xl border-t border-outline-variant/10 px-4 pb-8 pt-4 flex justify-around items-center rounded-t-[2.5rem] z-50 shadow-[0_-12px_40px_rgba(0,0,0,0.06)]">
           <NavLink to="/browse" icon={<LayoutGrid size={24} />} label="Aisles" active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')} />
           <NavLink to="/stores" icon={<MapPin size={24} />} label="Stores" active={location.pathname === '/stores'} />
           <NavLink to="/offers" icon={<Tag size={24} />} label="Offers" active={location.pathname === '/offers'} />
