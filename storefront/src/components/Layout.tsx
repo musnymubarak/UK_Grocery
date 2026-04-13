@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingBag, Leaf, Search, ShoppingBasket, User } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, LayoutGrid, MapPin, Tag, CircleUser, Search, Leaf, ShoppingBasket, User } from 'lucide-react';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'motion/react';
@@ -68,19 +68,19 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-grow">
+      {/* Main Content - Added pb-32 to fix botton nav occlusion */}
+      <main className="flex-grow pb-32 md:pb-0">
         {children}
       </main>
 
       {/* Bottom Navigation */}
       {!isAuthPage && (
-        <nav className="fixed bottom-0 left-0 w-full bg-surface/80 backdrop-blur-xl border-t border-outline-variant/10 px-4 pb-8 pt-4 flex justify-around items-center rounded-t-[3rem] z-50 shadow-[0_-8px_32px_rgba(0,0,0,0.04)]">
-          <NavLink to="/browse" icon={<Leaf size={24} />} label="Categories" active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')} />
-          <NavLink to="/stores" icon={<Search size={24} />} label="Stores" active={location.pathname === '/stores'} />
-          <NavLink to="/cart" icon={<ShoppingBasket size={24} />} label="Cart" active={location.pathname === '/cart'} />
-          <NavLink to="/history" icon={<ShoppingBasket size={24} />} label="Orders" active={location.pathname === '/history' || location.pathname.startsWith('/tracking') || location.pathname === '/success'} />
-          <NavLink to={isAuthenticated ? "/profile" : "/login"} icon={<User size={24} />} label={isAuthenticated ? "Account" : "Log In"} active={location.pathname === '/profile' || location.pathname === '/login'} />
+        <nav className="fixed bottom-0 left-0 w-full bg-surface/80 backdrop-blur-2xl border-t border-outline-variant/10 px-4 pb-8 pt-4 flex justify-around items-center rounded-t-[2.5rem] z-50 shadow-[0_-12px_40px_rgba(0,0,0,0.06)] md:hidden">
+          <NavLink to="/browse" icon={<LayoutGrid size={24} />} label="Aisles" active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')} />
+          <NavLink to="/stores" icon={<MapPin size={24} />} label="Stores" active={location.pathname === '/stores'} />
+          <NavLink to="/offers" icon={<Tag size={24} />} label="Offers" active={location.pathname === '/offers'} />
+          <NavLink to="/history" icon={<ShoppingBag size={24} />} label="Orders" active={location.pathname === '/history' || location.pathname.startsWith('/tracking') || location.pathname === '/success'} />
+          <NavLink to={isAuthenticated ? "/profile" : "/login"} icon={<CircleUser size={24} />} label={isAuthenticated ? "Account" : "Log In"} active={location.pathname === '/profile' || location.pathname === '/login'} />
         </nav>
       )}
     </div>
@@ -91,14 +91,16 @@ function NavLink({ to, icon, label, active }: { to: string; icon: React.ReactNod
   return (
     <Link 
       to={to} 
-      className={`flex flex-col items-center justify-center px-5 py-2 transition-all duration-300 active:scale-90 ${
+      className={`flex flex-col items-center justify-center px-4 py-2 transition-all duration-300 active:scale-90 ${
         active 
-          ? 'bg-primary/10 text-primary rounded-full' 
-          : 'text-secondary hover:text-primary'
+          ? 'text-primary' 
+          : 'text-secondary hover:text-primary/70'
       }`}
     >
-      {icon}
-      <span className="text-[10px] font-bold uppercase tracking-widest mt-1">{label}</span>
+      <div className={`p-2 rounded-xl transition-colors ${active ? 'bg-primary/10' : ''}`}>
+        {icon}
+      </div>
+      <span className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${active ? 'text-primary' : 'text-secondary/60'}`}>{label}</span>
     </Link>
   );
 }

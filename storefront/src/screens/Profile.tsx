@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { User, Phone, MapPin, Plus, Trash2, Loader2, Save, Star, Award, Gift } from 'lucide-react';
+import Modal from '../components/Modal';
+import { User, Phone, MapPin, Plus, Trash2, Loader2, Save, Star, Award, Gift, AlertCircle } from 'lucide-react';
 import { customerAuthApi, rewardsApi, getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,6 +11,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rewardsProgress, setRewardsProgress] = useState<any>(null);
+  const [addressToDelete, setAddressToDelete] = useState<any>(null);
   
   // Form fields
   const [name, setName] = useState('');
@@ -79,10 +81,24 @@ export default function Profile() {
     }
   };
 
-  const handleRemoveAddress = async (id: string) => {
-    if (!confirm('Remove this address?')) return;
+  const confirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
+    setSaving(true);
     try {
-      await customerAuthApi.removeAddress(id);
+      await customerAuthApi.removeAddress(addressToDelete.id);
+      const res = await customerAuthApi.getProfile();
+      setProfile(res.data);
+      setAddressToDelete(null);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSetDefaultAddress = async (id: string) => {
+    try {
+      await customerAuthApi.setDefaultAddress(id);
       const res = await customerAuthApi.getProfile();
       setProfile(res.data);
     } catch (err) {
@@ -224,24 +240,38 @@ export default function Profile() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {profile.addresses?.map((addr: any) => (
-              <div key={addr.id} className="border border-outline-variant rounded-xl p-6 flex justify-between items-start hover:border-primary transition-colors group">
+              <div key={addr.id} className={`border rounded-xl p-6 flex justify-between items-start transition-all shadow-sm hover:shadow-md ${addr.is_default ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/50'}`}>
                 <div className="flex gap-4">
-                  <div className="mt-1 text-primary">
+                  <div className={`mt-1 ${addr.is_default ? 'text-primary' : 'text-secondary'}`}>
                     <MapPin size={20} />
                   </div>
                   <div>
                     <p className="font-bold text-on-surface">{addr.line1}</p>
-                    <p className="text-sm text-on-surface-variant">{addr.city}, {addr.postcode}</p>
-                    {addr.is_default && (
-                      <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-widest bg-primary/10 text-primary px-2 py-0.5 rounded">Default</span>
-                    )}
+                    <p className="text-sm text-on-surface-variant font-medium">{addr.city}, {addr.postcode}</p>
+                    
+                    <div className="flex items-center gap-3 mt-4">
+                      {addr.is_default ? (
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest bg-primary text-on-primary px-3 py-1 rounded-full shadow-sm">
+                          <Star size={10} fill="currentColor" />
+                          Default
+                        </span>
+                      ) : (
+                        <button 
+                          onClick={() => handleSetDefaultAddress(addr.id)}
+                          className="text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/5 px-3 py-1 rounded-full border border-primary/20 transition-colors"
+                        >
+                          Set as Default
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <button 
-                  onClick={() => handleRemoveAddress(addr.id)}
-                  className="text-error opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-error/10 rounded-full"
+                  onClick={() => setAddressToDelete(addr)}
+                  className="text-error/60 hover:text-error hover:bg-error/5 p-2 rounded-full transition-all active:scale-90"
+                  title="Remove Address"
                 >
-                  <Trash2 size={18} />
+                  <Trash2 size={20} />
                 </button>
               </div>
             ))}
@@ -252,6 +282,43 @@ export default function Profile() {
             )}
           </div>
         </section>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={!!addressToDelete}
+          onClose={() => setAddressToDelete(null)}
+          title="Delete Address"
+          footer={
+            <>
+              <button 
+                onClick={() => setAddressToDelete(null)}
+                className="px-6 py-3 font-bold text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDeleteAddress}
+                disabled={saving}
+                className="bg-error text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-error/20 disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                Delete Address
+              </button>
+            </>
+          }
+        >
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="p-4 bg-error/10 text-error rounded-full">
+              <AlertCircle size={40} />
+            </div>
+            <div>
+              <p className="text-on-surface-variant leading-relaxed">
+                Are you sure you want to remove <strong className="text-on-surface font-bold">"{addressToDelete?.line1}"</strong>? 
+                This action cannot be undone.
+              </p>
+            </div>
+          </div>
+        </Modal>
       </div>
     </Layout>
   );

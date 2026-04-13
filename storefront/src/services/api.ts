@@ -109,6 +109,8 @@ export const customerAuthApi = {
   }),
 
   removeAddress: (id: string) => api.delete(`/customers/me/addresses/${id}`),
+  
+  setDefaultAddress: (id: string) => api.put(`/customers/me/addresses/${id}/default`),
 };
 
 // ─── Customer Order Endpoints (auth required) ────────────────────

@@ -14,6 +14,7 @@ import OrderTracking from './screens/OrderTracking';
 import OrderHistory from './screens/OrderHistory';
 import StoreSelection from './screens/StoreSelection';
 import Profile from './screens/Profile';
+import Offers from './screens/Offers';
 import Login from './screens/Login';
 import { AnimatePresence } from 'motion/react';
 
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="/tracking/:id" element={<OrderTracking />} />
               <Route path="/history" element={<OrderHistory />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/offers" element={<Offers />} />
               <Route path="/stores" element={<StoreSelection />} />
               <Route path="/login" element={<Login />} />
             </Routes>
