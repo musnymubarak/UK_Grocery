@@ -106,6 +106,7 @@ class StoreCreate(BaseModel):
 
 class StoreUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
+    code: Optional[str] = Field(None, min_length=1, max_length=50)
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None

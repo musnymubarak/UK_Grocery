@@ -105,3 +105,12 @@ async def remove_my_address(
     address = await db.get(CustomerAddress, address_id)
     if address and address.customer_id == current_customer.id:
         await CustomerService.remove_address(db, address_id)
+
+@router.put("/me/addresses/{address_id}/default", response_model=CustomerAddressResponse)
+async def set_my_default_address(
+    address_id: UUID,
+    current_customer: Customer = Depends(get_current_customer),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Set a specific address as default for the current customer."""
+    return await CustomerService.set_default_address(db, current_customer.id, address_id)

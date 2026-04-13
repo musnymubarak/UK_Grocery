@@ -104,3 +104,21 @@ class CustomerService:
             raise NotFoundException("Address not found")
         await db.delete(address)
         await db.flush()
+
+    @staticmethod
+    async def set_default_address(db: AsyncSession, customer_id: UUID, address_id: UUID) -> Optional[CustomerAddress]:
+        customer = await CustomerService.get_customer(db, customer_id)
+        
+        target_address = None
+        for addr in customer.addresses:
+            if addr.id == address_id:
+                addr.is_default = True
+                target_address = addr
+            else:
+                addr.is_default = False
+                
+        if not target_address:
+            raise NotFoundException("Address not found")
+            
+        await db.flush()
+        return target_address
