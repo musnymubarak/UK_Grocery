@@ -33,7 +33,7 @@ class User(TimestampMixin, Base):
     # Relationships
     organization = relationship("Organization", back_populates="users")
     store = relationship("Store", back_populates="users")
-    assigned_orders = relationship("Order", back_populates="delivery_boy", lazy="selectin")
+    assigned_orders = relationship("Order", back_populates="delivery_boy", lazy="raise")
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', role='{self.role}')>"
