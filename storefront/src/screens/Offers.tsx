@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import InnovativeLoader from '../components/InnovativeLoader';
 import { Tag, Ticket, Percent, Sparkles, Gift, Clock, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { couponApi, rewardsApi } from '../services/api';
@@ -9,14 +10,10 @@ export default function Offers() {
   const [rewards, setRewards] = useState<any>(null);
 
   useEffect(() => {
-    // Simulate loading data
-    const timer = setTimeout(() => {
-        rewardsApi.myProgress()
-            .then(res => setRewards(res.data))
-            .catch(() => setRewards({ total_spend: 0, events: [] }))
-            .finally(() => setLoading(false));
-    }, 500);
-    return () => clearTimeout(timer);
+    rewardsApi.myProgress()
+        .then(res => setRewards(res.data))
+        .catch(() => setRewards({ total_spend: 0, events: [] }))
+        .finally(() => setLoading(false));
   }, []);
 
   const featuredOffers = [
@@ -41,8 +38,8 @@ export default function Offers() {
   if (loading) {
     return (
       <Layout title="Offers">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="animate-spin text-primary" size={40} />
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <InnovativeLoader />
         </div>
       </Layout>
     );

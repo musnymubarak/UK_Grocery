@@ -25,6 +25,11 @@ import DeliveryBoyDashboard from './features/delivery/DeliveryBoyDashboard';
 import CouponsPage from './features/coupons/CouponsPage';
 import PlatformSettingsPage from './features/settings/PlatformSettingsPage';
 import RewardsPage from './features/rewards/RewardsPage';
+import WebhooksPage from './features/webhooks/WebhooksPage';
+import BannersPage from './features/banners/BannersPage';
+import ReviewsPage from './features/reviews/ReviewsPage';
+import RefundsPage from './features/refunds/RefundsPage';
+import SystemHealthPage from './features/system/SystemHealthPage';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -70,6 +75,11 @@ function AppRoutes() {
                 <Route path="/audit" element={<AuditLogPage />} />
                 <Route path="/settings" element={<PlatformSettingsPage />} />
                 <Route path="/rewards" element={<RewardsPage />} />
+                <Route path="/webhooks" element={<WebhooksPage />} />
+                <Route path="/banners" element={<BannersPage />} />
+                <Route path="/reviews" element={<ReviewsPage />} />
+                <Route path="/refunds" element={<RefundsPage />} />
+                <Route path="/system" element={<SystemHealthPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

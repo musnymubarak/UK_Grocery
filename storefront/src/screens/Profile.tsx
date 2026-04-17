@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import InnovativeLoader from '../components/InnovativeLoader';
 import Modal from '../components/Modal';
-import { User, Phone, MapPin, Plus, Trash2, Loader2, Save, Star, Award, Gift, AlertCircle } from 'lucide-react';
-import { customerAuthApi, rewardsApi, getErrorMessage } from '../services/api';
+import { User, Phone, MapPin, Plus, Trash2, Loader2, Save, Star, Award, Gift, AlertCircle, Wallet, ShieldCheck, Download, UserMinus } from 'lucide-react';
+import { customerAuthApi, rewardsApi, walletApi, gdprApi, getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Profile() {
@@ -11,7 +12,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rewardsProgress, setRewardsProgress] = useState<any>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [addressToDelete, setAddressToDelete] = useState<any>(null);
+  const [showForgetConfirm, setShowForgetConfirm] = useState(false);
   
   // Form fields
   const [name, setName] = useState('');
@@ -39,6 +42,10 @@ export default function Profile() {
         console.error("Rewards API error:", err);
         setRewardsProgress({ total_spend: 0, events: [] });
       });
+
+    walletApi.getBalance()
+      .then(res => setWalletBalance(Number(res.data.balance) || 0))
+      .catch(err => console.error("Wallet API error:", err));
   }, []);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -47,7 +54,6 @@ export default function Profile() {
     try {
       const res = await customerAuthApi.updateProfile({ name, phone });
       setProfile(res.data);
-      // Update context if needed
       if (setUser) setUser({ ...user, name });
       alert('Profile updated successfully');
     } catch (err) {
@@ -67,7 +73,6 @@ export default function Profile() {
         postcode,
         is_default: profile.addresses?.length === 0
       });
-      // Refresh
       const res = await customerAuthApi.getProfile();
       setProfile(res.data);
       setShowAddAddress(false);
@@ -106,11 +111,37 @@ export default function Profile() {
     }
   };
 
+  const handleExportData = async () => {
+    try {
+      const res = await gdprApi.export();
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'my_data.json');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  };
+
+  const handleForgetMe = async () => {
+    try {
+      await gdprApi.forgetMe();
+      localStorage.removeItem('customer_token');
+      localStorage.removeItem('customer_data');
+      window.location.href = '/shop';
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  };
+
   if (loading) {
     return (
       <Layout title="Profile">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="animate-spin text-primary" size={40} />
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <InnovativeLoader />
         </div>
       </Layout>
     );
@@ -165,7 +196,7 @@ export default function Profile() {
         </section>
 
         {rewardsProgress && (
-          <section className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-2xl p-8 mb-12 relative overflow-hidden">
+          <section className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-2xl p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-10">
               <Star size={120} />
             </div>
@@ -248,7 +279,6 @@ export default function Profile() {
                   <div>
                     <p className="font-bold text-on-surface">{addr.line1}</p>
                     <p className="text-sm text-on-surface-variant font-medium">{addr.city}, {addr.postcode}</p>
-                    
                     <div className="flex items-center gap-3 mt-4">
                       {addr.is_default ? (
                         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest bg-primary text-on-primary px-3 py-1 rounded-full shadow-sm">
@@ -283,43 +313,102 @@ export default function Profile() {
           </div>
         </section>
 
-        {/* Delete Confirmation Modal */}
-        <Modal
-          isOpen={!!addressToDelete}
-          onClose={() => setAddressToDelete(null)}
-          title="Delete Address"
-          footer={
-            <>
-              <button 
-                onClick={() => setAddressToDelete(null)}
-                className="px-6 py-3 font-bold text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={confirmDeleteAddress}
-                disabled={saving}
-                className="bg-error text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-error/20 disabled:opacity-50"
-              >
-                {saving ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
-                Delete Address
-              </button>
-            </>
-          }
-        >
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="p-4 bg-error/10 text-error rounded-full">
-              <AlertCircle size={40} />
+        <section className="bg-surface-container-low rounded-lg p-8 border border-outline-variant">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-12 rounded-full bg-info/10 flex items-center justify-center text-info">
+              <Wallet size={24} />
             </div>
             <div>
-              <p className="text-on-surface-variant leading-relaxed">
-                Are you sure you want to remove <strong className="text-on-surface font-bold">"{addressToDelete?.line1}"</strong>? 
-                This action cannot be undone.
-              </p>
+              <h3 className="text-2xl font-bold tracking-tight">Your Wallet</h3>
+              <p className="text-on-surface-variant font-medium">Digital balance for fast checkouts</p>
             </div>
           </div>
-        </Modal>
+          <div className="bg-surface p-6 rounded-2xl border border-outline flex items-center justify-between shadow-sm">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">Available Balance</div>
+              <div className="text-4xl font-black text-primary">£{walletBalance.toFixed(2)}</div>
+            </div>
+            <button className="bg-on-surface text-surface px-6 py-2 rounded-lg font-bold hover:opacity-90 transition-opacity">
+              Top Up
+            </button>
+          </div>
+        </section>
+
+        <section className="bg-surface-container-low rounded-lg p-8 border border-outline-variant">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center text-error">
+              <ShieldCheck size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold tracking-tight">Privacy & Security</h3>
+              <p className="text-on-surface-variant font-medium">Manage your personal data and account</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button 
+              onClick={handleExportData}
+              className="flex items-center gap-4 p-4 rounded-xl border border-outline hover:bg-surface-container-high transition-colors text-left"
+            >
+              <div className="bg-info/10 text-info p-3 rounded-lg"><Download size={20} /></div>
+              <div>
+                <div className="font-bold">Download My Data</div>
+                <div className="text-xs text-on-surface-variant">Get a copy of your personal records</div>
+              </div>
+            </button>
+            <button 
+              onClick={() => setShowForgetConfirm(true)}
+              className="flex items-center gap-4 p-4 rounded-xl border border-outline hover:bg-error/5 transition-colors text-left"
+            >
+              <div className="bg-error/10 text-error p-3 rounded-lg"><UserMinus size={20} /></div>
+              <div>
+                <div className="font-bold text-error">Delete Account</div>
+                <div className="text-xs text-on-surface-variant">Irreversibly anonymize your profile</div>
+              </div>
+            </button>
+          </div>
+        </section>
       </div>
+
+      <Modal
+        isOpen={!!addressToDelete}
+        onClose={() => setAddressToDelete(null)}
+        title="Delete Address"
+        footer={
+          <>
+            <button onClick={() => setAddressToDelete(null)} className="px-6 py-3 font-bold text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-colors">Cancel</button>
+            <button onClick={confirmDeleteAddress} disabled={saving} className="bg-error text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50">
+              {saving ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+              Delete Address
+            </button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center space-y-4">
+          <div className="p-4 bg-error/10 text-error rounded-full"><AlertCircle size={40} /></div>
+          <p className="text-on-surface-variant leading-relaxed">
+            Are you sure you want to remove <strong className="text-on-surface font-bold">"{addressToDelete?.line1}"</strong>? This action cannot be undone.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showForgetConfirm}
+        onClose={() => setShowForgetConfirm(false)}
+        title="Delete Your Account?"
+        footer={
+          <>
+            <button onClick={() => setShowForgetConfirm(false)} className="px-6 py-3 font-bold text-on-surface-variant">Cancel</button>
+            <button onClick={handleForgetMe} className="bg-error text-white px-8 py-3 rounded-xl font-bold">Delete Everything</button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-center">
+          <div className="p-4 bg-error/10 text-error rounded-full inline-block"><AlertCircle size={40} /></div>
+          <p className="text-on-surface-variant leading-relaxed">
+            This action is <strong className="text-on-surface">PERMANENT</strong>. We will anonymize your profile. You will lose access to your rewards, order history, and wallet balance.
+          </p>
+        </div>
+      </Modal>
     </Layout>
   );
 }

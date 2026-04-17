@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import InnovativeLoader from '../components/InnovativeLoader';
 import { Search, Loader2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
@@ -80,8 +81,8 @@ export default function Home() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="animate-spin text-primary" size={40} />
+        <div className="flex items-center justify-center min-h-[80vh] py-16">
+          <InnovativeLoader />
         </div>
       </Layout>
     );

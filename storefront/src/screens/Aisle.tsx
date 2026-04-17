@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import InnovativeLoader from '../components/InnovativeLoader';
 import { ProductCard } from '../components/ProductCard';
 import { useCart } from '../CartContext';
 import { catalogApi } from '../services/api';
@@ -62,8 +63,8 @@ export default function Aisle() {
   if (loading) {
     return (
       <Layout title="Loading..." showBack>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="animate-spin text-primary" size={40} />
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <InnovativeLoader />
         </div>
       </Layout>
     );

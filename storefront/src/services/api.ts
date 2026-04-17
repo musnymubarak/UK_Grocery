@@ -160,3 +160,37 @@ export function getErrorMessage(err: unknown, fallback = 'An error occurred'): s
   if (err instanceof Error) return err.message;
   return fallback;
 }
+// ─── Wallet Endpoints ────────────────────────────────────────────
+export const walletApi = {
+  getBalance: () => api.get('/wallet/me'),
+};
+
+// ─── Notification Endpoints ──────────────────────────────────────
+export const notificationApi = {
+  list: () => api.get('/notifications/me'),
+  getCount: () => api.get('/notifications/me/count'),
+};
+
+// ─── Review Endpoints ────────────────────────────────────────────
+export const reviewApi = {
+  submit: (data: any) => api.post('/reviews', data),
+  getStoreReviews: (storeId: string) => api.get(`/reviews/store/${storeId}`),
+  getStoreSummary: (storeId: string) => api.get(`/reviews/store/${storeId}/summary`),
+};
+
+// ─── Refund Endpoints ────────────────────────────────────────────
+export const refundApi = {
+  request: (data: any) => api.post('/refunds/request', data),
+};
+
+// ─── GDPR Endpoints ─────────────────────────────────────────────
+export const gdprApi = {
+  export: () => api.get('/gdpr/export', { responseType: 'blob' }),
+  forgetMe: () => api.delete('/gdpr/forget-me'),
+};
+
+// ─── Order Expansion ────────────────────────────────────────────
+// Note: orderApi was already defined, adding cancel method to it
+export const orderActionsApi = {
+  cancel: (id: string) => api.post(`/orders/me/${id}/cancel`),
+};

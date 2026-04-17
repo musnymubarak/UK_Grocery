@@ -18,6 +18,9 @@ celery_app.conf.update(
     task_track_started=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    broker_connection_retry=False,
+    broker_connection_retry_on_startup=False,
+    broker_connection_max_retries=0,
 )
 
 # Autodiscover tasks from app.tasks package

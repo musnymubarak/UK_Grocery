@@ -76,6 +76,7 @@ def create_app() -> FastAPI:
     )
 
     # Routers
+    from app.api.v1.router import api_router
     application.include_router(api_router, prefix="/api/v1")
 
     # Rate limiting

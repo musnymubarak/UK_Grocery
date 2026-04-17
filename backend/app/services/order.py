@@ -377,9 +377,7 @@ class OrderService:
             if order.payment_method == "cod":
                 order.payment_status = "paid"
                 
-            # Trigger loyalty rewards (async task)
-            from app.tasks.rewards import process_order_rewards
-            process_order_rewards.delay(str(order.id))
+
             
             # Credit referrer on first delivered order
             from app.services.referral import ReferralService
@@ -393,13 +391,17 @@ class OrderService:
                 await driver_service.increment_deliveries(order.assigned_to)
 
             # Trigger loyalty tracking background task
-            from app.tasks.rewards import process_delivered_order_rewards
-            process_delivered_order_rewards.delay(
-                str(order.organization_id),
-                str(order.customer_id),
-                str(order.store_id),
-                str(order.total)
-            )
+            try:
+                from app.tasks.rewards import process_delivered_order_rewards
+                process_delivered_order_rewards.delay(
+                    str(order.organization_id),
+                    str(order.customer_id),
+                    str(order.store_id),
+                    str(order.total)
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to queue process_delivered_order_rewards: {e}")
 
         # Fire Webhook (New in Phase 4)
         from app.services.webhook import WebhookService
@@ -415,7 +417,6 @@ class OrderService:
         )
 
         await self.db.flush()
-        await self.db.refresh(order)
         return order
 
     async def assign_delivery(self, order_id: UUID, delivery_boy_id: UUID, current_user: User) -> Order:
@@ -430,7 +431,6 @@ class OrderService:
 
         order.assigned_to = delivery_boy_id
         await self.db.flush()
-        await self.db.refresh(order)
         return order
 
     async def customer_cancel(self, order_id: UUID, customer_id: UUID) -> Order:
@@ -477,5 +477,4 @@ class OrderService:
         self.db.add(history)
         
         await self.db.flush()
-        await self.db.refresh(order)
         return order

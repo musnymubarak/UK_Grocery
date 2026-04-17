@@ -11,6 +11,8 @@ async def get_redis() -> aioredis.Redis:
             settings.REDIS_URL,
             decode_responses=True,
             max_connections=20,
+            socket_connect_timeout=0.5,
+            socket_timeout=0.5,
         )
     return redis_client
 
