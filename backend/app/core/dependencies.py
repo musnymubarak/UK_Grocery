@@ -130,7 +130,10 @@ def enforce_store_access(
     No-op for admins (user_store_scope is None).
     Raises 403 if the store IDs don't match.
     """
-    if user_store_scope is not None and str(target_store_id) != str(user_store_scope):
-        raise ForbiddenException(
-            "Access denied: you can only access your assigned store."
-        )
+    if user_store_scope is not None:
+        from uuid import UUID as UUIDType
+        target = target_store_id if isinstance(target_store_id, UUIDType) else UUIDType(str(target_store_id))
+        if target != user_store_scope:
+            raise ForbiddenException(
+                "Access denied: you can only access your assigned store."
+            )

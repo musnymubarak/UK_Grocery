@@ -253,20 +253,44 @@ class ProductService:
             })
         return items
 
+    ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
     async def upload_product_image(self, product_id: UUID, image: UploadFile, org_id: UUID) -> Product:
         """Upload and save product image locally."""
         product = await self.repo.get_by_id(product_id)
         if not product or product.organization_id != org_id:
             raise NotFoundException("Product", product_id)
 
+        # Validate file type
+        if image.content_type not in self.ALLOWED_IMAGE_TYPES:
+            from app.core.exceptions import ValidationException
+            raise ValidationException(
+                f"Invalid file type '{image.content_type}'. "
+                f"Allowed: {', '.join(self.ALLOWED_IMAGE_TYPES)}"
+            )
+
+        # Validate file size
+        contents = await image.read()
+        if len(contents) > self.MAX_IMAGE_SIZE:
+            from app.core.exceptions import ValidationException
+            raise ValidationException(
+                f"File too large ({len(contents)} bytes). Maximum: {self.MAX_IMAGE_SIZE} bytes"
+            )
+        await image.seek(0)  # reset for saving
+
         # Ensure sub-directory exists
         product_dir = os.path.join(settings.UPLOAD_DIR, "products")
         if not os.path.exists(product_dir):
             os.makedirs(product_dir, exist_ok=True)
 
-        # Generate unique filename
-        ext = os.path.splitext(image.filename)[1] if image.filename else ".jpg"
-        filename = f"product_{str(product.id)}_{uuid.uuid4().hex[:8]}{ext}"
+        # Generate unique filename with sanitized extension
+        import re
+        safe_ext = os.path.splitext(image.filename or ".jpg")[1].lower()
+        if safe_ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+            safe_ext = ".jpg"
+        
+        filename = f"product_{str(product.id)}_{uuid.uuid4().hex[:8]}{safe_ext}"
         file_path = os.path.join(product_dir, filename)
 
         # Save file to disk

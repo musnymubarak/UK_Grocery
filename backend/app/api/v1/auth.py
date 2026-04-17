@@ -37,8 +37,11 @@ class SetupRequest(BaseModel):
     admin_name: str = Field(..., min_length=1)
 
 
+from app.core.rate_limiter import limiter
+
 @router.post("/setup", summary="Bootstrap: Create organization + admin")
-async def setup_organization(data: SetupRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("1/minute")
+async def setup_organization(request: Request, data: SetupRequest, db: AsyncSession = Depends(get_db)):
     """One-time setup: create organization and initial admin user."""
     # Security: check if any organization already exists
     existing_org = await db.execute(select(Organization).limit(1))
@@ -62,6 +65,7 @@ async def setup_organization(data: SetupRequest, db: AsyncSession = Depends(get_
 
 
 @router.post("/login", response_model=TokenResponse, summary="Login")
+@limiter.limit("5/minute")
 async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Authenticate and receive JWT token."""
     service = AuthService(db)

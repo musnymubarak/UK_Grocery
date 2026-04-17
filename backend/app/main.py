@@ -20,14 +20,23 @@ import app.models  # noqa: F401
 logger = logging.getLogger(__name__)
 
 
+from app.core.redis import get_redis, close_redis
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle: startup and shutdown."""
-    logger.info("Creating database tables if not present...")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables ready.")
+    if settings.DEBUG:
+        logger.info("DEBUG mode: Creating database tables if not present...")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables ready.")
+    else:
+        logger.info("Production mode: Skipping create_all (use Alembic migrations)")
+    
+    await get_redis()  # warm up connection
+    logger.info("Redis connected.")
     yield
+    await close_redis()
     await engine.dispose()
 
 
@@ -58,12 +67,20 @@ def create_app() -> FastAPI:
     # Routers
     application.include_router(api_router, prefix="/api/v1")
 
+    # Rate limiting
+    from app.core.rate_limiter import limiter
+    from slowapi import _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+    application.state.limiter = limiter
+    application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
     # Ensure uploads directory exists
     if not os.path.exists(settings.UPLOAD_DIR):
         os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     
-    # Mount static files for dev access to uploads
-    application.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+    if settings.DEBUG:
+        # Dev only: serve uploads from FastAPI. In production, nginx handles /uploads/
+        application.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
     return application
 

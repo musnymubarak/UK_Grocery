@@ -1,0 +1,9 @@
+"""Application-level rate limiting using slowapi + Redis."""
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["100/minute"],
+    storage_uri="memory://",  # Switch to Redis URI in production if needed
+)

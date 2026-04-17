@@ -248,13 +248,13 @@ class OrderService:
             if order.payment_method == "cod":
                 order.payment_status = "paid"
                 
-            # Trigger loyalty tracking
-            rewards_service = RewardsService(self.db)
-            await rewards_service.log_order_spend(
-                org_id=order.organization_id,
-                customer_id=order.customer_id,
-                store_id=order.store_id,
-                amount=order.total
+            # Trigger loyalty tracking background task
+            from app.tasks.rewards import process_delivered_order_rewards
+            process_delivered_order_rewards.delay(
+                str(order.organization_id),
+                str(order.customer_id),
+                str(order.store_id),
+                str(order.total)
             )
 
         await self.db.flush()

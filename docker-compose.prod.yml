@@ -1,14 +1,41 @@
 # Production overrides — pre-built static files, no dev servers
 services:
+  # One-shot migration runner
+  migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    command: alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   backend:
     volumes:
       - /app
       - upload_data:/app/uploads
-    command: sh -c "(alembic upgrade head || true) && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
 
   postgres:
     # Disable host port mapping in production for security
     ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
 
   admin:
     # In production, admin is built at image build time.
@@ -27,6 +54,11 @@ services:
     restart: "no"
     healthcheck:
       disable: true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   nginx:
     volumes:
@@ -40,6 +72,32 @@ services:
       - backend
       - admin
       - storefront
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  celery-worker:
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  celery-beat:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
 
   # Certbot for SSL certificate management
   certbot:
