@@ -20,10 +20,10 @@ class Organization(TimestampMixin, Base):
     address = Column(Text, nullable=True)
 
     # Relationships
-    stores = relationship("Store", back_populates="organization", lazy="selectin")
-    users = relationship("User", back_populates="organization", lazy="selectin")
-    products = relationship("Product", back_populates="organization", lazy="selectin")
-    categories = relationship("Category", back_populates="organization", lazy="selectin")
+    stores = relationship("Store", back_populates="organization", lazy="raise")
+    users = relationship("User", back_populates="organization", lazy="raise")
+    products = relationship("Product", back_populates="organization", lazy="raise")
+    categories = relationship("Category", back_populates="organization", lazy="raise")
 
     def __repr__(self):
         return f"<Organization(id={self.id}, name='{self.name}')>"

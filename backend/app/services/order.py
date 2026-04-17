@@ -69,7 +69,7 @@ class OrderService:
 
     async def get_orders(self, org_id: UUID, store_id: Optional[UUID] = None, skip: int = 0, limit: int = 100) -> List[Order]:
         from sqlalchemy.orm import selectinload
-        query = select(Order).options(selectinload(Order.items)).where(Order.organization_id == org_id)
+        query = select(Order).options(selectinload(Order.items).selectinload(OrderItem.product)).where(Order.organization_id == org_id)
         if store_id:
             query = query.where(Order.store_id == store_id)
         query = query.order_by(Order.created_at.desc()).offset(skip).limit(limit)
@@ -78,7 +78,7 @@ class OrderService:
         
     async def get_assigned_orders(self, user_id: UUID, skip: int = 0, limit: int = 50) -> List[Order]:
         from sqlalchemy.orm import selectinload
-        query = select(Order).options(selectinload(Order.items)).where(Order.assigned_to == user_id).order_by(Order.created_at.desc()).offset(skip).limit(limit)
+        query = select(Order).options(selectinload(Order.items).selectinload(OrderItem.product)).where(Order.assigned_to == user_id).order_by(Order.created_at.desc()).offset(skip).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
