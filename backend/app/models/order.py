@@ -55,9 +55,9 @@ class Order(TimestampMixin, Base):
     confirmed_at = Column(DateTime(timezone=True), nullable=True)
     picked_at = Column(DateTime(timezone=True), nullable=True)
     dispatched_at = Column(DateTime(timezone=True), nullable=True)
+    delivered_at = Column(DateTime(timezone=True), nullable=True)
+    cancel_window_expires_at = Column(DateTime(timezone=True), nullable=True)
     rejected_reason = Column(Text, nullable=True)
-    
-    subtotal = Column(Numeric(12, 2), default=0, nullable=False)
     delivery_fee = Column(Numeric(10, 2), default=0, nullable=False)
     discount = Column(Numeric(10, 2), default=0, nullable=False)
     total = Column(Numeric(12, 2), default=0, nullable=False)
@@ -78,6 +78,7 @@ class Order(TimestampMixin, Base):
     delivery_address_record = relationship("CustomerAddress")
     delivery_boy = relationship("User", back_populates="assigned_orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan", lazy="selectin")
+    status_history = relationship("OrderStatusHistory", back_populates="order", cascade="all, delete-orphan", lazy="raise")
 
     def __repr__(self):
         return f"<Order(order_number='{self.order_number}', status='{self.status}')>"
@@ -126,3 +127,24 @@ class OrderItem(TimestampMixin, Base):
 
     def __repr__(self):
         return f"<OrderItem(id={self.id}, product='{self.product_name}', qty={self.quantity})>"
+
+class OrderStatusHistory(TimestampMixin, Base):
+    __tablename__ = "order_status_history"
+
+    order_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("orders.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    from_status = Column(String(30), nullable=True)  # null for initial placement
+    to_status = Column(String(30), nullable=False)
+    changed_by_type = Column(String(20), nullable=False)  # "staff", "customer", "system"
+    changed_by_id = Column(UUID(as_uuid=True), nullable=True)  # user.id or customer.id
+    notes = Column(Text, nullable=True)
+
+    # Relationships
+    order = relationship("Order", back_populates="status_history")
+
+    def __repr__(self):
+        return f"<OrderStatusHistory({self.from_status} → {self.to_status})>"

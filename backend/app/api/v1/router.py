@@ -17,6 +17,8 @@ from app.api.v1.storefront import router as storefront_router
 from app.api.v1.coupons import router as coupon_router
 from app.api.v1.config import router as config_router
 from app.api.v1.rewards import router as rewards_router
+from app.api.v1.wallet import router as wallet_router
+from app.api.v1.refunds import router as refund_router
 
 api_router = APIRouter()
 
@@ -69,3 +71,5 @@ api_router.include_router(delivery_zones_router)
 api_router.include_router(coupon_router)
 api_router.include_router(config_router)
 api_router.include_router(rewards_router)
+api_router.include_router(wallet_router)
+api_router.include_router(refund_router)

@@ -25,11 +25,13 @@ async def _expire_stale_coupons():
 
 @celery_app.task(name="app.tasks.maintenance.order_timeout_check")
 def order_timeout_check():
-    """Flag orders stuck in PLACED status too long. Runs every 2 min."""
+    """Auto-reject orders stuck in 'placed' for >15 min. Runs every 2 min."""
     asyncio.run(_order_timeout_check())
 
 async def _order_timeout_check():
-    from app.models.order import Order
+    from app.models.order import Order, OrderStatusHistory
+    from app.models.inventory import Inventory
+    from sqlalchemy import select
     import logging
     logger = logging.getLogger(__name__)
     
@@ -42,8 +44,45 @@ async def _order_timeout_check():
         result = await db.execute(query)
         stuck_orders = result.scalars().all()
         
+        rejected_count = 0
+        now = datetime.now(timezone.utc)
         for order in stuck_orders:
-            logger.warning(f"Order {order.order_number} stuck in PLACED for >15min")
-            # Future: auto-cancel or notify admin
+            logger.warning(f"Auto-rejecting order {order.order_number} (stuck >15min)")
+            
+            old_status = order.status
+            order.status = "rejected"
+            order.rejected_reason = "Automatically rejected: no store response within 15 minutes"
+            order.updated_at = now
+            
+            # Release reserved inventory
+            from sqlalchemy.orm import selectinload
+            from app.models.order import OrderItem
+            items_query = select(OrderItem).where(OrderItem.order_id == order.id)
+            items_result = await db.execute(items_query)
+            items = items_result.scalars().all()
+            
+            for item in items:
+                inv_query = select(Inventory).where(
+                    Inventory.product_id == item.product_id,
+                    Inventory.store_id == order.store_id,
+                )
+                inv_result = await db.execute(inv_query)
+                inv = inv_result.scalar_one_or_none()
+                if inv:
+                    inv.reserved_quantity = max(0, inv.reserved_quantity - int(item.quantity))
+            
+            # Log status history
+            history = OrderStatusHistory(
+                order_id=order.id,
+                from_status=old_status,
+                to_status="rejected",
+                changed_by_type="system",
+                changed_by_id=None,
+                notes="Auto-rejected: no store response within 15 minutes",
+            )
+            db.add(history)
+            rejected_count += 1
         
-        return {"stuck_orders": len(stuck_orders)}
+        await db.commit()
+        logger.info(f"Auto-reject completed: {rejected_count} orders rejected")
+        return {"rejected": rejected_count}

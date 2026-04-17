@@ -72,6 +72,7 @@ class OrderResponse(OrderBase):
     confirmed_at: Optional[datetime] = None
     picked_at: Optional[datetime] = None
     dispatched_at: Optional[datetime] = None
+    cancel_window_expires_at: Optional[datetime] = None
     rejected_reason: Optional[str] = None
     items: List[OrderItemResponse] = []
 

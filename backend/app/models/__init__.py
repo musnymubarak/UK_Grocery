@@ -8,13 +8,15 @@ from app.models.customer import Customer, CustomerAddress
 from app.models.category import Category
 from app.models.product import Product
 from app.models.inventory import Inventory
-from app.models.order import Order, OrderItem
+from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.delivery_zone import DeliveryZone, PostcodeZoneMapping
 from app.models.stock_movement import StockMovement
 from app.models.audit import AuditLog
 from app.models.coupon import Coupon, CouponRedemption
 from app.models.config import PlatformConfig, FeatureFlag
 from app.models.rewards import RewardsTier, CustomerMonthlySpend, RewardEvent
+from app.models.wallet import WalletTransaction
+from app.models.refund import Refund
 
 __all__ = [
     "Organization",
@@ -27,6 +29,7 @@ __all__ = [
     "Inventory",
     "Order",
     "OrderItem",
+    "OrderStatusHistory",
     "DeliveryZone",
     "PostcodeZoneMapping",
     "StockMovement",
@@ -38,4 +41,6 @@ __all__ = [
     "RewardsTier",
     "CustomerMonthlySpend",
     "RewardEvent",
+    "WalletTransaction",
+    "Refund",
 ]
