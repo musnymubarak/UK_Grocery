@@ -227,8 +227,28 @@ class InventoryService:
         store_id: UUID,
         quantity: int,
     ) -> None:
-        """Soft-reserve stock for a new order."""
-        inv = await self.get_or_create_inventory(product_id, store_id)
+        """Soft-reserve stock for a new order. Uses FOR UPDATE to prevent race conditions."""
+        query = (
+            select(Inventory)
+            .where(Inventory.product_id == product_id, Inventory.store_id == store_id)
+            .with_for_update()
+        )
+        result = await self.db.execute(query)
+        inv = result.scalar_one_or_none()
+
+        if not inv:
+            # Create if missing (rare edge case — admin should pre-seed inventory)
+            inv = Inventory(product_id=product_id, store_id=store_id, quantity=0, reserved_quantity=0)
+            self.db.add(inv)
+            await self.db.flush()
+            # Re-lock the new row
+            result = await self.db.execute(
+                select(Inventory)
+                .where(Inventory.id == inv.id)
+                .with_for_update()
+            )
+            inv = result.scalar_one()
+
         if inv.available_quantity < quantity:
             raise InsufficientStockException(
                 product_name=str(product_id),

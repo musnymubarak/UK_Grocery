@@ -42,6 +42,10 @@ class Store(TimestampMixin, Base):
     avg_prep_time_min = Column(Integer, default=15, nullable=False)
     is_open = Column(Boolean, default=True, nullable=False)
     temporarily_closed_reason = Column(Text, nullable=True)
+    
+    # Surge pricing
+    surge_multiplier = Column(Numeric(4, 2), default=1.00, nullable=False)
+    is_surge_active = Column(Boolean, default=False, nullable=False)
 
     # Relationships
     organization = relationship("Organization", back_populates="stores")

@@ -133,6 +133,35 @@ class OrderService:
         self.db.add(order)
         await self.db.flush()
 
+        # Set initial cancel window (10 mins) and log status
+        from datetime import timedelta
+        order.cancel_window_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+        
+        from app.models.order import OrderStatusHistory
+        history = OrderStatusHistory(
+            order_id=order.id,
+            from_status=None,
+            to_status="placed",
+            changed_by_type="customer",
+            changed_by_id=customer_id,
+        )
+        self.db.add(history)
+        await self.db.flush()
+
+        # Calculate initial delivery fee
+        if order.order_type == "delivery" and order.delivery_postcode:
+            from app.services.delivery import DeliveryZoneService
+            from app.schemas.delivery_zone import FeeCalculationRequest
+            fee_req = FeeCalculationRequest(
+                store_id=store_id,
+                postcode=order.delivery_postcode,
+                order_total=Decimal("0.00"),
+            )
+            fee_resp = await DeliveryZoneService.calculate_fee(self.db, fee_req)
+            if not fee_resp.deliverable:
+                raise ValidationException(f"Delivery to postcode '{order.delivery_postcode}' is not available for this store")
+            order.delivery_fee = fee_resp.fee
+
         # Add Items and Soft Reserve
         for item_data in data.items:
             from app.models.product import Product
@@ -183,6 +212,30 @@ class OrderService:
             # Record redemption
             await coupon_service.record_redemption(validation_resp.coupon_id, customer_id, order.id)
             
+        # Recalculate delivery fee with real subtotal (for free delivery threshold)
+        if order.order_type == "delivery" and order.delivery_postcode:
+            from app.schemas.delivery_zone import FeeCalculationRequest
+            from app.services.delivery import DeliveryZoneService
+            fee_req = FeeCalculationRequest(
+                store_id=store_id,
+                postcode=order.delivery_postcode,
+                order_total=order.subtotal,
+            )
+            fee_resp = await DeliveryZoneService.calculate_fee(self.db, fee_req)
+            order.delivery_fee = fee_resp.fee
+
+            # Membership discount: premium/vip customers get free delivery
+            from app.models.customer import Customer
+            customer = await self.db.get(Customer, customer_id)
+            if customer and customer.membership_tier in ("premium", "vip"):
+                order.delivery_fee = Decimal("0.00")
+            
+            # Apply Store Surge Multiplier if active
+            from app.models.store import Store
+            store = await self.db.get(Store, store_id)
+            if store and store.is_surge_active and store.surge_multiplier > 1.0:
+                order.delivery_fee = (order.delivery_fee * store.surge_multiplier).quantize(Decimal("0.01"))
+
         order.total = max(Decimal("0.00"), order.subtotal + order.delivery_fee + order.service_fee + order.tip_amount - order.discount)
         await self.db.flush()
         return await self.get_order(order.id)
@@ -203,6 +256,17 @@ class OrderService:
         old_status = order.status
         order.status = new_status
         order.updated_at = datetime.now(timezone.utc)
+
+        # Log status transition
+        from app.models.order import OrderStatusHistory
+        history = OrderStatusHistory(
+            order_id=order.id,
+            from_status=old_status,
+            to_status=new_status,
+            changed_by_type="staff",
+            changed_by_id=user.id,
+        )
+        self.db.add(history)
 
         # Timestamps and triggers
         if new_status == "confirmed":
@@ -272,6 +336,53 @@ class OrderService:
             raise ValidationException("Delivery boy must belong to the same store")
 
         order.assigned_to = delivery_boy_id
+        await self.db.flush()
+        await self.db.refresh(order)
+        return order
+
+    async def customer_cancel(self, order_id: UUID, customer_id: UUID) -> Order:
+        """Customer self-cancellation — only within the cancel window."""
+        order = await self.get_order(order_id)
+        
+        if order.customer_id != customer_id:
+            raise ValidationException("You can only cancel your own orders")
+        
+        if order.status != "placed":
+            raise ValidationException(
+                f"Cannot cancel order in '{order.status}' status. "
+                "Only orders in 'placed' status can be cancelled."
+            )
+        
+        now = datetime.now(timezone.utc)
+        if order.cancel_window_expires_at and now > order.cancel_window_expires_at:
+            raise ValidationException(
+                "Cancellation window has expired. "
+                "Please contact support or request a refund after delivery."
+            )
+        
+        order.status = "cancelled"
+        order.updated_at = now
+        
+        # Release soft-reserved inventory
+        for item in order.items:
+            await self.inventory_service.release_reservation(
+                product_id=item.product_id,
+                store_id=order.store_id,
+                quantity=int(item.quantity)
+            )
+        
+        # Log status history
+        from app.models.order import OrderStatusHistory
+        history = OrderStatusHistory(
+            order_id=order.id,
+            from_status="placed",
+            to_status="cancelled",
+            changed_by_type="customer",
+            changed_by_id=customer_id,
+            notes="Customer self-cancelled within cancellation window",
+        )
+        self.db.add(history)
+        
         await self.db.flush()
         await self.db.refresh(order)
         return order

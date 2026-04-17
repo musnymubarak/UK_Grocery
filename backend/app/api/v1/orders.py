@@ -77,6 +77,17 @@ async def get_my_order(
     return order
 
 
+@router.post("/me/{order_id}/cancel", response_model=OrderResponse)
+async def cancel_my_order(
+    order_id: UUID,
+    current_customer: Customer = Depends(get_current_customer),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Customer cancels their own order (within cancellation window)."""
+    order_service = OrderService(db)
+    return await order_service.customer_cancel(order_id, current_customer.id)
+
+
 # ====================
 # ADMIN / STAFF ROUTES
 # ====================
