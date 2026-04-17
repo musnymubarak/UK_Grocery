@@ -19,6 +19,10 @@ from app.api.v1.config import router as config_router
 from app.api.v1.rewards import router as rewards_router
 from app.api.v1.wallet import router as wallet_router
 from app.api.v1.refunds import router as refund_router
+from app.api.v1.notifications import router as notification_router
+from app.api.v1.reviews import router as review_router
+from app.api.v1.banners import router as banner_router
+from app.api.v1.exports import router as export_router
 
 api_router = APIRouter()
 
@@ -73,3 +77,7 @@ api_router.include_router(config_router)
 api_router.include_router(rewards_router)
 api_router.include_router(wallet_router)
 api_router.include_router(refund_router)
+api_router.include_router(notification_router)
+api_router.include_router(review_router)
+api_router.include_router(banner_router)
+api_router.include_router(export_router)

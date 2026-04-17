@@ -57,6 +57,8 @@ class Order(TimestampMixin, Base):
     dispatched_at = Column(DateTime(timezone=True), nullable=True)
     delivered_at = Column(DateTime(timezone=True), nullable=True)
     cancel_window_expires_at = Column(DateTime(timezone=True), nullable=True)
+    scheduled_delivery_start = Column(DateTime(timezone=True), nullable=True)
+    scheduled_delivery_end = Column(DateTime(timezone=True), nullable=True)
     rejected_reason = Column(Text, nullable=True)
     delivery_fee = Column(Numeric(10, 2), default=0, nullable=False)
     discount = Column(Numeric(10, 2), default=0, nullable=False)

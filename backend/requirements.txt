@@ -9,6 +9,7 @@ asyncpg==0.30.0
 psycopg2-binary==2.9.10
 alembic==1.14.1
 redis[hiredis]==5.0.8
+celery==5.4.0
 
 # Auth
 python-jose[cryptography]==3.3.0

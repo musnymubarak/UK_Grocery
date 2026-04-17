@@ -19,6 +19,7 @@ from app.schemas.customer import (
     CustomerAddressCreate, CustomerAddressResponse,
     CustomerLogin, Token
 )
+from app.schemas.referral import ApplyReferralRequest, ReferralResponse, ReferralCodeResponse
 from app.services.customer import CustomerService
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
@@ -119,3 +120,30 @@ async def set_my_default_address(
 ):
     """Set a specific address as default for the current customer."""
     return await CustomerService.set_default_address(db, current_customer.id, address_id)
+
+
+@router.get("/me/referral-code", response_model=ReferralCodeResponse)
+async def get_my_referral_code(
+    current_customer: Customer = Depends(get_current_customer),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Get or generate the customer's unique referral code."""
+    from app.services.referral import ReferralService
+    from app.schemas.referral import ReferralCodeResponse
+    service = ReferralService(db)
+    code = await service.ensure_referral_code(current_customer.id)
+    return ReferralCodeResponse(referral_code=code)
+
+
+@router.post("/me/apply-referral", response_model=ReferralResponse)
+async def apply_referral_code(
+    data: ApplyReferralRequest,
+    current_customer: Customer = Depends(get_current_customer),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Apply a friend's referral code to get a wallet bonus."""
+    from app.services.referral import ReferralService
+    from app.schemas.referral import ApplyReferralRequest, ReferralResponse
+    service = ReferralService(db)
+    result = await service.apply_referral(current_customer.id, data.referral_code)
+    return ReferralResponse(**result)

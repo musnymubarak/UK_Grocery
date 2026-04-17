@@ -1,8 +1,8 @@
 """
 Product model — SKU-based products with pricing and barcode support.
 """
-from sqlalchemy import Column, String, Text, Numeric, Integer, ForeignKey, Boolean, DateTime
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, Text, Numeric, Integer, ForeignKey, Boolean, DateTime, Index
+from sqlalchemy.dialects.postgresql import UUID, JSONB, TSVECTOR
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base, TimestampMixin
@@ -46,6 +46,7 @@ class Product(TimestampMixin, Base):
     nutritional_info = Column(JSONB, nullable=True)
     weight_unit = Column(String(20), nullable=True)  # kg, g, pcs
     calories_per_100g = Column(Numeric(8, 2), nullable=True)
+    search_vector = Column(TSVECTOR, nullable=True)
 
     # Relationships
     organization = relationship("Organization", back_populates="products")
@@ -53,6 +54,10 @@ class Product(TimestampMixin, Base):
     inventory = relationship("Inventory", back_populates="product", lazy="selectin")
     order_items = relationship("OrderItem", back_populates="product", lazy="selectin", foreign_keys="[OrderItem.product_id]")
     stock_movements = relationship("StockMovement", back_populates="product", lazy="selectin")
+
+    __table_args__ = (
+        Index('ix_products_search', 'search_vector', postgresql_using='gin'),
+    )
 
     def __repr__(self):
         return f"<Product(id={self.id}, sku='{self.sku}', name='{self.name}')>"

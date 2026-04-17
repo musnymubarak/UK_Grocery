@@ -36,6 +36,8 @@ class OrderBase(BaseModel):
     payment_method: str = "cod"
     notes: Optional[str] = None
     delivery_instructions: Optional[str] = None
+    scheduled_delivery_start: Optional[datetime] = None
+    scheduled_delivery_end: Optional[datetime] = None
 
 class OrderCreate(OrderBase):
     items: List[OrderItemCreate]
@@ -54,7 +56,6 @@ class OrderResponse(OrderBase):
     assigned_to: Optional[UUID] = None
     order_number: str
     status: str
-    subtotal: Decimal
     delivery_fee: Decimal
     discount: Decimal
     total: Decimal
@@ -73,6 +74,8 @@ class OrderResponse(OrderBase):
     picked_at: Optional[datetime] = None
     dispatched_at: Optional[datetime] = None
     cancel_window_expires_at: Optional[datetime] = None
+    scheduled_delivery_start: Optional[datetime] = None
+    scheduled_delivery_end: Optional[datetime] = None
     rejected_reason: Optional[str] = None
     items: List[OrderItemResponse] = []
 

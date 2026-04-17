@@ -123,8 +123,9 @@ class OrderService:
             payment_status=ps,
             notes=data.notes,
             delivery_instructions=delivery_instr,
+            scheduled_delivery_start=data.scheduled_delivery_start,
+            scheduled_delivery_end=data.scheduled_delivery_end,
             order_type=data.order_type,
-            subtotal=Decimal("0.00"),
             delivery_fee=Decimal("0.00"),
             discount=Decimal("0.00"),
             service_fee=Decimal("0.50"),
@@ -163,6 +164,7 @@ class OrderService:
             order.delivery_fee = fee_resp.fee
 
         # Add Items and Soft Reserve
+        subtotal = Decimal("0.00")
         for item_data in data.items:
             from app.models.product import Product
             product = await self.db.get(Product, item_data.product_id)
@@ -181,7 +183,7 @@ class OrderService:
             )
             self.db.add(order_item)
             
-            order.subtotal += order_item.total
+            subtotal += order_item.total
 
             # Soft reserve from inventory
             await self.inventory_service.reserve_for_order(
@@ -199,7 +201,7 @@ class OrderService:
                 code=data.coupon_code,
                 customer_id=customer_id,
                 store_id=store_id,
-                subtotal=order.subtotal,
+                subtotal=subtotal,
                 delivery_fee=order.delivery_fee
             )
             if not validation_resp.valid:
@@ -219,7 +221,7 @@ class OrderService:
             fee_req = FeeCalculationRequest(
                 store_id=store_id,
                 postcode=order.delivery_postcode,
-                order_total=order.subtotal,
+                order_total=subtotal,
             )
             fee_resp = await DeliveryZoneService.calculate_fee(self.db, fee_req)
             order.delivery_fee = fee_resp.fee
@@ -236,7 +238,7 @@ class OrderService:
             if store and store.is_surge_active and store.surge_multiplier > 1.0:
                 order.delivery_fee = (order.delivery_fee * store.surge_multiplier).quantize(Decimal("0.01"))
 
-        order.total = max(Decimal("0.00"), order.subtotal + order.delivery_fee + order.service_fee + order.tip_amount - order.discount)
+        order.total = max(Decimal("0.00"), subtotal + order.delivery_fee + order.service_fee + order.tip_amount - order.discount)
         await self.db.flush()
         return await self.get_order(order.id)
 
@@ -253,6 +255,8 @@ class OrderService:
         if new_status not in VALID_TRANSITIONS.get(current_status, []):
             raise ValidationException(f"Cannot transition from {current_status} to {new_status}")
 
+            new_status = status
+            
         old_status = order.status
         order.status = new_status
         order.updated_at = datetime.now(timezone.utc)
@@ -267,6 +271,34 @@ class OrderService:
             changed_by_id=user.id,
         )
         self.db.add(history)
+
+        # Send in-app notification to customer
+        try:
+            from app.services.notification import NotificationService
+            notif_service = NotificationService(self.db)
+            
+            STATUS_MESSAGES = {
+                "confirmed": ("Order Confirmed ✅", "Your order {num} has been accepted and is being prepared."),
+                "picking": ("Order Being Picked 🛒", "Your order {num} is being picked from the shelves."),
+                "ready_for_collection": ("Ready for Collection 📦", "Your order {num} is ready! Head to the store."),
+                "out_for_delivery": ("On Its Way! 🚗", "Your order {num} is out for delivery."),
+                "delivered": ("Delivered! 🎉", "Your order {num} has been delivered. Enjoy!"),
+                "rejected": ("Order Rejected ❌", "Sorry, your order {num} could not be fulfilled."),
+                "cancelled": ("Order Cancelled", "Your order {num} has been cancelled."),
+            }
+            
+            if new_status in STATUS_MESSAGES:
+                title, body = STATUS_MESSAGES[new_status]
+                await notif_service.send(
+                    customer_id=order.customer_id,
+                    title=title,
+                    body=body.format(num=order.order_number),
+                    notification_type="order_update",
+                    reference_id=order.id,
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to send notification: {e}")
 
         # Timestamps and triggers
         if new_status == "confirmed":
@@ -311,6 +343,15 @@ class OrderService:
             order.delivered_at = datetime.now(timezone.utc)
             if order.payment_method == "cod":
                 order.payment_status = "paid"
+                
+            # Trigger loyalty rewards (async task)
+            from app.tasks.rewards import process_order_rewards
+            process_order_rewards.delay(str(order.id))
+            
+            # Credit referrer on first delivered order
+            from app.services.referral import ReferralService
+            referral_service = ReferralService(self.db)
+            await referral_service.credit_referrer_on_first_order(order.customer_id, order.id)
                 
             # Trigger loyalty tracking background task
             from app.tasks.rewards import process_delivered_order_rewards

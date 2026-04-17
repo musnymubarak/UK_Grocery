@@ -66,7 +66,12 @@ async def list_products(
         query = query.where(Product.category_id == category_id)
 
     if search:
-        query = query.where(Product.name.ilike(f"%{search}%"))
+        # Use full-text search if search_vector is populated, fallback to ILIKE
+        from sqlalchemy import text
+        query = query.where(
+            Product.search_vector.op('@@')(func.plainto_tsquery('english', search))
+            | Product.name.ilike(f"%{search}%")
+        )
 
     # Count total
     count_query = select(func.count()).select_from(query.subquery())
@@ -230,8 +235,47 @@ async def list_stores(
             "free_delivery_threshold": float(s.free_delivery_threshold),
             "min_order_value": float(s.min_order_value),
             "is_open": s.is_open,
+            "is_surge_active": bool(s.is_surge_active) if s.is_surge_active is not None else False,
+            "surge_multiplier": float(s.surge_multiplier) if s.surge_multiplier is not None else 1.0,
         }
         for s in stores
+    ]
+
+
+@router.get("/banners", summary="Active banners (public)")
+async def list_banners(
+    store_id: Optional[UUID] = None,
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Get active banners for the homepage carousel."""
+    from app.models.banner import Banner
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    
+    query = select(Banner).where(
+        Banner.is_active == True,
+        (Banner.starts_at == None) | (Banner.starts_at <= now),
+        (Banner.ends_at == None) | (Banner.ends_at >= now),
+    )
+    
+    if store_id:
+        # Show global banners + store specific ones
+        from sqlalchemy import or_
+        query = query.where(or_(Banner.store_id == store_id, Banner.store_id == None))
+    
+    query = query.order_by(Banner.position)
+    result = await db.execute(query)
+    banners = result.scalars().all()
+
+    return [
+        {
+            "id": str(b.id),
+            "title": b.title,
+            "subtitle": b.subtitle,
+            "image_url": b.image_url,
+            "link_url": b.link_url,
+        }
+        for b in banners
     ]
 
 

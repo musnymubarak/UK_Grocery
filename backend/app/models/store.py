@@ -44,8 +44,8 @@ class Store(TimestampMixin, Base):
     temporarily_closed_reason = Column(Text, nullable=True)
     
     # Surge pricing
-    surge_multiplier = Column(Numeric(4, 2), default=1.00, nullable=False)
-    is_surge_active = Column(Boolean, default=False, nullable=False)
+    surge_multiplier = Column(Numeric(4, 2), default=1.00, nullable=True)
+    is_surge_active = Column(Boolean, default=False, nullable=True)
 
     # Relationships
     organization = relationship("Organization", back_populates="stores")
