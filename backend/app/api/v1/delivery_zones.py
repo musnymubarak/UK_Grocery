@@ -1,5 +1,5 @@
 from uuid import UUID
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="", tags=["Delivery Zones"])
 @router.get("/delivery-zones", response_model=List[DeliveryZoneResponse])
 async def list_zones(
     store_id: UUID,
-    store_scope: getattr(UUID, 'Optional', UUID) = Depends(get_store_scope),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
     current_user: User = Depends(require_role(["admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):
@@ -26,7 +26,7 @@ async def list_zones(
 async def create_zone(
     store_id: UUID,
     data: DeliveryZoneCreate,
-    store_scope: getattr(UUID, 'Optional', UUID) = Depends(get_store_scope),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
     current_user: User = Depends(require_role(["admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):

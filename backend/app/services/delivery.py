@@ -28,7 +28,7 @@ class DeliveryZoneService:
             mapping = PostcodeZoneMapping(postcode=pattern, zone_id=zone.id)
             db.add(mapping)
         
-        await db.commit()
+        await db.flush()
         await db.refresh(zone)
         return zone
 
