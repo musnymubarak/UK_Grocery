@@ -4,6 +4,7 @@ import { orderApi, getErrorMessage } from '../../services/api';
 import { useAdminStore } from '../auth/AdminStoreContext';
 import toast from 'react-hot-toast';
 import { PackageOpen, Truck, CheckCircle, XCircle } from 'lucide-react';
+import AnalyticsSummary from './AnalyticsSummary';
 
 const COLUMNS = [
     { id: 'placed', label: 'Placed', color: 'var(--primary)', icon: PackageOpen },
@@ -68,7 +69,8 @@ export default function DashboardPage() {
     }, {} as Record<string, any[]>);
 
     return (
-        <div>
+        <div className="p-4">
+            <AnalyticsSummary />
             <h2 className="mb-6 font-bold" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Order Pipeline</h2>
             
             <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', height: 'calc(100vh - 200px)' }}>

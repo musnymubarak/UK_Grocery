@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Plus, Minus } from 'lucide-react';
 import { useCart } from '../CartContext';
@@ -32,7 +33,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       animate={{ opacity: 1, y: 0 }}
       className={`group relative flex flex-col space-y-4 ${isOutOfStock ? 'opacity-80' : ''}`}
     >
-      <div className="relative aspect-[4/5] rounded-lg overflow-hidden bg-surface-container-low transition-transform duration-500 group-hover:scale-[1.02]">
+      <Link to={`/product/${product.id}`} className="block relative aspect-[4/5] rounded-lg overflow-hidden bg-surface-container-low transition-transform duration-500 group-hover:scale-[1.02]">
         <img 
           src={productImage} 
           alt={product.name} 
@@ -80,12 +81,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </button>
           )
         )}
-      </div>
+      </Link>
       
       <div className="flex flex-col space-y-1">
-        <h3 className={`font-headline font-bold text-lg leading-tight transition-colors ${!isOutOfStock ? 'group-hover:text-primary' : 'text-on-surface-variant'}`}>
-          {product.name}
-        </h3>
+        <Link to={`/product/${product.id}`} className="block">
+          <h3 className={`font-headline font-bold text-lg leading-tight transition-colors ${!isOutOfStock ? 'group-hover:text-primary' : 'text-on-surface-variant'}`}>
+            {product.name}
+          </h3>
+        </Link>
         {product.description && (
           <p className="text-sm text-secondary">
             {product.description}

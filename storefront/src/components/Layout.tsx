@@ -1,9 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingBag, LayoutGrid, MapPin, Tag, CircleUser, Search, Leaf, ShoppingBasket, User } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, LayoutGrid, MapPin, Tag, CircleUser, Search, Leaf, ShoppingBasket, User, Bell, Check, Info } from 'lucide-react';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
+import { notificationApi } from '../services/api';
+import Modal from './Modal';
 import { motion } from 'motion/react';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +19,28 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
   const { isAuthenticated, customer } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      notificationApi.getCount()
+        .then(res => setNotificationCount(res.data.count))
+        .catch(() => {});
+    }
+  }, [isAuthenticated, location.pathname]);
+
+  const handleOpenNotifications = async () => {
+    setShowNotifications(true);
+    try {
+      const res = await notificationApi.list();
+      setNotifications(res.data);
+      // Optimistically clear count
+      setNotificationCount(0);
+    } catch (err) {}
+  };
 
   const isAuthPage = location.pathname === '/login';
   const hideBottomNav = isAuthPage;
@@ -58,6 +82,21 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
               Login / Sign Up
             </Link>
           )}
+          
+          {isAuthenticated && (
+            <button 
+              onClick={handleOpenNotifications}
+              className="relative p-2 text-primary hover:bg-primary/5 rounded-full transition-colors active:scale-95"
+            >
+              <Bell size={24} />
+              {notificationCount > 0 && (
+                <span className="absolute top-0 right-0 bg-error text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-surface">
+                  {notificationCount}
+                </span>
+              )}
+            </button>
+          )}
+
           <Link to="/cart" className="relative p-2 text-primary hover:bg-primary/5 rounded-full transition-colors active:scale-95">
             <ShoppingBag size={24} />
             {totalItems > 0 && (
@@ -84,6 +123,35 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
           <NavLink to={isAuthenticated ? "/profile" : "/login"} icon={<CircleUser size={24} />} label={isAuthenticated ? "Account" : "Log In"} active={location.pathname === '/profile' || location.pathname === '/login'} />
         </nav>
       )}
+      {/* Notification Modal */}
+      <Modal
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        title="Your Notifications"
+      >
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+          {notifications.length === 0 ? (
+            <div className="py-12 text-center text-on-surface-variant font-medium">
+              You're all caught up!
+            </div>
+          ) : (
+            notifications.map((n: any) => (
+              <div key={n.id} className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/30 flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                   {n.type === 'order' ? <ShoppingBasket size={20} /> : <Info size={20} />}
+                </div>
+                <div>
+                  <div className="font-bold text-sm">{n.title}</div>
+                  <div className="text-xs text-on-surface-variant mt-0.5">{n.message}</div>
+                  <div className="text-[10px] text-on-surface-variant/60 mt-2 font-bold uppercase tracking-widest">
+                    {new Date(n.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

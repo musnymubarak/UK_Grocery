@@ -22,7 +22,12 @@ import {
     Truck,
     Ticket,
     Settings,
-    Star
+    Star,
+    Webhook,
+    Image,
+    MessageSquare,
+    RotateCcw,
+    ShieldAlert
 } from 'lucide-react';
 
 const navItems = [
@@ -40,6 +45,11 @@ const navItems = [
     { label: 'Stores', section: 'Admin', path: '/stores', icon: StoreIcon, roles: ['admin'] },
     { label: 'Users', section: 'Admin', path: '/users', icon: Users, roles: ['admin'] },
     { label: 'Audit Logs', section: 'Admin', path: '/audit', icon: FileSearch, roles: ['admin', 'manager'] },
+    { label: 'Banners', section: 'Admin', path: '/banners', icon: Image, roles: ['admin', 'manager'] },
+    { label: 'Webhooks', section: 'Admin', path: '/webhooks', icon: Webhook, roles: ['admin'] },
+    { label: 'Reviews', section: 'Admin', path: '/reviews', icon: MessageSquare, roles: ['admin', 'manager'] },
+    { label: 'Refunds', section: 'Admin', path: '/refunds', icon: RotateCcw, roles: ['admin', 'manager'] },
+    { label: 'System Health', section: 'Admin', path: '/system', icon: ShieldAlert, roles: ['admin'] },
     { label: 'Settings', section: 'Admin', path: '/settings', icon: Settings, roles: ['admin'] },
 ];
 

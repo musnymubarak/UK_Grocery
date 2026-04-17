@@ -176,3 +176,56 @@ export const rewardsApi = {
     updateTier: (id: string, data: any) => api.put(`/rewards/tiers/${id}`, data),
     deleteTier: (id: string) => api.delete(`/rewards/tiers/${id}`)
 };
+// --- Analytics API ---
+export const analyticsApi = {
+    dashboard: () => api.get('/analytics/dashboard'),
+    revenueChart: (params?: any) => api.get('/analytics/revenue-chart', { params }),
+};
+
+// --- Webhooks API ---
+export const webhookApi = {
+    list: () => api.get('/webhooks'),
+    create: (data: any) => api.post('/webhooks', data),
+    delete: (id: string) => api.delete(`/webhooks/${id}`),
+    deliveries: (id: string) => api.get(`/webhooks/${id}/deliveries`),
+};
+
+// --- GDPR API ---
+export const gdprApi = {
+    anonymize: (id: string) => api.post(`/gdpr/admin/anonymize/${id}`),
+};
+
+// --- System Health API ---
+export const healthApi = {
+    check: () => api.get('/system/health'),
+    ready: () => api.get('/system/ready'),
+    metrics: () => api.get('/system/metrics'),
+};
+
+// --- Banners API ---
+export const bannerApi = {
+    list: () => api.get('/banners'),
+    create: (data: any) => api.post('/banners', data),
+    update: (id: string, data: any) => api.put(`/banners/${id}`, data),
+    delete: (id: string) => api.delete(`/banners/${id}`),
+};
+
+// --- Reviews API ---
+export const reviewApi = {
+    list: (storeId: string) => api.get(`/reviews/store/${storeId}`),
+    toggle: (id: string) => api.patch(`/reviews/${id}/toggle`),
+    respond: (id: string, response: string) => api.patch(`/reviews/${id}/respond`, { response }),
+    summary: (storeId: string) => api.get(`/reviews/store/${storeId}/summary`),
+};
+
+// --- Refunds API ---
+export const refundApi = {
+    list: () => api.get('/refunds'),
+    process: (id: string, data: any) => api.post(`/refunds/${id}/process`, data),
+};
+
+// --- Drivers API Expansion ---
+export const driverApi = {
+    available: (storeId?: string) => api.get('/drivers/available', { params: { store_id: storeId } }),
+    updateAvailability: (data: { is_available: boolean }) => api.post('/drivers/me/availability', data),
+};

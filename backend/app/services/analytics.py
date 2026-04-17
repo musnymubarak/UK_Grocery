@@ -28,37 +28,35 @@ class AnalyticsService:
         if store_id:
             filters.append(Order.store_id == store_id)
 
-        # 1. Revenue stats
-        revenue_query = select(
-            func.sum(Order.total).label("total_rev"),
-            func.sum(select(Order.total).where(Order.created_at >= today_start, *filters).scalar_subquery()).label("today_rev"),
-            func.sum(select(Order.total).where(Order.created_at >= week_start, *filters).scalar_subquery()).label("week_rev"),
-        ).where(*filters)
+        # 1. Total Revenue (All time)
+        total_rev_q = select(func.sum(Order.total)).where(*filters)
+        total_rev = (await self.db.execute(total_rev_q)).scalar() or 0
+
+        # 2. Today's Revenue
+        today_rev_q = select(func.sum(Order.total)).where(Order.created_at >= today_start, *filters)
+        today_rev = (await self.db.execute(today_rev_q)).scalar() or 0
+
+        # 3. Weekly Revenue
+        week_rev_q = select(func.sum(Order.total)).where(Order.created_at >= week_start, *filters)
+        week_rev = (await self.db.execute(week_rev_q)).scalar() or 0
         
-        # 2. Order counts by status
+        # 4. Order counts by status
         status_query = select(
             Order.status,
             func.count(Order.id)
         ).where(*filters).group_by(Order.status)
+        status_res = await self.db.execute(status_query)
+        status_counts = {row[0]: row[1] for row in status_res.all()}
         
-        # 3. Customer growth
+        # 5. Customer growth (last 30 days)
         customer_query = select(func.count(Customer.id)).where(
             Customer.organization_id == org_id,
             Customer.created_at >= month_start
         )
-
-        # Execute
-        rev_res = await self.db.execute(revenue_query)
-        rev_row = rev_res.one()
-        
-        status_res = await self.db.execute(status_query)
-        status_counts = {row[0]: row[1] for row in status_res.all()}
-        
         cust_res = await self.db.execute(customer_query)
         new_customers = cust_res.scalar() or 0
 
-        # Top Products
-        # Note: OrderItem doesn't have org_id directly, join with Order
+        # 6. Top Products
         from app.models.order import OrderItem
         top_products_query = (
             select(
@@ -72,13 +70,16 @@ class AnalyticsService:
             .limit(5)
         )
         top_res = await self.db.execute(top_products_query)
-        top_products = [{"name": row[0], "quantity": float(row[1])} for row in top_res.all()]
+        top_products = [
+            {"name": row[0], "quantity": float(row[1])} 
+            for row in top_res.all()
+        ]
 
         return {
             "revenue": {
-                "total": float(rev_row.total_rev or 0),
-                "today": float(rev_row.today_rev or 0),
-                "this_week": float(rev_row.week_rev or 0),
+                "total": float(total_rev),
+                "today": float(today_rev),
+                "this_week": float(week_rev),
             },
             "orders": {
                 "total": sum(status_counts.values()),
@@ -93,7 +94,8 @@ class AnalyticsService:
 
     async def get_revenue_chart(self, org_id: UUID, store_id: Optional[UUID] = None, days: int = 30) -> List[Dict]:
         """Get daily revenue for charts."""
-        # Using raw SQL for PostgreSQL date_trunc for performance
+        # Using raw SQL for PostgreSQL date_trunc for performance.
+        # Added explicit casting for the optional store_id to avoid AmbiguousParameterError.
         stmt = text("""
             SELECT 
                 DATE_TRUNC('day', created_at) as day,
@@ -101,18 +103,21 @@ class AnalyticsService:
                 COUNT(id) as order_count
             FROM orders
             WHERE organization_id = :org_id 
-              AND (:store_id IS NULL OR store_id = :store_id)
+              AND (CAST(:store_id AS UUID) IS NULL OR store_id = :store_id)
               AND created_at >= NOW() - INTERVAL '1 day' * :days
             GROUP BY day
             ORDER BY day ASC
         """)
         
         result = await self.db.execute(stmt, {"org_id": org_id, "store_id": store_id, "days": days})
-        return [
-            {
-                "date": row[0].strftime("%Y-%m-%d"),
-                "revenue": float(row[1] or 0),
-                "order_count": row[2]
-            }
-            for row in result.all()
-        ]
+        
+        chart_data = []
+        for row in result.all():
+            if row[0]: # Ensure day is not null
+                chart_data.append({
+                    "date": row[0].strftime("%Y-%m-%d"),
+                    "revenue": float(row[1] or 0),
+                    "order_count": int(row[2])
+                })
+        
+        return chart_data

@@ -85,7 +85,7 @@ class Order(TimestampMixin, Base):
     status_history = relationship("OrderStatusHistory", back_populates="order", cascade="all, delete-orphan", lazy="raise")
 
     def __repr__(self):
-        return f"<Order(order_number='{self.order_number}', status='{self.status}')>"
+        return f"<Order(id='{self.__dict__.get('id')}', order_number='{self.__dict__.get('order_number')}')>"
 
 class OrderItem(TimestampMixin, Base):
     __tablename__ = "order_items"
@@ -130,7 +130,7 @@ class OrderItem(TimestampMixin, Base):
         return None
 
     def __repr__(self):
-        return f"<OrderItem(id={self.id}, product='{self.product_name}', qty={self.quantity})>"
+        return f"<OrderItem(id='{self.__dict__.get('id')}')>"
 
 class OrderStatusHistory(TimestampMixin, Base):
     __tablename__ = "order_status_history"
@@ -151,4 +151,4 @@ class OrderStatusHistory(TimestampMixin, Base):
     order = relationship("Order", back_populates="status_history")
 
     def __repr__(self):
-        return f"<OrderStatusHistory({self.from_status} → {self.to_status})>"
+        return f"<OrderStatusHistory({self.__dict__.get('from_status')} -> {self.__dict__.get('to_status')})>"

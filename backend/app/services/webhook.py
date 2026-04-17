@@ -37,13 +37,16 @@ class WebhookService:
         from app.tasks.webhooks import send_webhook_event
         
         for endpoint in endpoints:
-            send_webhook_event.delay(
-                str(endpoint.id),
-                endpoint.url,
-                endpoint.secret,
-                event_type,
-                payload
-            )
+            try:
+                send_webhook_event.delay(
+                    str(endpoint.id),
+                    endpoint.url,
+                    endpoint.secret,
+                    event_type,
+                    payload
+                )
+            except Exception as e:
+                logger.error(f"Failed to queue webhook event {event_type} to {endpoint.url}: {e}")
 
     @staticmethod
     def sign_payload(payload_str: str, secret: str) -> str:

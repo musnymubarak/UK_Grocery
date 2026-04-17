@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import Layout from '../components/Layout';
+import InnovativeLoader from '../components/InnovativeLoader';
 import { Search, Filter, ChevronRight, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { orderApi, getErrorMessage } from '../services/api';
@@ -53,8 +54,8 @@ export default function OrderHistory() {
   if (loading) {
     return (
       <Layout title="The Conservatory" showBack>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="animate-spin text-primary" size={40} />
+        <div className="flex items-center justify-center min-h-[60vh] py-12">
+          <InnovativeLoader />
         </div>
       </Layout>
     );

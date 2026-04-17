@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { orderApi } from '../services/api';
+import { orderApi, orderActionsApi, refundApi, getErrorMessage } from '../services/api';
 import { motion } from 'motion/react';
 import Layout from '../components/Layout';
-import { Check, Truck, Home, MessageSquare, Edit2, ArrowRight } from 'lucide-react';
+import InnovativeLoader from '../components/InnovativeLoader';
+import Modal from '../components/Modal';
+import { Check, Truck, Home, MessageSquare, Edit2, ArrowRight, XCircle, Undo2, Loader2, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function OrderTracking() {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundReason, setRefundReason] = useState('');
+  const [refundDetails, setRefundDetails] = useState('');
+  const [isRefunding, setIsRefunding] = useState(false);
 
   useEffect(() => {
+    fetchOrder();
+  }, [id]);
+
+  const fetchOrder = () => {
     if (!id) return;
-    setLoading(false); // temp to show something if needed, but let's fetch
-    
     orderApi.getMyOrder(id)
       .then(res => {
         setOrder(res.data);
@@ -25,13 +35,46 @@ export default function OrderTracking() {
         setError('Could not find this order. It may have been archived or belongs to another account.');
         setLoading(false);
       });
-  }, [id]);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    setIsCancelling(true);
+    try {
+      await orderActionsApi.cancel(id!);
+      toast.success('Order cancelled successfully');
+      fetchOrder();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleRequestRefund = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsRefunding(true);
+    try {
+      await refundApi.request({
+        order_reference: order.order_number,
+        reason: refundReason,
+        details: refundDetails,
+        amount: order.total
+      });
+      toast.success('Refund request submitted');
+      setShowRefundModal(false);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setIsRefunding(false);
+    }
+  };
 
   if (loading) {
     return (
       <Layout title="Tracking">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <InnovativeLoader />
         </div>
       </Layout>
     );
@@ -42,7 +85,7 @@ export default function OrderTracking() {
       <Layout title="Error" showBack>
         <div className="max-w-screen-xl mx-auto px-6 py-20 text-center">
           <h2 className="text-2xl font-bold mb-4">{error || 'Order not found'}</h2>
-          <Link to="/orders" className="text-primary font-bold">Back to my orders</Link>
+          <Link to="/history" className="text-primary font-bold">Back to my orders</Link>
         </div>
       </Layout>
     );
@@ -105,6 +148,7 @@ export default function OrderTracking() {
     delivery_failed: 'Delivery Failed'
   };
   const currentTitle = statusTitleMap[order.status] || 'Tracking your order';
+
   return (
     <Layout title="Order Tracking" showBack>
       <div className="max-w-screen-xl mx-auto px-6 pt-8 pb-32 space-y-12">
@@ -146,6 +190,29 @@ export default function OrderTracking() {
                 </div>
               </div>
               <ArrowRight className="text-primary group-hover:translate-x-1 transition-transform" size={24} />
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex flex-wrap gap-4 pt-4">
+              {['placed', 'confirmed'].includes(order.status) && (
+                <button 
+                  onClick={handleCancelOrder}
+                  disabled={isCancelling}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-error text-error font-bold hover:bg-error/5 transition-colors disabled:opacity-50"
+                >
+                  {isCancelling ? <Loader2 className="animate-spin" size={18} /> : <XCircle size={18} />}
+                  Cancel Order
+                </button>
+              )}
+              {order.status === 'delivered' && (
+                <button 
+                  onClick={() => setShowRefundModal(true)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-surface-container-high text-on-surface font-bold hover:bg-surface-container-highest transition-colors"
+                >
+                  <Undo2 size={18} />
+                  Request Refund
+                </button>
+              )}
             </div>
           </div>
 
@@ -231,10 +298,72 @@ export default function OrderTracking() {
           </div>
         </section>
       </div>
+
+      <Modal
+        isOpen={showRefundModal}
+        onClose={() => setShowRefundModal(false)}
+        title="Request a Refund"
+        footer={
+          <button 
+            form="refund-form" 
+            type="submit" 
+            disabled={isRefunding || !refundReason}
+            className="w-full bg-primary text-on-primary py-4 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isRefunding ? <Loader2 className="animate-spin" size={20} /> : <Undo2 size={20} />}
+            Submit Request
+          </button>
+        }
+      >
+        <form id="refund-form" onSubmit={handleRequestRefund} className="space-y-6">
+          <div className="flex flex-col items-center text-center mb-4">
+            <div className="p-4 bg-primary/10 text-primary rounded-full mb-4">
+              <Undo2 size={32} />
+            </div>
+            <p className="text-on-surface-variant text-sm px-4">
+              We're sorry your harvest wasn't perfect. Please tell us why you're requesting a refund for order <strong className="text-on-surface">#{order.order_number}</strong>.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 block">Reason for Refund</label>
+              <select 
+                value={refundReason}
+                onChange={e => setRefundReason(e.target.value)}
+                required
+                className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 appearance-none"
+              >
+                <option value="">Select a reason...</option>
+                <option value="Damaged Items">Damaged Items</option>
+                <option value="Missing Items">Missing Items</option>
+                <option value="Poor Quality">Poor Quality</option>
+                <option value="Wrong Item Received">Wrong Item Received</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 block">Additional Details</label>
+              <textarea 
+                value={refundDetails}
+                onChange={e => setRefundDetails(e.target.value)}
+                placeholder="Please describe the issue..."
+                className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 min-h-[100px] focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+          
+          <div className="bg-tertiary/5 border border-tertiary/10 p-4 rounded-xl flex gap-3">
+            <AlertCircle className="text-tertiary shrink-0" size={20} />
+            <p className="text-xs text-on-surface-variant font-medium">
+              Refunds are usually processed within 3-5 business days once approved by our specialists.
+            </p>
+          </div>
+        </form>
+      </Modal>
     </Layout>
   );
 }
-
 
 function TimelineStep({ label, active, completed, current, icon }: { label: string; active?: boolean; completed?: boolean; current?: boolean; icon?: React.ReactNode }) {
   return (
