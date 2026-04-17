@@ -17,10 +17,13 @@ from app.services.audit import AuditService
 from app.constants.audit_actions import AuditAction
 
 
+from app.services.token import TokenService
+
 class AuthService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.audit = AuditService(db)
+        self.token_service = TokenService(db)
 
     async def register_user(
         self,
@@ -63,7 +66,7 @@ class AuthService:
         return user
 
     async def login(self, data: LoginRequest, request: Optional[Request] = None) -> dict:
-        """Authenticate user and return JWT token."""
+        """Authenticate user and return JWT token pair."""
         result = await self.db.execute(
             select(User).where(
                 User.email == data.email,
@@ -90,16 +93,13 @@ class AuthService:
             request=request
         )
 
-        token = create_access_token(
-            data={
-                "sub": str(user.id),
-                "email": user.email,
-                "role": user.role,
-                "org_id": str(user.organization_id),
-                "store_id": str(user.store_id) if user.store_id else None,
-            }
+        device_info = request.headers.get("user-agent") if request else None
+        token_data = await self.token_service.issue_token_pair(
+            user_id=user.id,
+            device_info=device_info
         )
-        return {"access_token": token, "token_type": "bearer", "user": user}
+        token_data["user"] = user
+        return token_data
 
     async def get_user_by_id(self, user_id: UUID) -> Optional[User]:
         """Get user by ID."""
@@ -108,7 +108,7 @@ class AuthService:
         )
         return result.scalar_one_or_none()
 
-    async def setup_organization(self, name: str, slug: str, admin_email: str, admin_password: str, admin_name: str) -> dict:
+    async def setup_organization(self, name: str, slug: str, admin_email: str, admin_password: str, admin_name: str, request: Optional[Request] = None) -> dict:
         """Create organization with initial admin user (bootstrap)."""
         result = await self.db.execute(
             select(Organization).where(Organization.slug == slug)
@@ -132,19 +132,14 @@ class AuthService:
         await self.db.flush()
         await self.db.refresh(admin)
 
-        token = create_access_token(
-            data={
-                "sub": str(admin.id),
-                "email": admin.email,
-                "role": admin.role,
-                "org_id": str(org.id),
-                "store_id": None,
-            }
+        device_info = request.headers.get("user-agent") if request else None
+        token_data = await self.token_service.issue_token_pair(
+            user_id=admin.id,
+            device_info=device_info
         )
 
         return {
             "organization": org,
             "admin": admin,
-            "access_token": token,
-            "token_type": "bearer",
+            **token_data
         }

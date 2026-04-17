@@ -41,4 +41,12 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.rewards.run_monthly_rewards_reset",
         "schedule": crontab(hour=23, minute=50, day_of_month=28),  # Last days
     },
+    "auto-assign-orders": {
+        "task": "app.tasks.assignment.auto_assign_orders",
+        "schedule": 60.0,
+    },
+    "cleanup-maintenance": {
+        "task": "app.tasks.archival.cleanup_expired_tokens",
+        "schedule": crontab(hour=4, minute=30),
+    },
 }

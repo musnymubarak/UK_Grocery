@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     # JWT
     JWT_SECRET_KEY: str = "change-this-secret-key"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutes
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 days
 
     @property
     def cors_origins_list(self) -> List[str]:
