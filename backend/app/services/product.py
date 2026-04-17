@@ -5,7 +5,7 @@ import uuid
 from typing import Optional, List
 from uuid import UUID
 
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product import Product
@@ -168,6 +168,20 @@ class ProductService:
             filters["category_id"] = category_id
 
         if search:
+            count_query = (
+                select(func.count(Product.id))
+                .where(
+                    Product.organization_id == org_id,
+                    Product.is_deleted == False,
+                    or_(
+                        Product.name.ilike(f"%{search}%"),
+                        Product.sku.ilike(f"%{search}%"),
+                        Product.barcode.ilike(f"%{search}%"),
+                    ),
+                )
+            )
+            total = (await self.db.execute(count_query)).scalar()
+            
             query = (
                 select(Product)
                 .where(
@@ -179,13 +193,12 @@ class ProductService:
                         Product.barcode.ilike(f"%{search}%"),
                     ),
                 )
+                .order_by(Product.name)
                 .offset(skip)
                 .limit(limit)
-                .order_by(Product.name)
             )
             result = await self.db.execute(query)
             products = list(result.scalars().all())
-            total = len(products)  # simplified; would use count query in prod
         else:
             products = await self.repo.get_all(filters=filters, skip=skip, limit=limit)
             total = await self.repo.count(filters=filters)

@@ -33,21 +33,16 @@ class DeliveryZone(TimestampMixin, Base):
 class PostcodeZoneMapping(TimestampMixin, Base):
     __tablename__ = "postcode_zone_mappings"
 
-    postcode = Column(String(20), nullable=False, primary_key=True, index=True)
+    # To avoid composite primary keys since postcode is already the PK, we don't
+    # make id a primary key, or instead we make id the PK and just index the postcode.
+    # We will make id the primary key and make postcode unique per zone instead.
+    postcode = Column(String(20), nullable=False, unique=True, index=True)
     zone_id = Column(
         UUID(as_uuid=True),
         ForeignKey("delivery_zones.id", ondelete="CASCADE"),
         nullable=False,
     )
 
-    # Actually postcode map doesn't inherit TimestampMixin if it doesn't need to but we have it. Let's provide a dummy ID or just use postcode as primary key.
-    # Base expects 'id' column if it's the custom Base from app.core.database. 
-    # Let's check how Base is defined, if it has 'id'. If it has 'id', we override it or let it be. Let's just follow the timestamp mixin style.
-    
-    # We will override the id behavior if needed by adding id Column, or just let TimestampMixin provide id.
-    # It's better to add id UUID explicitly if we are using the Base which might add it automatically if it's not defined explicitly.
-    # Oh wait, we used primary_key=True on `postcode`. If Base adds `id`, SQLAlchemy will complain about two primary keys.
-    # Let me just provide id to be safe.
     id = Column(UUID(as_uuid=True), primary_key=True, default=__import__("uuid").uuid4)
 
     zone = relationship("DeliveryZone")
