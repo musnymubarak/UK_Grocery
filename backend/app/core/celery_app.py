@@ -29,6 +29,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.maintenance.expire_stale_coupons",
         "schedule": crontab(hour=1, minute=0),  # Daily 01:00 UTC
     },
+    "rebuild-search-index": {
+        "task": "app.tasks.search.rebuild_search_index",
+        "schedule": crontab(hour=3, minute=0),  # Daily at 03:00 UTC
+    },
     "order-timeout-check": {
         "task": "app.tasks.maintenance.order_timeout_check",
         "schedule": 120.0,  # Every 2 minutes

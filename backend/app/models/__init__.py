@@ -17,6 +17,9 @@ from app.models.config import PlatformConfig, FeatureFlag
 from app.models.rewards import RewardsTier, CustomerMonthlySpend, RewardEvent
 from app.models.wallet import WalletTransaction
 from app.models.refund import Refund
+from app.models.notification import Notification
+from app.models.review import Review
+from app.models.banner import Banner
 
 __all__ = [
     "Organization",
@@ -43,4 +46,7 @@ __all__ = [
     "RewardEvent",
     "WalletTransaction",
     "Refund",
+    "Notification",
+    "Review",
+    "Banner",
 ]
