@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_async_session
+from app.core.cache import cached
 from app.models.organization import Organization
 from app.models.store import Store
 from app.models.product import Product
@@ -32,6 +33,7 @@ async def _get_default_org(db: AsyncSession) -> Organization:
 
 
 @router.get("/products", summary="Browse products (public)")
+@cached("storefront:products:{category_id}:{store_id}:{skip}:{limit}", ttl=60)
 async def list_products(
     category_id: Optional[UUID] = None,
     store_id: Optional[UUID] = None,
@@ -131,6 +133,7 @@ async def list_products(
 
 
 @router.get("/products/{product_id}", summary="Product detail (public)")
+@cached("storefront:product:{product_id}", ttl=300)
 async def get_product(
     product_id: UUID,
     db: AsyncSession = Depends(get_async_session),
@@ -176,6 +179,7 @@ async def get_product(
 
 
 @router.get("/categories", summary="Browse categories (public)")
+@cached("storefront:categories", ttl=300)
 async def list_categories(
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -202,6 +206,7 @@ async def list_categories(
 
 
 @router.get("/stores", summary="List store locations (public)")
+@cached("storefront:stores", ttl=300)
 async def list_stores(
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -243,6 +248,7 @@ async def list_stores(
 
 
 @router.get("/banners", summary="Active banners (public)")
+@cached("storefront:banners:{store_id}", ttl=600)
 async def list_banners(
     store_id: Optional[UUID] = None,
     db: AsyncSession = Depends(get_async_session),

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     CORS_ORIGINS: str = "http://localhost,http://localhost:5173"
+    ALLOWED_HOSTS: str = "localhost,127.0.0.1"
     UPLOAD_DIR: str = "uploads"
 
     # Database

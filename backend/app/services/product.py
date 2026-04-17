@@ -21,6 +21,7 @@ from app.core.config import settings
 from fastapi import Request, UploadFile
 import os
 import shutil
+from app.core.cache import CacheService
 
 class ProductService:
     def __init__(self, db: AsyncSession):
@@ -107,6 +108,9 @@ class ProductService:
             request=request,
         )
 
+        # Invalidate storefront cache
+        await CacheService.invalidate_pattern("storefront:*")
+
         return product
 
     async def update_product(self, product_id: UUID, data: ProductUpdate, org_id: UUID, user: User, request: Optional[Request] = None) -> Product:
@@ -144,6 +148,9 @@ class ProductService:
                 new_value={"selling_price": float(updated_product.selling_price)},
                 request=request,
             )
+
+        # Invalidate storefront cache
+        await CacheService.invalidate_pattern("storefront:*")
 
         return updated_product
 
@@ -224,6 +231,9 @@ class ProductService:
                 old_value=old_val,
                 request=request,
             )
+            
+            # Invalidate storefront cache
+            await CacheService.invalidate_pattern("storefront:*")
             
         return success
 

@@ -12,11 +12,16 @@ from datetime import datetime
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api.v1.router import api_router
+from app.core.logging_config import setup_logging
+from app.core.middleware import RequestTracingMiddleware
+from app.core.security_headers import SecurityHeadersMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 # Import all models so Base.metadata knows every table
 import app.models  # noqa: F401
 
+# Initialize structured logging early
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -52,7 +57,13 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Gzip compression for API responses
+    # Middlewares (In reverse order of execution)
+    application.add_middleware(SecurityHeadersMiddleware)
+    application.add_middleware(RequestTracingMiddleware)
+    application.add_middleware(
+        TrustedHostMiddleware, 
+        allowed_hosts=[host.strip() for host in settings.ALLOWED_HOSTS.split(",")]
+    )
     application.add_middleware(GZipMiddleware, minimum_size=500)
 
     # CORS
