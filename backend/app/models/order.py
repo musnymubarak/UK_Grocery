@@ -2,7 +2,7 @@
 Order model — Customer orders and items.
 """
 from sqlalchemy import Column, String, ForeignKey, Numeric, Text, DateTime, Boolean
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base, TimestampMixin
@@ -62,6 +62,8 @@ class Order(TimestampMixin, Base):
     rejected_reason = Column(Text, nullable=True)
     delivery_fee = Column(Numeric(10, 2), default=0, nullable=False)
     discount = Column(Numeric(10, 2), default=0, nullable=False)
+    promotion_discount = Column(Numeric(10, 2), default=0, nullable=False)
+    applied_promotions = Column(JSONB, nullable=True) # List of metadata
     total = Column(Numeric(12, 2), default=0, nullable=False)
     
     payment_method = Column(String(20), default="cod", nullable=False) # cod, online, wallet

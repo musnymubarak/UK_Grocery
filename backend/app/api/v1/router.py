@@ -23,6 +23,9 @@ from app.api.v1.notifications import router as notification_router
 from app.api.v1.reviews import router as review_router
 from app.api.v1.banners import router as banner_router
 from app.api.v1.exports import router as export_router
+from app.api.v1.analytics import router as analytics_router
+from app.api.v1.drivers import router as driver_router
+from app.api.v1.webhooks import router as webhook_router
 
 api_router = APIRouter()
 
@@ -81,3 +84,6 @@ api_router.include_router(notification_router)
 api_router.include_router(review_router)
 api_router.include_router(banner_router)
 api_router.include_router(export_router)
+api_router.include_router(analytics_router)
+api_router.include_router(driver_router)
+api_router.include_router(webhook_router)

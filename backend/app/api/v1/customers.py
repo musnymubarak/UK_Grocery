@@ -20,7 +20,9 @@ from app.schemas.customer import (
     CustomerLogin, Token
 )
 from app.schemas.referral import ApplyReferralRequest, ReferralResponse, ReferralCodeResponse
+from app.schemas.auth import RefreshRequest
 from app.services.customer import CustomerService
+from app.services.token import TokenService
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -65,15 +67,34 @@ async def login_customer(
     data: CustomerLogin,
     db: AsyncSession = Depends(get_async_session)
 ):
-    """Authenticate customer and return JWT."""
+    """Authenticate customer and return JWT pair."""
     customer = await CustomerService.authenticate_customer(db, data.email, data.password)
     if not customer:
         raise UnauthorizedException("Incorrect email or password")
         
-    access_token = create_access_token(
-        data={"sub": str(customer.id), "role": "customer", "org_id": str(customer.organization_id)}
+    token_service = TokenService(db)
+    device_info = request.headers.get("user-agent")
+    return await token_service.issue_token_pair(
+        customer_id=customer.id,
+        device_info=device_info
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/refresh", summary="Rotate customer refresh token")
+async def refresh_customer_token(data: RefreshRequest, request: Request, db: AsyncSession = Depends(get_async_session)):
+    """Issue a new access token and refresh token for customer."""
+    service = TokenService(db)
+    device_info = request.headers.get("user-agent")
+    return await service.rotate_token(data.refresh_token, device_info=device_info)
+
+
+@router.post("/logout", summary="Revoke customer refresh token")
+async def logout_customer(data: RefreshRequest, db: AsyncSession = Depends(get_async_session)):
+    """Revoke the given customer refresh token."""
+    service = TokenService(db)
+    await service.revoke_token(data.refresh_token)
+    await db.commit()
+    return {"status": "ok"}
 
 @router.get("/me", response_model=CustomerResponse)
 async def get_my_profile(

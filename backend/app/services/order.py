@@ -165,6 +165,7 @@ class OrderService:
 
         # Add Items and Soft Reserve
         subtotal = Decimal("0.00")
+        promo_items = []
         for item_data in data.items:
             from app.models.product import Product
             product = await self.db.get(Product, item_data.product_id)
@@ -184,6 +185,13 @@ class OrderService:
             self.db.add(order_item)
             
             subtotal += order_item.total
+            
+            # Prepare for promo evaluation
+            promo_items.append({
+                "product_id": product.id,
+                "quantity": item_data.quantity,
+                "price": product.selling_price
+            })
 
             # Soft reserve from inventory
             await self.inventory_service.reserve_for_order(
@@ -238,8 +246,35 @@ class OrderService:
             if store and store.is_surge_active and store.surge_multiplier > 1.0:
                 order.delivery_fee = (order.delivery_fee * store.surge_multiplier).quantize(Decimal("0.01"))
 
-        order.total = max(Decimal("0.00"), subtotal + order.delivery_fee + order.service_fee + order.tip_amount - order.discount)
+        # 5. Promotions (New in Phase 4)
+        from app.services.promotion import PromotionService
+        promo_service = PromotionService(self.db)
+        
+        applied_promos = await promo_service.evaluate_cart(promo_items, order.organization_id, order.store_id)
+        promotion_discount = Decimal(str(sum(p["discount_amount"] for p in applied_promos)))
+        
+        order.promotion_discount = promotion_discount
+        order.applied_promotions = [
+            {"promotion_id": str(p["promotion_id"]), "name": p["name"], "amount": float(p["discount_amount"])} 
+            for p in applied_promos
+        ]
+
+        order.total = max(Decimal("0.00"), subtotal + order.delivery_fee + order.service_fee + order.tip_amount - order.discount - promotion_discount)
         await self.db.flush()
+        
+        # 7. Fire Webhook (New in Phase 4)
+        from app.services.webhook import WebhookService
+        await WebhookService(self.db).dispatch(
+            org_id=order.organization_id,
+            event_type="order.placed",
+            payload={
+                "order_id": str(order.id),
+                "order_number": order.order_number,
+                "status": "placed",
+                "customer_id": str(order.customer_id)
+            }
+        )
+        
         return await self.get_order(order.id)
 
     async def update_status(self, order_id: UUID, new_status: str, user: User) -> Order:
@@ -254,8 +289,6 @@ class OrderService:
             
         if new_status not in VALID_TRANSITIONS.get(current_status, []):
             raise ValidationException(f"Cannot transition from {current_status} to {new_status}")
-
-            new_status = status
             
         old_status = order.status
         order.status = new_status
@@ -353,6 +386,12 @@ class OrderService:
             referral_service = ReferralService(self.db)
             await referral_service.credit_referrer_on_first_order(order.customer_id, order.id)
                 
+            # Increment driver delivery count
+            if order.assigned_to:
+                from app.services.driver import DriverService
+                driver_service = DriverService(self.db)
+                await driver_service.increment_deliveries(order.assigned_to)
+
             # Trigger loyalty tracking background task
             from app.tasks.rewards import process_delivered_order_rewards
             process_delivered_order_rewards.delay(
@@ -361,6 +400,19 @@ class OrderService:
                 str(order.store_id),
                 str(order.total)
             )
+
+        # Fire Webhook (New in Phase 4)
+        from app.services.webhook import WebhookService
+        await WebhookService(self.db).dispatch(
+            org_id=order.organization_id,
+            event_type=f"order.{new_status}",
+            payload={
+                "order_id": str(order.id),
+                "order_number": order.order_number,
+                "status": new_status,
+                "customer_id": str(order.customer_id)
+            }
+        )
 
         await self.db.flush()
         await self.db.refresh(order)

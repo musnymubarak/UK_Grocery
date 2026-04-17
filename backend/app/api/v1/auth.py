@@ -20,6 +20,7 @@ from app.schemas.auth import (
     UserResponse,
     OrganizationCreate,
     OrganizationResponse,
+    RefreshRequest,
 )
 from app.models.user import User
 from app.models.organization import Organization
@@ -55,22 +56,44 @@ async def setup_organization(request: Request, data: SetupRequest, db: AsyncSess
         admin_email=data.admin_email,
         admin_password=data.admin_password,
         admin_name=data.admin_name,
+        request=request
     )
     return {
         "organization": OrganizationResponse.model_validate(result["organization"]),
         "admin": UserResponse.model_validate(result["admin"]),
         "access_token": result["access_token"],
+        "refresh_token": result["refresh_token"],
         "token_type": result["token_type"],
+        "expires_in": result["expires_in"]
     }
 
 
 @router.post("/login", response_model=TokenResponse, summary="Login")
 @limiter.limit("5/minute")
 async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    """Authenticate and receive JWT token."""
+    """Authenticate and receive JWT token pair."""
     service = AuthService(db)
     result = await service.login(data, request=request)
     return result
+
+
+@router.post("/refresh", summary="Rotate refresh token")
+async def refresh_token(data: RefreshRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    """Issue a new access token and refresh token."""
+    from app.services.token import TokenService
+    service = TokenService(db)
+    device_info = request.headers.get("user-agent")
+    return await service.rotate_token(data.refresh_token, device_info=device_info)
+
+
+@router.post("/logout", summary="Revoke refresh token")
+async def logout(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
+    """Revoke the given refresh token."""
+    from app.services.token import TokenService
+    service = TokenService(db)
+    await service.revoke_token(data.refresh_token)
+    await db.commit()
+    return {"status": "ok"}
 
 
 @router.get("/me", response_model=UserResponse, summary="Current user")

@@ -20,6 +20,10 @@ from app.models.refund import Refund
 from app.models.notification import Notification
 from app.models.review import Review
 from app.models.banner import Banner
+from app.models.refresh_token import RefreshToken
+from app.models.driver import DriverProfile
+from app.models.promotion import Promotion
+from app.models.webhook import WebhookEndpoint, WebhookDelivery
 
 __all__ = [
     "Organization",
@@ -49,4 +53,9 @@ __all__ = [
     "Notification",
     "Review",
     "Banner",
+    "RefreshToken",
+    "DriverProfile",
+    "Promotion",
+    "WebhookEndpoint",
+    "WebhookDelivery",
 ]

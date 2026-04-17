@@ -58,6 +58,8 @@ class OrderResponse(OrderBase):
     status: str
     delivery_fee: Decimal
     discount: Decimal
+    promotion_discount: Decimal = Decimal("0.00")
+    applied_promotions: Optional[List[dict]] = None
     total: Decimal
     payment_status: str
     estimated_delivery_at: Optional[datetime] = None
