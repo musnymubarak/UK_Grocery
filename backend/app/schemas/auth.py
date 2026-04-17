@@ -26,14 +26,14 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
     full_name: str = Field(..., min_length=1, max_length=255)
-    role: str = Field(default="cashier", pattern="^(admin|manager|cashier)$")
+    role: str = Field(default="cashier", pattern="^(admin|manager|cashier|delivery_boy)$")
     phone: Optional[str] = None
     store_id: Optional[UUID] = None
 
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, min_length=1, max_length=255)
-    role: Optional[str] = Field(None, pattern="^(admin|manager|cashier)$")
+    role: Optional[str] = Field(None, pattern="^(admin|manager|cashier|delivery_boy)$")
     phone: Optional[str] = None
     store_id: Optional[UUID] = None
     is_active: Optional[bool] = None

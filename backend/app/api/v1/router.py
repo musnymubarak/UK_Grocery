@@ -20,10 +20,37 @@ from app.api.v1.rewards import router as rewards_router
 
 api_router = APIRouter()
 
+from sqlalchemy import text
+from app.core.database import get_async_session
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 # Health check
 @api_router.get("/health", tags=["Health"])
-async def health_check():
-    return {"status": "healthy", "service": "UK Grocery API"}
+async def health_check(db: AsyncSession = Depends(get_async_session)):
+    checks = {"service": "UK Grocery API"}
+    overall = "healthy"
+
+    # Check DB
+    try:
+        await db.execute(text("SELECT 1"))
+        checks["database"] = "healthy"
+    except Exception:
+        checks["database"] = "unhealthy"
+        overall = "degraded"
+
+    # Check Redis
+    try:
+        from app.core.redis import get_redis
+        r = await get_redis()
+        await r.ping()
+        checks["redis"] = "healthy"
+    except Exception:
+        checks["redis"] = "unhealthy"
+        overall = "degraded"
+
+    checks["status"] = overall
+    return checks
 
 # Public storefront (no auth required)
 api_router.include_router(storefront_router)

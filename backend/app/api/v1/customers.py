@@ -4,7 +4,8 @@ Also contains routes for admin to manage customers.
 """
 from typing import List
 from uuid import UUID
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Request
+from app.core.rate_limiter import limiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_async_session
@@ -39,7 +40,9 @@ async def list_customers(
 # B2C CUSTOMER ROUTES
 # ====================
 @router.post("/register", response_model=CustomerResponse)
+@limiter.limit("3/minute")
 async def register_customer(
+    request: Request,
     data: CustomerCreate,
     db: AsyncSession = Depends(get_async_session)
 ):
@@ -55,7 +58,9 @@ async def register_customer(
     return await CustomerService.create_customer(db, org_id=org.id, data=data)
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 async def login_customer(
+    request: Request,
     data: CustomerLogin,
     db: AsyncSession = Depends(get_async_session)
 ):

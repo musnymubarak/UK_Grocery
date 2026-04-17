@@ -1,6 +1,7 @@
 from uuid import UUID
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from app.core.rate_limiter import limiter
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_async_session
@@ -58,7 +59,9 @@ async def delete_coupon(
 
 # Customer Route
 @router.post("/validate", response_model=CouponValidateResponse)
+@limiter.limit("10/minute")
 async def validate_coupon_for_checkout(
+    request: Request,
     data: CouponValidateRequest,
     current_customer: Customer = Depends(get_current_customer),
     db: AsyncSession = Depends(get_async_session)
