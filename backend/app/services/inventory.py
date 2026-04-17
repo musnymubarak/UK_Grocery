@@ -20,6 +20,7 @@ from fastapi import Request
 from app.models.user import User
 from app.services.audit import AuditService
 from app.constants.audit_actions import AuditAction
+from app.core.cache import CacheService
 
 class InventoryService:
     def __init__(self, db: AsyncSession):
@@ -120,6 +121,9 @@ class InventoryService:
             request=request,
         )
 
+        # Invalidate storefront cache
+        await CacheService.invalidate_pattern("storefront:*")
+
         return inv
 
     async def transfer_stock(self, data: StockTransfer, user: User, org_id: UUID, request: Optional[Request] = None) -> dict:
@@ -181,6 +185,9 @@ class InventoryService:
             request=request,
         )
 
+        # Invalidate storefront cache
+        await CacheService.invalidate_pattern("storefront:*")
+
         return {
             "from_store": {"store_id": data.from_store_id, "new_quantity": source_inv.quantity},
             "to_store": {"store_id": data.to_store_id, "new_quantity": dest_inv.quantity},
@@ -218,6 +225,9 @@ class InventoryService:
             notes=f"Purchase entry. {data.notes or ''}",
             request=request,
         )
+
+        # Invalidate storefront cache
+        await CacheService.invalidate_pattern("storefront:*")
 
         return inv
 
@@ -312,6 +322,9 @@ class InventoryService:
         self.db.add(movement)
         await self.db.flush()
 
+        # Invalidate storefront cache
+        await CacheService.invalidate_pattern("storefront:*")
+
     async def restore_for_cancelled_after_pack(
         self,
         product_id: UUID,
@@ -335,6 +348,9 @@ class InventoryService:
         )
         self.db.add(movement)
         await self.db.flush()
+
+        # Invalidate storefront cache
+        await CacheService.invalidate_pattern("storefront:*")
 
     async def get_movements(
         self,

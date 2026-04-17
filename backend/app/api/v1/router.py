@@ -26,42 +26,14 @@ from app.api.v1.exports import router as export_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.drivers import router as driver_router
 from app.api.v1.webhooks import router as webhook_router
+from app.api.v1.gdpr import router as gdpr_router
+
+from app.api.v1.health import router as health_router
 
 api_router = APIRouter()
 
-from sqlalchemy import text
-from app.core.database import get_async_session
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
-# Health check
-@api_router.get("/health", tags=["Health"])
-async def health_check(db: AsyncSession = Depends(get_async_session)):
-    checks = {"service": "UK Grocery API"}
-    overall = "healthy"
-
-    # Check DB
-    try:
-        await db.execute(text("SELECT 1"))
-        checks["database"] = "healthy"
-    except Exception:
-        checks["database"] = "unhealthy"
-        overall = "degraded"
-
-    # Check Redis
-    try:
-        from app.core.redis import get_redis
-        r = await get_redis()
-        await r.ping()
-        checks["redis"] = "healthy"
-    except Exception:
-        checks["redis"] = "unhealthy"
-        overall = "degraded"
-
-    checks["status"] = overall
-    return checks
-
 # Public storefront (no auth required)
+api_router.include_router(health_router, prefix="/system", tags=["Health"])
 api_router.include_router(storefront_router)
 
 # Admin/staff feature routers
@@ -87,3 +59,4 @@ api_router.include_router(export_router)
 api_router.include_router(analytics_router)
 api_router.include_router(driver_router)
 api_router.include_router(webhook_router)
+api_router.include_router(gdpr_router)
