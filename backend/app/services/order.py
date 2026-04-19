@@ -186,6 +186,7 @@ class OrderService:
                 product_sku=product.sku,
                 quantity=item_data.quantity,
                 unit_price=product.selling_price,
+                effective_unit_price=product.selling_price, # Initialized to full price; will be adjusted if distributed discounts are added
                 tax_amount=0, # Simplified
                 total=product.selling_price * item_data.quantity
             )

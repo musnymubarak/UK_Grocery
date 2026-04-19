@@ -9,7 +9,7 @@ from app.core.dependencies import get_current_customer, require_role, get_org_co
 from app.models.customer import Customer
 from app.models.user import User
 from app.services.refund import RefundService
-from app.schemas.refund import RefundRequest, RefundProcessRequest, RefundResponse
+from app.schemas.refund import RefundRequest, RefundProcessItemRequest, RefundResponse, RefundItemResponse
 
 router = APIRouter(prefix="/refunds", tags=["Refunds"])
 
@@ -20,9 +20,16 @@ async def request_refund(
     current_customer: Customer = Depends(get_current_customer),
     db: AsyncSession = Depends(get_async_session)
 ):
-    """Customer requests a refund for a delivered order."""
+    """Customer requests a granular refund for specific order items."""
     service = RefundService(db)
-    return await service.request_refund(current_customer.id, data.order_id, data.reason)
+    # items inside data are List[RefundItemRequest] which are dict-like
+    items = [it.model_dump() for it in data.items]
+    return await service.request_granular_refund(
+        current_customer.id, 
+        data.order_id, 
+        items, 
+        destination=data.destination
+    )
 
 # Admin endpoints
 @router.get("", response_model=List[RefundResponse])
@@ -38,15 +45,16 @@ async def list_refunds(
     service = RefundService(db)
     return await service.get_refunds_for_org(org_id, status_filter=status, skip=skip, limit=limit)
 
-@router.post("/{refund_id}/process", response_model=RefundResponse)
-async def process_refund(
+@router.post("/{refund_id}/items/{item_id}/process", response_model=RefundItemResponse)
+async def process_refund_item(
     refund_id: UUID,
-    data: RefundProcessRequest,
+    item_id: UUID,
+    data: RefundProcessItemRequest,
     current_user: User = Depends(require_role(["admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):
-    """Admin: approve or reject a refund request."""
+    """Admin: approve or reject an individual refund item."""
     service = RefundService(db)
-    return await service.process_refund(
-        refund_id, data.status, current_user, data.admin_notes
+    return await service.process_refund_item(
+        item_id, data.status, current_user, data.admin_notes
     )

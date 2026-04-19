@@ -1,7 +1,7 @@
 """
 Order model — Customer orders and items.
 """
-from sqlalchemy import Column, String, ForeignKey, Numeric, Text, DateTime, Boolean
+from sqlalchemy import Column, String, ForeignKey, Numeric, Text, DateTime, Boolean, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
@@ -116,8 +116,11 @@ class OrderItem(TimestampMixin, Base):
     
     quantity = Column(Numeric(10, 3), nullable=False)
     unit_price = Column(Numeric(12, 2), nullable=False)
+    effective_unit_price = Column(Numeric(12, 2), nullable=True) # Captured at creation (unit_price - proportional discount)
     tax_amount = Column(Numeric(12, 2), default=0.00, nullable=False)
     total = Column(Numeric(12, 2), nullable=False)
+
+    refunded_quantity = Column(Numeric(10, 3), default=0, nullable=False)
 
     # shop.md extensions
     is_substituted = Column(Boolean, default=False, nullable=False)
@@ -131,6 +134,12 @@ class OrderItem(TimestampMixin, Base):
     order = relationship("Order", back_populates="items")
     product = relationship("Product", back_populates="order_items", foreign_keys=[product_id])
     substituted_product = relationship("Product", foreign_keys=[substituted_product_id])
+    refund_items = relationship("RefundItem", back_populates="order_item")
+
+    __table_args__ = (
+        CheckConstraint('refunded_quantity <= quantity', name='check_refunded_quantity_limit'),
+        CheckConstraint('refunded_quantity >= 0', name='check_refunded_quantity_positive'),
+    )
 
     @property
     def product_image_url(self) -> str | None:
