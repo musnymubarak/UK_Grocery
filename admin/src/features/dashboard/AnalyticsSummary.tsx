@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { analyticsApi } from '../../services/api';
 import { useAdminStore } from '../auth/AdminStoreContext';
+import { CustomSelect } from '../../components/CustomSelect';
 import { 
     ResponsiveContainer, 
     LineChart, 
@@ -69,100 +70,127 @@ export default function AnalyticsSummary() {
     ];
 
     return (
-        <div style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ marginBottom: '2.5rem' }}>
+            <div style={{ marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Analytics Overview</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>Performance metrics and business intelligence.</p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
                 {cards.map((card, i) => {
                     const Icon = card.icon;
                     return (
-                        <div key={i} style={{
-                            background: 'var(--bg-card)',
-                            padding: '1.5rem',
-                            borderRadius: 'var(--radius-lg)',
-                            border: '1px solid var(--border)',
-                            boxShadow: 'var(--shadow-sm)'
+                        <div key={i} className="card" style={{
+                            padding: '2rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem',
+                            position: 'relative'
                         }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                <div style={{ background: `${card.color}15`, padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
-                                    <Icon size={24} color={card.color} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    {card.label}
                                 </div>
-                                <span style={{ fontSize: '0.8rem', color: card.trend.startsWith('+') ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
-                                    {card.trend}
-                                </span>
+                                <div style={{ 
+                                    background: `${card.color}15`, 
+                                    padding: '10px', 
+                                    borderRadius: '50%', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    color: card.color
+                                }}>
+                                    <Icon size={20} />
+                                </div>
                             </div>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>{card.label}</div>
-                            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>{card.value}</div>
+
+                            <div>
+                                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                                    {card.value}
+                                </div>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '6px', 
+                                    fontSize: '0.9rem', 
+                                    fontWeight: 600,
+                                    color: card.trend.startsWith('+') ? 'var(--success)' : 'var(--danger)'
+                                }}>
+                                    <TrendingUp size={14} style={{ transform: card.trend.startsWith('+') ? 'none' : 'rotate(180deg)' }} />
+                                    {card.trend}
+                                    <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>vs last period</span>
+                                </div>
+                            </div>
                         </div>
                     );
                 })}
             </div>
 
-            <div style={{ 
-                background: 'var(--bg-card)', 
-                padding: '1.5rem', 
-                borderRadius: 'var(--radius-lg)', 
-                border: '1px solid var(--border)',
-                height: '400px'
-            }}>
-                <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontWeight: 600 }}>Revenue Trend (Last {timeRange} Days)</h3>
-                    <select 
+            <div className="card" style={{ padding: '2rem' }}>
+                <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>Revenue Trend</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '4px 0 0' }}>Daily revenue performance</p>
+                    </div>
+                    <CustomSelect
+                        options={[
+                            { value: 7, label: 'Last 7 Days' },
+                            { value: 30, label: 'Last 30 Days' }
+                        ]}
                         value={timeRange}
-                        onChange={(e) => setTimeRange(Number(e.target.value))}
-                        style={{ 
-                            background: 'var(--bg-elevated)', 
-                            border: '1px solid var(--border)', 
-                            padding: '0.4rem 0.75rem', 
-                            borderRadius: 'var(--radius-md)',
-                            fontSize: '0.85rem',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <option value={7}>Last 7 Days</option>
-                        <option value={30}>Last 30 Days</option>
-                    </select>
+                        onChange={(val) => setTimeRange(Number(val))}
+                        style={{ width: '160px' }}
+                    />
                 </div>
                 
-                <ResponsiveContainer width="100%" height="80%">
-                    <AreaChart data={revenueData || []}>
-                        <defs>
-                            <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                        <XAxis 
-                            dataKey="date" 
-                            stroke="var(--text-muted)" 
-                            fontSize={12} 
-                            tickLine={false} 
-                            axisLine={false} 
-                        />
-                        <YAxis 
-                            stroke="var(--text-muted)" 
-                            fontSize={12} 
-                            tickLine={false} 
-                            axisLine={false} 
-                            tickFormatter={(value) => `£${value}`} 
-                        />
-                        <Tooltip 
-                            contentStyle={{ 
-                                background: 'var(--bg-elevated)', 
-                                border: '1px solid var(--border)', 
-                                borderRadius: 'var(--radius-md)',
-                                color: 'var(--text-primary)'
-                            }} 
-                        />
-                        <Area 
-                            type="monotone" 
-                            dataKey="revenue" 
-                            stroke="var(--primary)" 
-                            strokeWidth={3}
-                            fillOpacity={1} 
-                            fill="url(#colorRev)" 
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
+                <div style={{ height: '350px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={revenueData || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
+                            <XAxis 
+                                dataKey="date" 
+                                stroke="var(--text-muted)" 
+                                fontSize={12} 
+                                tickLine={false} 
+                                axisLine={false} 
+                                dy={10}
+                            />
+                            <YAxis 
+                                stroke="var(--text-muted)" 
+                                fontSize={12} 
+                                tickLine={false} 
+                                axisLine={false} 
+                                tickFormatter={(value) => `£${value}`} 
+                            />
+                            <Tooltip 
+                                cursor={{ stroke: 'var(--primary)', strokeWidth: 1 }}
+                                contentStyle={{ 
+                                    background: '#fff', 
+                                    border: '1px solid var(--border)', 
+                                    borderRadius: 'var(--radius-md)',
+                                    boxShadow: 'var(--shadow-md)',
+                                    color: 'var(--text-primary)',
+                                    padding: '12px'
+                                }} 
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="revenue" 
+                                stroke="var(--primary)" 
+                                strokeWidth={4}
+                                fillOpacity={1} 
+                                fill="url(#colorRev)" 
+                                animationDuration={1500}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
             </div>
         </div>
     );

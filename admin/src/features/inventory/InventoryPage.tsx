@@ -5,7 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { inventoryApi, storeApi, getErrorMessage } from '../../services/api';
 import { useAuth } from '../auth/AuthContext';
 import { useAdminStore } from '../auth/AdminStoreContext';
-import { Warehouse, ArrowRightLeft, Plus, Minus, History } from 'lucide-react';
+import { CustomSelect } from '../../components/CustomSelect';
+import { Warehouse, ArrowRightLeft, Plus, Minus, History, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function InventoryPage() {
@@ -95,55 +96,107 @@ export default function InventoryPage() {
         } catch (err) { console.error(err); }
     };
 
+    const getStockPercentage = (current: number) => {
+        const threshold = 100; // Assuming 100 as "full" for demo
+        return Math.min((current / threshold) * 100, 100);
+    };
+
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <select className="form-select" value={selectedStore} onChange={(e) => setSelectedStore(e.target.value)} style={{ width: 250 }} disabled={isManager}>
-                        {stores.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
+                    <div className="input-group">
+                        <Warehouse size={18} color="var(--text-muted)" />
+                        <CustomSelect
+                            options={stores.map((s: any) => ({ value: s.id, label: s.name }))}
+                            value={selectedStore}
+                            onChange={(val) => setSelectedStore(val)}
+                            disabled={isManager}
+                            style={{ width: 220 }}
+                        />
+                    </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 12 }}>
                     <button className="btn btn-secondary" onClick={loadMovements}><History size={16} /> History</button>
-                    {!isManager && <button className="btn btn-secondary" onClick={() => setShowTransferModal(true)}><ArrowRightLeft size={16} /> Transfer</button>}
-                    <button className="btn btn-primary" onClick={() => setShowAdjustModal(true)}><Plus size={16} /> Adjust Stock</button>
+                    {!isAdmin && <button className="btn btn-secondary" onClick={() => setShowTransferModal(true)}><ArrowRightLeft size={16} /> Transfer</button>}
+                    <button className="btn btn-primary" onClick={() => setShowAdjustModal(true)} style={{ padding: '12px 24px' }}>
+                        <Plus size={18} /> Add New Product
+                    </button>
                 </div>
             </div>
 
-            <div className="card">
-                <div className="table-container">
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>Current Stock</h3>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <span className="badge badge-primary" style={{ padding: '6px 14px' }}>All Items</span>
+                        <span className="badge" style={{ padding: '6px 14px', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>Produce</span>
+                        <span className="badge" style={{ padding: '6px 14px', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>Dairy</span>
+                    </div>
+                </div>
+                <div className="table-container" style={{ border: 'none' }}>
                     <table className="table">
                         <thead>
                             <tr>
-                                <th>Product</th>
-                                <th>SKU</th>
-                                <th>Quantity</th>
-                                <th>Reserved</th>
-                                <th>Available</th>
+                                <th>Item</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock Level</th>
                                 <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={6}><div className="loading-spinner"><div className="spinner" /></div></td></tr>
+                                <tr><td colSpan={7}><div className="loading-spinner"><div className="spinner" /></div></td></tr>
                             ) : inventory.length === 0 ? (
-                                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No inventory records</td></tr>
-                            ) : inventory.map((item: any) => (
-                                <tr key={item.id}>
-                                    <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.product_name}</td>
-                                    <td><span className="badge badge-primary">{item.product_sku}</span></td>
-                                    <td style={{ fontWeight: 600 }}>{item.quantity}</td>
-                                    <td>{item.reserved_quantity}</td>
-                                    <td style={{ color: 'var(--success)' }}>{item.available_quantity}</td>
-                                    <td>
-                                        {item.quantity <= 10 ? (
-                                            <span className="badge badge-danger">Low Stock</span>
-                                        ) : (
-                                            <span className="badge badge-success">In Stock</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
+                                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 60 }}>No inventory records</td></tr>
+                            ) : inventory.map((item: any) => {
+                                const stockPct = getStockPercentage(item.quantity);
+                                const isLow = item.quantity <= 10;
+                                return (
+                                    <tr key={item.id}>
+                                        <td>
+                                            <div style={{ width: 48, height: 48, background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifySelf: 'center', overflow: 'hidden' }}>
+                                                <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #eee, #ddd)' }} />
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.product_name}</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.product_sku}</div>
+                                        </td>
+                                        <td>{item.category || 'General'}</td>
+                                        <td style={{ fontWeight: 600 }}>£{(item.price || 4.99).toFixed(2)}<span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/unit</span></td>
+                                        <td style={{ width: 200 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                <div style={{ flex: 1, height: 8, background: 'var(--bg-primary)', borderRadius: 4, overflow: 'hidden' }}>
+                                                    <div style={{ 
+                                                        width: `${stockPct}%`, 
+                                                        height: '100%', 
+                                                        background: isLow ? 'var(--danger)' : 'var(--primary)',
+                                                        borderRadius: 4
+                                                    }} />
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: 600, width: 60 }}>
+                                                    {item.quantity} lbs
+                                                </div>
+                                            </div>
+                                            {isLow && <div style={{ fontSize: '0.7rem', color: 'var(--danger)', marginTop: 4, fontWeight: 600 }}>Low Stock Warning</div>}
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${item.quantity > 0 ? 'badge-success' : 'badge-danger'}`} style={{ textTransform: 'uppercase', fontStyle: 'normal', borderRadius: 4 }}>
+                                                {item.quantity > 0 ? 'ACTIVE' : 'OUT OF STOCK'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button className="btn-icon" onClick={() => setShowAdjustModal(true)}>
+                                                <Edit2 size={16} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
