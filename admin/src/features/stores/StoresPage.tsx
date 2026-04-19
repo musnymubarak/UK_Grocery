@@ -3,7 +3,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { storeApi, getErrorMessage } from '../../services/api';
-import { Plus, Edit2, Trash2, MapPin } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, Truck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Store {
@@ -91,55 +91,99 @@ export default function StoresPage() {
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MapPin size={20} /> Stores</h3>
-                <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
-                    <Plus size={16} /> Add Store
-                </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40 }}>
+                <div>
+                    <h1 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>Stores</h1>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '600px' }}>
+                        Manage your physical locations, monitor fulfillment health, and configure local availability.
+                    </p>
+                </div>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', background: 'var(--bg-elevated)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+                        <button className="btn btn-secondary" style={{ border: 'none', background: 'var(--bg-card)', padding: '8px 16px', boxShadow: 'var(--shadow-sm)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Plus size={14} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, transform: 'scale(1.2)' }} /> Grid</div>
+                        </button>
+                        <button className="btn btn-secondary" style={{ border: 'none', background: 'transparent', padding: '8px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MapPin size={16} /> Map</div>
+                        </button>
+                    </div>
+                    <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true); }} style={{ padding: '14px 28px', fontSize: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <Plus size={20} />
+                            Add New Store
+                        </div>
+                    </button>
+                </div>
             </div>
 
-            <div className="card">
-                <div className="table-container">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Code</th>
-                                <th>City</th>
-                                <th>Phone</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <tr><td colSpan={6}><div className="loading-spinner"><div className="spinner" /></div></td></tr>
-                            ) : stores.length === 0 ? (
-                                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
-                                    No stores yet. Add your first store to get started.
-                                </td></tr>
-                            ) : stores.map((store) => (
-                                <tr key={store.id}>
-                                    <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{store.name}</td>
-                                    <td><span className="badge badge-primary">{store.code}</span></td>
-                                    <td>{store.city || '—'}</td>
-                                    <td>{store.phone || '—'}</td>
-                                    <td>
-                                        <span className={`badge ${store.is_active ? 'badge-success' : 'badge-danger'}`}>
-                                            {store.is_active ? 'Active' : 'Inactive'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            <button className="btn-icon" onClick={() => openEdit(store)}><Edit2 size={14} /></button>
-                                            <button className="btn-icon" onClick={() => handleDelete(store.id)}><Trash2 size={14} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+                {loading ? (
+                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 100 }}><div className="loading-spinner"><div className="spinner" /></div></div>
+                ) : stores.length === 0 ? (
+                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 100, color: 'var(--text-muted)' }}>No stores found.</div>
+                ) : stores.map((store) => (
+                    <div key={store.id} className="card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>{store.name}</h2>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 700, borderRadius: 4, padding: '2px 6px', background: store.is_active ? 'var(--success-bg)' : 'var(--danger-bg)', color: store.is_active ? 'var(--success)' : 'var(--danger)' }}>
+                                        {store.is_active ? 'ACTIVE' : 'INACTIVE'}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 8 }}>
+                                    <MapPin size={16} />
+                                    {store.address || 'Location not set'}
+                                </div>
+                            </div>
+                            <div style={{ 
+                                width: 44, height: 24, background: store.is_active ? 'var(--primary)' : '#ddd', 
+                                borderRadius: 12, position: 'relative', cursor: 'pointer' 
+                            }}>
+                                <div style={{ 
+                                    width: 18, height: 18, background: '#fff', borderRadius: '50%', 
+                                    position: 'absolute', top: 3, left: store.is_active ? 23 : 3,
+                                    transition: 'all 0.2s'
+                                }} />
+                            </div>
+                        </div>
+
+                        <div style={{ background: 'var(--bg-primary)', padding: '1.25rem', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#ccc', overflow: 'hidden' }}>
+                                <img src={`https://ui-avatars.com/api/?name=Manager&background=random`} alt="Avatar" style={{ width: '100%', height: '100%' }} />
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Manager</div>
+                                <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>Sarah Jenkins</div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div style={{ background: 'var(--bg-primary)', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Active Orders</div>
+                                <div style={{ fontSize: '1.75rem', fontWeight: 800, margin: '4px 0' }}>142</div>
+                                <div style={{ height: 4, background: '#ddd', borderRadius: 2, overflow: 'hidden' }}>
+                                    <div style={{ width: '60%', height: '100%', background: 'var(--primary)' }} />
+                                </div>
+                            </div>
+                            <div style={{ background: 'var(--bg-primary)', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Today's Revenue</div>
+                                <div style={{ fontSize: '1.75rem', fontWeight: 800, margin: '4px 0' }}>£4,250</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>+12%</div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--border-light)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
+                                <Truck size={18} />
+                                Avg. Fulfillment: <b>24m</b>
+                            </div>
+                            <button className="btn-icon" onClick={() => openEdit(store)} style={{ border: 'none', background: 'transparent' }}>
+                                <Edit2 size={18} />
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {showModal && (

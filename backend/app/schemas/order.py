@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 from typing import Optional, List
+from .customer import CustomerResponse
 from datetime import datetime
 from decimal import Decimal
 
@@ -81,6 +82,7 @@ class OrderResponse(OrderBase):
     scheduled_delivery_end: Optional[datetime] = None
     rejected_reason: Optional[str] = None
     items: List[OrderItemResponse] = []
+    customer: Optional[CustomerResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -27,7 +27,9 @@ import {
     Image,
     MessageSquare,
     RotateCcw,
-    ShieldAlert
+    ShieldAlert,
+    Plus,
+    HelpCircle
 } from 'lucide-react';
 
 const navItems = [
@@ -98,9 +100,80 @@ export default function Layout() {
     return (
         <div className="app-layout">
             <aside className="sidebar">
-                <div className="sidebar-brand">
-                    <div className="brand-icon">G</div>
-                    <h1>UK Grocery Admin</h1>
+                <div className="sidebar-brand" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div className="brand-icon">
+                            <StoreIcon size={20} />
+                        </div>
+                        <div>
+                            <h1>{selectedStore ? selectedStore.name : 'Main Branch'}</h1>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>Premium Curator</div>
+                        </div>
+                    </div>
+
+                    {isAdmin && (
+                        <div className="admin-store-selector" ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
+                            <button
+                                onClick={() => setShowStoreDropdown(!showStoreDropdown)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid var(--border)',
+                                    background: 'var(--bg-secondary)',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.85rem'
+                                }}
+                            >
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <StoreIcon size={14} />
+                                    Switch Store
+                                </span>
+                                <ChevronDown size={14} />
+                            </button>
+
+                            {showStoreDropdown && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    left: 0,
+                                    right: 0,
+                                    marginTop: 4,
+                                    background: 'var(--bg-card)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: 'var(--radius-md)',
+                                    boxShadow: 'var(--shadow-lg)',
+                                    zIndex: 100,
+                                    maxHeight: '200px',
+                                    overflowY: 'auto'
+                                }}>
+                                    {stores.map(store => (
+                                        <button
+                                            key={store.id}
+                                            onClick={() => handleStoreChange(store)}
+                                            style={{
+                                                display: 'block',
+                                                width: '100%',
+                                                textAlign: 'left',
+                                                padding: '10px 12px',
+                                                border: 'none',
+                                                background: selectedStore?.id === store.id ? 'var(--primary-50)' : 'transparent',
+                                                color: selectedStore?.id === store.id ? 'var(--primary)' : 'var(--text-primary)',
+                                                cursor: 'pointer',
+                                                fontSize: '0.85rem'
+                                            }}
+                                        >
+                                            {store.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <nav className="sidebar-nav">
@@ -117,7 +190,7 @@ export default function Layout() {
                                             className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
                                             onClick={() => navigate(item.path)}
                                         >
-                                            <Icon size={18} />
+                                            <Icon size={20} />
                                             {item.label}
                                         </button>
                                     );
@@ -127,103 +200,54 @@ export default function Layout() {
                 </nav>
 
                 <div className="sidebar-footer">
-                    <div className="user-info">
-                        <div className="user-avatar">
-                            {user?.full_name?.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="user-details">
-                            <div className="user-name">{user?.full_name}</div>
-                            <div className="user-role">{user?.role}</div>
-                        </div>
-                    </div>
-                    <button className="nav-item" onClick={logout} style={{ marginTop: 8 }}>
-                        <LogOut size={18} />
-                        Sign Out
+                    <button 
+                        className="btn btn-primary" 
+                        style={{ width: '100%', marginBottom: 24, justifyContent: 'center', padding: '12px' }}
+                        onClick={() => toast.success('New Shipment flow coming soon')}
+                    >
+                        <Plus size={18} />
+                        New Shipment
                     </button>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <button className="nav-item" onClick={() => toast.success('Support center loading...')}>
+                            <HelpCircle size={20} />
+                            Support
+                        </button>
+                        <button className="nav-item" onClick={logout}>
+                            <LogOut size={20} />
+                            Sign Out
+                        </button>
+                    </div>
                 </div>
             </aside>
 
             <main className="main-content">
                 <header className="top-header">
-                    <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                        <h2 className="page-title">
+                    <div className="header-left">
+                        <h2 className="page-title" style={{ fontSize: '1.75rem', fontWeight: 800 }}>
                             {navItems.find((n) => n.path === location.pathname)?.label || 'Admin Portal'}
                         </h2>
+                    </div>
 
-                        {isAdmin && (
-                            <div className="admin-store-selector" ref={dropdownRef} style={{ position: 'relative' }}>
-                                <button
-                                    onClick={() => setShowStoreDropdown(!showStoreDropdown)}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                        padding: '6px 16px',
-                                        borderRadius: 20,
-                                        border: 'none',
-                                        color: '#fff',
-                                        background: selectedStore ? 'var(--primary)' : 'var(--warning)',
-                                        cursor: 'pointer',
-                                        fontWeight: 600,
-                                        fontSize: '0.9rem',
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                    }}
-                                >
-                                    <StoreIcon size={16} />
-                                    {selectedStore ? selectedStore.name : 'No Store Selected'}
-                                    <ChevronDown size={14} />
-                                </button>
-
-                                {showStoreDropdown && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '100%',
-                                        left: 0,
-                                        marginTop: 8,
-                                        background: 'var(--bg-primary)',
-                                        border: '1px solid var(--border)',
-                                        borderRadius: 'var(--radius-md)',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                        minWidth: 200,
-                                        zIndex: 100,
-                                        overflow: 'hidden'
-                                    }}>
-                                        <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
-                                            Select operating store
-                                        </div>
-                                        {stores.map(store => (
-                                            <button
-                                                key={store.id}
-                                                onClick={() => handleStoreChange(store)}
-                                                style={{
-                                                    display: 'block',
-                                                    width: '100%',
-                                                    textAlign: 'left',
-                                                    padding: '10px 16px',
-                                                    border: 'none',
-                                                    background: selectedStore?.id === store.id ? 'var(--primary-light)' : 'transparent',
-                                                    color: selectedStore?.id === store.id ? '#fff' : 'var(--text-primary)',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.9rem'
-                                                }}
-                                                onMouseOver={(e) => {
-                                                    if (selectedStore?.id !== store.id) {
-                                                        e.currentTarget.style.background = 'var(--bg-secondary)';
-                                                    }
-                                                }}
-                                                onMouseOut={(e) => {
-                                                    if (selectedStore?.id !== store.id) {
-                                                        e.currentTarget.style.background = 'transparent';
-                                                    }
-                                                }}
-                                            >
-                                                {store.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                    <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ position: 'relative' }}>
+                            <input 
+                                type="text" 
+                                placeholder="Search..." 
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid var(--border)',
+                                    background: 'var(--bg-primary)',
+                                    width: '240px',
+                                    fontSize: '0.85rem'
+                                }}
+                            />
+                        </div>
+                        <div className="user-avatar" style={{ width: 40, height: 40, cursor: 'pointer' }}>
+                            {user?.full_name?.charAt(0).toUpperCase()}
+                        </div>
                     </div>
                 </header>
                 <div className="page-content">
