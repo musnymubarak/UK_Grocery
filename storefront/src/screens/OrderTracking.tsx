@@ -15,9 +15,8 @@ export default function OrderTracking() {
   const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
-  const [refundReason, setRefundReason] = useState('');
-  const [refundDetails, setRefundDetails] = useState('');
   const [isRefunding, setIsRefunding] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Record<string, { quantity: number; reason: string }>>({});
 
   useEffect(() => {
     fetchOrder();
@@ -51,21 +50,49 @@ export default function OrderTracking() {
     }
   };
 
+  const handleToggleItem = (itemId: string, maxQty: number) => {
+    setSelectedItems(prev => {
+      const next = { ...prev };
+      if (next[itemId]) {
+        delete next[itemId];
+      } else {
+        next[itemId] = { quantity: maxQty, reason: 'Damaged Items' };
+      }
+      return next;
+    });
+  };
+
+  const handleUpdateItem = (itemId: string, field: 'quantity' | 'reason', value: any) => {
+    setSelectedItems(prev => ({
+      ...prev,
+      [itemId]: { ...prev[itemId], [field]: value }
+    }));
+  };
+
   const handleRequestRefund = async (e: React.FormEvent) => {
     e.preventDefault();
+    const itemsToRefund = Object.entries(selectedItems).map(([id, data]) => ({
+      order_item_id: id,
+      quantity: Number(data.quantity),
+      reason: data.reason
+    }));
+
+    if (itemsToRefund.length === 0) {
+      toast.error('Please select at least one item');
+      return;
+    }
+
     setIsRefunding(true);
     try {
-      // Combine reason and details for the backend's 'reason' field (min 10 chars)
-      const combinedReason = refundDetails 
-        ? `${refundReason}: ${refundDetails}`.trim() 
-        : refundReason;
-      
       await refundApi.request({
-        order_id: id, // Use the internal UUID from useParams
-        reason: combinedReason
+        order_id: id,
+        items: itemsToRefund,
+        destination: 'wallet'
       });
-      toast.success('Refund request submitted');
+      toast.success('Refund request submitted successfully');
       setShowRefundModal(false);
+      setSelectedItems({});
+      fetchOrder();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -286,6 +313,7 @@ export default function OrderTracking() {
                     key={item.id}
                     name={item.product_name} 
                     desc={`Qty: ${Number(item.quantity)}`} 
+                    refundedQty={Number(item.refunded_quantity || 0)}
                     price={Number(item.total).toFixed(2)} 
                     img={item.product_image_url || `https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200`}
                   />
@@ -327,60 +355,117 @@ export default function OrderTracking() {
         isOpen={showRefundModal}
         onClose={() => setShowRefundModal(false)}
         title="Request a Refund"
+        size="lg"
         footer={
-          <button 
-            form="refund-form" 
-            type="submit" 
-            disabled={isRefunding || !refundReason}
-            className="w-full bg-primary text-on-primary py-4 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {isRefunding ? <Loader2 className="animate-spin" size={20} /> : <Undo2 size={20} />}
-            Submit Request
-          </button>
+          <div className="w-full flex flex-col gap-4">
+             <div className="flex justify-between items-center px-2">
+                <span className="text-on-surface-variant font-medium text-sm">Items Selected</span>
+                <span className="font-bold text-primary">{Object.keys(selectedItems).length}</span>
+             </div>
+             <button 
+                form="refund-form" 
+                type="submit" 
+                disabled={isRefunding || Object.keys(selectedItems).length === 0}
+                className="w-full bg-primary text-on-primary py-4 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {isRefunding ? <Loader2 className="animate-spin" size={20} /> : <Undo2 size={20} />}
+                Confirm Refund Request
+              </button>
+          </div>
         }
       >
         <form id="refund-form" onSubmit={handleRequestRefund} className="space-y-6">
-          <div className="flex flex-col items-center text-center mb-4">
+          <div className="flex flex-col items-center text-center mb-2 px-4">
             <div className="p-4 bg-primary/10 text-primary rounded-full mb-4">
               <Undo2 size={32} />
             </div>
-            <p className="text-on-surface-variant text-sm px-4">
-              We're sorry your harvest wasn't perfect. Please tell us why you're requesting a refund for order <strong className="text-on-surface">#{order.order_number}</strong>.
+            <h3 className="text-xl font-extrabold text-on-surface tracking-tight">How can we help?</h3>
+            <p className="text-on-surface-variant text-sm mt-1 max-w-sm">
+              Select the items you're experiencing issues with. We'll review your claim and credit your wallet ASAP.
             </p>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 block">Reason for Refund</label>
-              <select 
-                value={refundReason}
-                onChange={e => setRefundReason(e.target.value)}
-                required
-                className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 appearance-none"
-              >
-                <option value="">Select a reason...</option>
-                <option value="Damaged Items">Damaged Items</option>
-                <option value="Missing Items">Missing Items</option>
-                <option value="Poor Quality">Poor Quality</option>
-                <option value="Wrong Item Received">Wrong Item Received</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2 block">Additional Details</label>
-              <textarea 
-                value={refundDetails}
-                onChange={e => setRefundDetails(e.target.value)}
-                placeholder="Please describe the issue..."
-                className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 min-h-[100px] focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
+          <div className="space-y-4 max-h-[50vh] overflow-y-auto px-1">
+            {order.items?.map((item: any) => {
+              const availableQty = Number(item.quantity) - Number(item.refunded_quantity || 0);
+              if (availableQty <= 0) return null;
+
+              const isSelected = !!selectedItems[item.id];
+
+              return (
+                <div key={item.id} className={`p-4 rounded-2xl border-2 transition-all ${isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary/10' : 'border-surface-container-highest bg-surface-container-low hover:border-surface-container-highest'}`}>
+                  <div className="flex items-start gap-4">
+                    <button 
+                      type="button"
+                      onClick={() => handleToggleItem(item.id, availableQty)}
+                      className={`shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary text-on-primary' : 'border-on-surface-variant/30 text-transparent'}`}
+                    >
+                      <Check size={14} strokeWidth={4} />
+                    </button>
+                    
+                    <div className="flex-1 space-y-4">
+                      <div className="flex justify-between gap-4">
+                        <div className="flex gap-3">
+                           <img src={item.product_image_url || `https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200`} className="w-12 h-12 rounded-lg object-cover" />
+                           <div>
+                              <p className="font-bold text-on-surface text-sm leading-tight">{item.product_name}</p>
+                              <p className="text-xs text-on-surface-variant mt-1 font-medium">£{Number(item.effective_unit_price || item.unit_price).toFixed(2)} / unit</p>
+                           </div>
+                        </div>
+                        <p className="font-extrabold text-primary text-sm whitespace-nowrap">£{((item.effective_unit_price || item.unit_price) * (isSelected ? selectedItems[item.id].quantity : availableQty)).toFixed(2)}</p>
+                      </div>
+
+                      {isSelected && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-3 pt-3 border-t border-primary/10">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Refund Quantity</span>
+                            <div className="flex items-center gap-4 bg-surface-container-highest px-3 py-1 rounded-lg">
+                              <button 
+                                type="button" 
+                                onClick={() => handleUpdateItem(item.id, 'quantity', Math.max(1, selectedItems[item.id].quantity - 1))}
+                                className="text-primary font-bold px-2 hover:bg-primary/10 rounded"
+                              >
+                                -
+                              </button>
+                              <span className="font-bold text-sm min-w-[20px] text-center">{selectedItems[item.id].quantity}</span>
+                              <button 
+                                type="button" 
+                                onClick={() => handleUpdateItem(item.id, 'quantity', Math.min(availableQty, selectedItems[item.id].quantity + 1))}
+                                className="text-primary font-bold px-2 hover:bg-primary/10 rounded"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                             <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant block">Issue</span>
+                             <select 
+                                value={selectedItems[item.id].reason}
+                                onChange={e => handleUpdateItem(item.id, 'reason', e.target.value)}
+                                className="w-full bg-surface-container-highest border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-1 focus:ring-primary/20 appearance-none"
+                              >
+                                <option value="Damaged Items">Damaged Items</option>
+                                <option value="Missing Items">Missing Items</option>
+                                <option value="Poor Quality">Poor Quality</option>
+                                <option value="Wrong Item Received">Wrong Item Received</option>
+                                <option value="Other">Other</option>
+                              </select>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           
-          <div className="bg-tertiary/5 border border-tertiary/10 p-4 rounded-xl flex gap-3">
-            <AlertCircle className="text-tertiary shrink-0" size={20} />
-            <p className="text-xs text-on-surface-variant font-medium">
-              Refunds are usually processed within 3-5 business days once approved by our specialists.
+          <div className="bg-tertiary/5 border border-tertiary/10 p-4 rounded-2xl flex gap-3">
+            <div className="w-8 h-8 rounded-full bg-tertiary/10 flex items-center justify-center shrink-0">
+               <AlertCircle className="text-tertiary" size={18} />
+            </div>
+            <p className="text-[11px] text-on-surface-variant font-medium leading-relaxed">
+              We aim to resolve all claims within <strong className="text-on-surface">3-5 business days</strong>. Approved amounts will be credited back to your harvest wallet immediately.
             </p>
           </div>
         </form>
@@ -404,17 +489,34 @@ function TimelineStep({ label, active, completed, current, icon }: { label: stri
   );
 }
 
-function RecapItem({ name, desc, price, img }: { name: string; desc: string; price: string; img: string; key?: React.Key }) {
+function RecapItem({ name, desc, price, img, refundedQty }: { name: string; desc: string; price: string; img: string; refundedQty?: number; key?: React.Key }) {
   return (
     <div className="flex items-center gap-4">
-      <div className="w-16 h-16 rounded-md bg-surface-container-high overflow-hidden">
-        <img src={img} alt={name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      <div className="relative">
+        <div className="w-16 h-16 rounded-md bg-surface-container-high overflow-hidden">
+          <img src={img} alt={name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+        </div>
+        {refundedQty && refundedQty > 0 && (
+          <div className="absolute -top-1 -right-1 bg-error text-on-error text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
+            -{refundedQty}
+          </div>
+        )}
       </div>
       <div className="flex-1">
         <p className="font-bold text-on-surface">{name}</p>
-        <p className="text-sm text-on-surface-variant">{desc}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-on-surface-variant">{desc}</p>
+          {refundedQty && refundedQty > 0 && (
+            <span className="text-[10px] font-bold text-error uppercase tracking-wider bg-error/10 px-2 py-0.5 rounded">Refunded</span>
+          )}
+        </div>
       </div>
-      <p className="font-bold">£{price}</p>
+      <div className="text-right">
+        <p className="font-bold">£{price}</p>
+        {refundedQty && refundedQty > 0 && (
+          <p className="text-[10px] text-error font-medium italic">Adjusted</p>
+        )}
+      </div>
     </div>
   );
 }

@@ -221,7 +221,8 @@ export const reviewApi = {
 // --- Refunds API ---
 export const refundApi = {
     list: () => api.get('/refunds'),
-    process: (id: string, data: any) => api.post(`/refunds/${id}/process`, data),
+    processItem: (refundId: string, itemId: string, data: any) => 
+        api.post(`/refunds/${refundId}/items/${itemId}/process`, data),
 };
 
 // --- Drivers API Expansion ---
