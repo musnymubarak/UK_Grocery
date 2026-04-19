@@ -82,9 +82,6 @@ export default function ProductsPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const labelSvgRefs = useRef<{ [key: string]: SVGSVGElement | null }>({});
     const printLabelSvgRefs = useRef<{ [key: string]: SVGSVGElement | null }>({});
-
-    useEffect(() => { loadData(); }, []);
-
     // Render barcode preview when form.barcode changes
     useEffect(() => {
         if (barcodePreviewRef.current && form.barcode) {
@@ -110,19 +107,25 @@ export default function ProductsPage() {
             }, 100);
         }
     }, [showLabelModal, labelProducts]);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             const [prodRes, catRes, storeRes] = await Promise.all([
                 productApi.list({ limit: 200, ...(search ? { search } : {}) }),
-                categoryApi.list(),
-                storeApi.list(),
+                categories.length === 0 ? categoryApi.list() : Promise.resolve({ data: categories }),
+                stores.length === 0 ? storeApi.list() : Promise.resolve({ data: stores }),
             ]);
             setProducts(prodRes.data.items || []);
-            setCategories(catRes.data || []);
-            setStores(storeRes.data || []);
+            if (categories.length === 0) setCategories(catRes.data || []);
+            if (stores.length === 0) setStores(storeRes.data || []);
         } catch (err) { console.error(err); } finally { setLoading(false); }
-    };
+    }, [search, categories.length, stores.length]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            loadData();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [loadData, search]);
 
     // ===== Barcode validation =====
     const validateBarcode = async (barcode: string): Promise<boolean> => {
@@ -299,14 +302,25 @@ export default function ProductsPage() {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <div style={{ display: 'flex', gap: 12, flex: 1, alignItems: 'center' }}>
-                    <input
-                        className="form-input"
-                        placeholder="Search products..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && loadData()}
-                        style={{ maxWidth: 400 }}
-                    />
+                    <div style={{ position: 'relative', flex: 1, maxWidth: 400 }}>
+                        <Search
+                            size={18}
+                            style={{
+                                position: 'absolute',
+                                left: 12,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                color: 'var(--text-muted)'
+                            }}
+                        />
+                        <input
+                            className="form-input"
+                            placeholder="Search products by name, SKU or barcode..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            style={{ paddingLeft: 40 }}
+                        />
+                    </div>
                     {selectedIds.size > 0 && (
                         <button className="btn btn-secondary" onClick={() => openLabelPrint(products.filter(p => selectedIds.has(p.id)))}>
                             <Printer size={14} /> Print {selectedIds.size} Labels

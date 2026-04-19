@@ -16,15 +16,14 @@ const AdminStoreContext = createContext<AdminStoreContextType | undefined>(undef
 const STORAGE_KEY = 'admin_selected_store';
 
 export function AdminStoreProvider({ children }: { children: React.ReactNode }) {
-    const { user } = useAuth();
+    const { user, isLoading } = useAuth();
 
     // Only meaningful for admin/super_admin
     const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
     const [selectedStore, setSelectedStore] = useState<StoreBase | null>(() => {
-        if (!isAdmin) return null;
         try {
-            const saved = sessionStorage.getItem(STORAGE_KEY);
+            const saved = localStorage.getItem(STORAGE_KEY);
             return saved ? JSON.parse(saved) : null;
         } catch {
             return null;
@@ -32,18 +31,21 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
     });
 
     useEffect(() => {
+        // Wait for auth to load before making decisions about clearing state
+        if (isLoading) return;
+
         if (!isAdmin) {
             setSelectedStore(null);
-            sessionStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(STORAGE_KEY);
             return;
         }
 
         if (selectedStore) {
-            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(selectedStore));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedStore));
         } else {
-            sessionStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(STORAGE_KEY);
         }
-    }, [selectedStore, isAdmin]);
+    }, [selectedStore, isAdmin, isLoading]);
 
     // If not admin, provide a dummy context that does nothing and always returns null
     // This prevents components from throwing errors if they accidentally consume it when not admin

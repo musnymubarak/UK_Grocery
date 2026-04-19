@@ -131,7 +131,7 @@ export default function Layout() {
                             >
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <StoreIcon size={14} />
-                                    Switch Store
+                                    {selectedStore ? selectedStore.name : 'Switch Store'}
                                 </span>
                                 <ChevronDown size={14} />
                             </button>
