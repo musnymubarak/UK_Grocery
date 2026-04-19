@@ -75,6 +75,7 @@ class InventoryService:
                 "available_quantity": inv.available_quantity,
                 "product_name": product.name,
                 "product_sku": product.sku,
+                "image_url": product.image_url,
                 "created_at": inv.created_at,
             })
         return items

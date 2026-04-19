@@ -6,7 +6,7 @@ import { inventoryApi, storeApi, getErrorMessage } from '../../services/api';
 import { useAuth } from '../auth/AuthContext';
 import { useAdminStore } from '../auth/AdminStoreContext';
 import { CustomSelect } from '../../components/CustomSelect';
-import { Warehouse, ArrowRightLeft, Plus, Minus, History, Edit2 } from 'lucide-react';
+import { Warehouse, ArrowRightLeft, Plus, Minus, History, Edit2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function InventoryPage() {
@@ -120,7 +120,7 @@ export default function InventoryPage() {
                     <button className="btn btn-secondary" onClick={loadMovements}><History size={16} /> History</button>
                     {!isAdmin && <button className="btn btn-secondary" onClick={() => setShowTransferModal(true)}><ArrowRightLeft size={16} /> Transfer</button>}
                     <button className="btn btn-primary" onClick={() => setShowAdjustModal(true)} style={{ padding: '12px 24px' }}>
-                        <Plus size={18} /> Add New Product
+                        <Plus size={18} /> Adjust Stock
                     </button>
                 </div>
             </div>
@@ -158,8 +158,12 @@ export default function InventoryPage() {
                                 return (
                                     <tr key={item.id}>
                                         <td>
-                                            <div style={{ width: 48, height: 48, background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifySelf: 'center', overflow: 'hidden' }}>
-                                                <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #eee, #ddd)' }} />
+                                            <div style={{ width: 48, height: 48, background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                                {item.image_url ? (
+                                                    <img src={item.image_url} alt={item.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <ImageIcon size={20} style={{ opacity: 0.3 }} />
+                                                )}
                                             </div>
                                         </td>
                                         <td>
