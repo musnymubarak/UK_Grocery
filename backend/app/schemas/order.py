@@ -66,6 +66,7 @@ class OrderResponse(OrderBase):
     delivered_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    refund_status: Optional[str] = None
     
     # shop.md extensions
     order_type: str
