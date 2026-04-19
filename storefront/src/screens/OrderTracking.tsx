@@ -55,11 +55,14 @@ export default function OrderTracking() {
     e.preventDefault();
     setIsRefunding(true);
     try {
+      // Combine reason and details for the backend's 'reason' field (min 10 chars)
+      const combinedReason = refundDetails 
+        ? `${refundReason}: ${refundDetails}`.trim() 
+        : refundReason;
+      
       await refundApi.request({
-        order_reference: order.order_number,
-        reason: refundReason,
-        details: refundDetails,
-        amount: order.total
+        order_id: id, // Use the internal UUID from useParams
+        reason: combinedReason
       });
       toast.success('Refund request submitted');
       setShowRefundModal(false);
@@ -192,6 +195,27 @@ export default function OrderTracking() {
               <ArrowRight className="text-primary group-hover:translate-x-1 transition-transform" size={24} />
             </div>
 
+            {/* Refund Status Info */}
+            {order.refund_status && (
+              <div className={`p-4 rounded-xl flex items-center gap-3 ${
+                order.refund_status === 'pending' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
+                order.refund_status === 'approved' ? 'bg-primary/10 text-primary border border-primary/20' :
+                'bg-error/10 text-error border border-error/20'
+              }`}>
+                <Undo2 size={20} />
+                <div className="flex-1">
+                  <p className="font-bold text-sm uppercase tracking-wider">
+                    Refund {order.refund_status}
+                  </p>
+                  <p className="text-xs opacity-80">
+                    {order.refund_status === 'pending' ? "We're reviewing your request. This usually takes 3-5 days." :
+                     order.refund_status === 'approved' ? "Great news! Your refund has been approved and credited to your wallet." :
+                     "Your refund request was not approved. Please contact support for details."}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-4 pt-4">
               {['placed', 'confirmed'].includes(order.status) && (
@@ -204,7 +228,7 @@ export default function OrderTracking() {
                   Cancel Order
                 </button>
               )}
-              {order.status === 'delivered' && (
+              {order.status === 'delivered' && !['pending', 'approved'].includes(order.refund_status) && (
                 <button 
                   onClick={() => setShowRefundModal(true)}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl bg-surface-container-high text-on-surface font-bold hover:bg-surface-container-highest transition-colors"

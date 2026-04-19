@@ -33,7 +33,7 @@ class Refund(TimestampMixin, Base):
     )
 
     # Relationships
-    order = relationship("Order")
+    order = relationship("Order", back_populates="refunds")
     customer = relationship("Customer")
 
     def __repr__(self):

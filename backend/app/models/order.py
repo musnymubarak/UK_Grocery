@@ -83,9 +83,19 @@ class Order(TimestampMixin, Base):
     delivery_boy = relationship("User", back_populates="assigned_orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan", lazy="selectin")
     status_history = relationship("OrderStatusHistory", back_populates="order", cascade="all, delete-orphan", lazy="raise")
+    refunds = relationship("Refund", back_populates="order", cascade="all, delete-orphan", lazy="selectin")
 
     def __repr__(self):
         return f"<Order(id='{self.__dict__.get('id')}', order_number='{self.__dict__.get('order_number')}')>"
+
+    @property
+    def refund_status(self) -> str | None:
+        """Determines the current refund status for this order."""
+        if not self.refunds:
+            return None
+        # Return status of the latest refund (by created_at)
+        sorted_refunds = sorted(self.refunds, key=lambda x: x.created_at, reverse=True)
+        return sorted_refunds[0].status
 
 class OrderItem(TimestampMixin, Base):
     __tablename__ = "order_items"
