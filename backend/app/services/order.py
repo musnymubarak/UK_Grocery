@@ -379,6 +379,12 @@ class OrderService:
                         store_id=order.store_id,
                         quantity=int(item.quantity)
                     )
+            
+            # AUTOMATED REFUND: If order is paid and now cancelled/rejected, refund the total
+            if order.payment_status == "paid":
+                from app.services.refund import RefundService
+                refund_service = RefundService(self.db)
+                await refund_service.trigger_automated_full_refund(order, reason=f"System {new_status}")
 
         elif new_status == "delivered":
             order.delivered_at = datetime.now(timezone.utc)
@@ -483,6 +489,12 @@ class OrderService:
             notes="Customer self-cancelled within cancellation window",
         )
         self.db.add(history)
+        
+        # AUTOMATED REFUND: If order is paid and now cancelled, refund the total
+        if order.payment_status == "paid":
+            from app.services.refund import RefundService
+            refund_service = RefundService(self.db)
+            await refund_service.trigger_automated_full_refund(order, reason="Customer Self-Cancellation")
         
         await self.db.flush()
         return order

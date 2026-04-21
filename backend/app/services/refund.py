@@ -203,3 +203,62 @@ class RefundService:
         query = query.order_by(Refund.created_at.desc()).offset(skip).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())
+
+    async def trigger_automated_full_refund(self, order: Order, reason: str = "Order Cancelled") -> Refund:
+        """System: Trigger a full refund for a cancelled/rejected order. Auto-approves everything."""
+        # 1. Determine destination
+        destination = "wallet" if order.payment_method == "wallet" else "original_method"
+        
+        # 2. Create Parent Refund (Auto-approved)
+        refund = Refund(
+            order_id=order.id,
+            customer_id=order.customer_id,
+            destination=destination,
+            status="approved", # Start as approved
+            total_amount=order.total, # Full order refund
+            admin_notes=f"Automated system refund: {reason}"
+        )
+        self.db.add(refund)
+        await self.db.flush()
+
+        # 3. Create Approved RefundItems for all order items
+        for item in order.items:
+            refund_item = RefundItem(
+                refund_id=refund.id,
+                order_item_id=item.id,
+                reason=reason,
+                quantity=item.quantity,
+                amount=item.total, # Item level total
+                status="approved",
+                admin_notes="Auto-approved by system cancellation"
+            )
+            self.db.add(refund_item)
+            
+            # Update Item counters
+            item.refunded_quantity = item.quantity
+
+        # 4. Handle Financial Output
+        if destination == "wallet":
+            wallet = WalletService(self.db)
+            await wallet.credit(
+                customer_id=order.customer_id,
+                amount=order.total,
+                source="refund",
+                reference_id=refund.id,
+                notes=f"Full Refund for Cancelled Order: {order.order_number}"
+            )
+        elif destination == "original_method":
+            # For original_method, we mark it. A separate background worker or admin-led manual
+            # process typically checks for 'original_method' refunds to hit the Stripe/Paypal API.
+            # We log it here for now.
+            import logging
+            logging.getLogger(__name__).info(
+                f"ORDER_AUTO_REFUND_PENDING: Original method refund needed for Order {order.order_number} "
+                f"Amt: {order.total}"
+            )
+
+        # 5. Update Order Payment Status
+        order.payment_status = "refunded"
+        
+        await self.db.flush()
+        return refund
