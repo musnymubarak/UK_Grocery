@@ -47,7 +47,7 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router basename="/shop">
+        <Router>
           <AnimatedRoutes />
         </Router>
       </CartProvider>
