@@ -1,19 +1,33 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Set work directory
 WORKDIR /app
 
-# System deps
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libpq-dev && \
-    rm -rf /var/lib/apt/lists/*
+    gcc \
+    libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Python deps
+# Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy project files
+COPY app/ /app/app/
+COPY alembic/ /app/alembic/
+COPY alembic.ini /app/alembic.ini
 
+# Create directory for uploads
+RUN mkdir -p /app/uploads
+
+# Expose port
 EXPOSE 8000
 
-# Production: 2 workers, no reload
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Command to run the application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
