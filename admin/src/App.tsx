@@ -91,7 +91,7 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
             <AuthProvider>
                 <AdminStoreProvider>
-                    <BrowserRouter basename="/admin">
+                    <BrowserRouter>
                         <AppRoutes />
                         <Toaster
                             position="top-right"
