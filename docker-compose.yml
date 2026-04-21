@@ -1,155 +1,84 @@
-version: "3.9"
+version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: grocery_postgres
-    restart: unless-stopped
-    env_file: .env
+  db:
+    image: postgres:15-alpine
+    container_name: uk_grocery_db
+    restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-pos_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pos_password}
+      POSTGRES_DB: ${POSTGRES_DB:-pos_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    networks:
+      - app-network
 
   redis:
     image: redis:7-alpine
-    container_name: grocery_redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secret}
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    container_name: uk_grocery_redis
+    restart: always
+    networks:
+      - app-network
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file: .env
+    container_name: uk_grocery_backend
+    restart: always
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      JWT_ALGORITHM: ${JWT_ALGORITHM}
-      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_secret}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pos_user}:${POSTGRES_PASSWORD:-pos_password}@db:5432/${POSTGRES_DB:-pos_db}
+      - DATABASE_URL_SYNC=postgresql://${POSTGRES_USER:-pos_user}:${POSTGRES_PASSWORD:-pos_password}@db:5432/${POSTGRES_DB:-pos_db}
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-this-secret-key-in-production}
+      - DEBUG=${DEBUG:-False}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:5173}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,nginx}
     volumes:
-      - ./backend:/app
-      - upload_data:/app/uploads
+      - ./backend/uploads:/app/uploads
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1" ]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
-    command: sh -c "(alembic upgrade head || true) && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
-
-  admin:
-    build:
-      context: ./admin
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    volumes:
-      - ./admin:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:80 > /dev/null || exit 1" ]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
+      - db
+      - redis
+    networks:
+      - app-network
 
   storefront:
     build:
       context: ./storefront
       dockerfile: Dockerfile
-    restart: unless-stopped
-    volumes:
-      - ./storefront:/app
-      - /app/node_modules
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:80 > /dev/null || exit 1" ]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
+    container_name: uk_grocery_storefront
+    restart: always
+    networks:
+      - app-network
 
-  celery-worker:
+  admin:
     build:
-      context: ./backend
+      context: ./admin
       dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_secret}
-    command: celery -A app.core.celery_app worker --loglevel=info --concurrency=2
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./backend:/app
-
-  celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_secret}
-    command: celery -A app.core.celery_app beat --loglevel=info
-    depends_on:
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./backend:/app
+    container_name: uk_grocery_admin
+    restart: always
+    networks:
+      - app-network
 
   nginx:
-    image: nginx:alpine
-    container_name: grocery_nginx
-    restart: unless-stopped
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: uk_grocery_nginx
+    restart: always
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - backend
-      - admin
       - storefront
+      - admin
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-  upload_data:
-    driver: local
+
+networks:
+  app-network:
+    driver: bridge
