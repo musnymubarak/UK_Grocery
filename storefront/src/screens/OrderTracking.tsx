@@ -14,6 +14,7 @@ export default function OrderTracking() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [isRefunding, setIsRefunding] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Record<string, { quantity: number; reason: string }>>({});
@@ -36,12 +37,12 @@ export default function OrderTracking() {
       });
   };
 
-  const handleCancelOrder = async () => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+  const confirmOrderCancellation = async () => {
     setIsCancelling(true);
     try {
       await orderActionsApi.cancel(id!);
       toast.success('Order cancelled successfully');
+      setShowCancelModal(false);
       fetchOrder();
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -247,11 +248,11 @@ export default function OrderTracking() {
             <div className="flex flex-wrap gap-4 pt-4">
               {['placed', 'confirmed'].includes(order.status) && (
                 <button 
-                  onClick={handleCancelOrder}
+                  onClick={() => setShowCancelModal(true)}
                   disabled={isCancelling}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-error text-error font-bold hover:bg-error/5 transition-colors disabled:opacity-50"
                 >
-                  {isCancelling ? <Loader2 className="animate-spin" size={18} /> : <XCircle size={18} />}
+                  <XCircle size={18} />
                   Cancel Order
                 </button>
               )}
@@ -469,6 +470,40 @@ export default function OrderTracking() {
             </p>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        title="Cancel Order"
+        footer={
+          <div className="flex gap-3 w-full">
+            <button 
+              onClick={() => setShowCancelModal(false)}
+              className="flex-1 py-3 bg-surface-container-high text-on-surface font-bold rounded-xl"
+            >
+              No, keep it
+            </button>
+            <button 
+              onClick={confirmOrderCancellation}
+              disabled={isCancelling}
+              className="flex-1 py-3 bg-error text-on-error font-bold rounded-xl flex items-center justify-center gap-2"
+            >
+              {isCancelling ? <Loader2 className="animate-spin" size={18} /> : <XCircle size={18} />}
+              Yes, cancel
+            </button>
+          </div>
+        }
+      >
+        <div className="flex flex-col items-center text-center p-4">
+          <div className="w-16 h-16 bg-error/10 text-error rounded-full flex items-center justify-center mb-4">
+            <XCircle size={32} />
+          </div>
+          <h3 className="text-xl font-bold text-on-surface mb-2">Are you sure?</h3>
+          <p className="text-on-surface-variant text-sm">
+            This will permanently cancel order <strong className="text-on-surface">#{order.order_number}</strong>. This action cannot be undone.
+          </p>
+        </div>
       </Modal>
     </Layout>
   );
