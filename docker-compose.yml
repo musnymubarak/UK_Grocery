@@ -70,6 +70,10 @@ services:
     ports:
       - "8000:80"
     volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - admin_dist:/usr/share/nginx/html/admin:ro
+      - storefront_dist:/usr/share/nginx/html
+      - ./backend/uploads:/data/uploads:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
@@ -80,6 +84,8 @@ services:
 
 volumes:
   postgres_data:
+  admin_dist:
+  storefront_dist:
 
 
 networks:
