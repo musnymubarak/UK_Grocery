@@ -7,17 +7,20 @@ services:
       dockerfile: Dockerfile
     env_file: .env
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-0826}@db:5432/${POSTGRES_DB:-daily_grocer}
+      DATABASE_URL_SYNC: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-0826}@db:5432/${POSTGRES_DB:-daily_grocer}
     command: alembic upgrade head
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
+    networks:
+      - app-network
     restart: "no"
 
   backend:
     volumes:
       - /app
-      - upload_data:/app/uploads
+      - ./backend/uploads:/app/uploads
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
     depends_on:
       migrations:
@@ -28,9 +31,15 @@ services:
           cpus: '1.0'
           memory: 512M
 
-  postgres:
+  db:
     # Disable host port mapping in production for security
     ports: []
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pos_user} -d ${POSTGRES_DB:-pos_db}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -42,7 +51,7 @@ services:
     # Nginx reads the dist files directly from the image via named volume.
     volumes:
       - admin_dist:/usr/share/nginx/html
-    command: ["true"]
+    command: [ "true" ]
     restart: "no"
     healthcheck:
       disable: true
@@ -50,7 +59,7 @@ services:
   storefront:
     volumes:
       - storefront_dist:/usr/share/nginx/html
-    command: ["true"]
+    command: [ "true" ]
     restart: "no"
     healthcheck:
       disable: true
@@ -64,8 +73,8 @@ services:
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - admin_dist:/usr/share/nginx/html/admin:ro
-      - storefront_dist:/usr/share/nginx/html:ro
-      - upload_data:/data/uploads:ro
+      - storefront_dist:/usr/share/nginx/html
+      - ./backend/uploads:/data/uploads:ro
       - certbot_certs:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
     depends_on:
@@ -86,6 +95,16 @@ services:
           memory: 256M
 
   celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: .env
+    command: celery -A app.core.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+      - db
+    networks:
+      - app-network
     deploy:
       resources:
         limits:
@@ -93,6 +112,16 @@ services:
           memory: 512M
 
   celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: .env
+    command: celery -A app.core.celery_app beat --loglevel=info
+    depends_on:
+      - redis
+      - db
+    networks:
+      - app-network
     deploy:
       resources:
         limits:
@@ -126,8 +155,10 @@ services:
     volumes:
       - postgres_backups:/backups
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
+    networks:
+      - app-network
     healthcheck:
       test: [ "CMD", "pgrep", "crond" ]
       interval: 30s
@@ -138,8 +169,6 @@ volumes:
   admin_dist:
     driver: local
   storefront_dist:
-    driver: local
-  upload_data:
     driver: local
   postgres_backups:
     driver: local
