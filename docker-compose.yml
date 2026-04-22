@@ -68,8 +68,7 @@ services:
     container_name: uk_grocery_nginx
     restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - "8000:80"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
@@ -81,6 +80,7 @@ services:
 
 volumes:
   postgres_data:
+
 
 networks:
   app-network:
