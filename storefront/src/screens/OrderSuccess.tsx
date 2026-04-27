@@ -23,7 +23,7 @@ export default function OrderSuccess() {
               className="relative"
             >
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse"></div>
-              <div className="relative w-32 h-32 md:w-40 md:h-40 bg-gradient-to-br from-primary to-primary-container rounded-full flex items-center justify-center shadow-[0_24px_48px_rgba(44,104,46,0.2)]">
+              <div className="relative w-32 h-32 md:w-40 md:h-40 bg-gradient-to-br from-primary to-primary-container rounded-full flex items-center justify-center shadow-[0_24px_48px_rgba(30,64,175,0.18)]">
                 <CheckCircle size={80} className="text-on-primary" strokeWidth={1.5} />
               </div>
             </motion.div>
@@ -48,7 +48,7 @@ export default function OrderSuccess() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button 
               onClick={() => navigate('/tracking')}
-              className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold rounded-xl shadow-[0_12px_24px_rgba(44,104,46,0.2)] hover:shadow-[0_16px_32px_rgba(44,104,46,0.3)] hover:opacity-95 transition-all active:scale-95 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold rounded-xl shadow-[0_12px_24px_rgba(30,64,175,0.18)] hover:shadow-[0_16px_32px_rgba(30,64,175,0.24)] hover:opacity-95 transition-all active:scale-95 flex items-center justify-center gap-2"
             >
               <Truck size={20} />
               Track Order

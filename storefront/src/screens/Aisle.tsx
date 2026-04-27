@@ -94,7 +94,7 @@ export default function Aisle() {
               name: product.name,
               price: product.price,
               unit: product.unit || 'each',
-              image: product.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=2C682E&color=fff&size=400`,
+              image: product.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=1E40AF&color=fff&size=400`,
               description: product.description || '',
               category: product.category_id || '',
               stock: product.stock,

@@ -42,7 +42,7 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Link 
                 to="/stores"
-                className="bg-gradient-to-r from-primary to-primary-container text-on-primary px-8 py-5 rounded-xl font-bold text-lg shadow-[0_20px_40px_rgba(44,104,46,0.2)] hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3"
+                className="bg-gradient-to-r from-primary to-primary-container text-on-primary px-8 py-5 rounded-xl font-bold text-lg shadow-[0_20px_40px_rgba(30,64,175,0.18)] hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3"
               >
                 Select Store
                 <ArrowRight size={20} />

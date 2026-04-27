@@ -33,7 +33,7 @@ export default function InnovativeLoader() {
         {/* Orbiting sparkles */}
         <div className="absolute inset-0 animate-[spin_5s_linear_infinite]">
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 animate-pulse">
-            <Sparkles className="text-yellow-500 opacity-80" size={14} />
+            <Sparkles className="text-primary/70 opacity-80" size={14} />
           </div>
         </div>
         <div className="absolute inset-0 animate-[spin_4s_linear_infinite_reverse]">

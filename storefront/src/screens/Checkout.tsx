@@ -324,7 +324,7 @@ export default function Checkout() {
           <button 
             onClick={handlePlaceOrder}
             disabled={submitting}
-            className="w-full h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-lg rounded-xl shadow-[0_12px_24px_rgba(44,104,46,0.2)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            className="w-full h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-lg rounded-xl shadow-[0_12px_24px_rgba(30,64,175,0.18)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {submitting ? <Loader2 className="animate-spin" size={24} /> : (
               <>Place Order <ShoppingBasket size={24} /></>

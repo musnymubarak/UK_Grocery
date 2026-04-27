@@ -22,7 +22,7 @@ export default function Offers() {
       title: "Complimentary Delivery",
       description: "On all orders over £30.00 this weekend.",
       code: "FREESHIP",
-      gradient: "from-[#2c682e] to-[#458244]",
+      gradient: "from-primary via-tertiary to-primary-container",
       icon: <Gift className="text-white" size={24} />
     },
     {
@@ -30,7 +30,7 @@ export default function Offers() {
       title: "Seasonal Harvest",
       description: "15% off all fresh organic vegetables.",
       code: "HARVEST15",
-      gradient: "from-[#8d4b00] to-[#b35f00]",
+      gradient: "from-primary-container via-tertiary to-primary",
       icon: <Sparkles className="text-white" size={24} />
     }
   ];

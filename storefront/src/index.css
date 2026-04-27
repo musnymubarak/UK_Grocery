@@ -5,34 +5,54 @@
   --font-headline: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Public Sans", ui-sans-serif, system-ui, sans-serif;
   
-  --color-primary: #2c682e;
-  --color-primary-container: #458244;
+  /* Primary — Deep Royal Blue: trust, professionalism, reliability */
+  --color-primary: #1E40AF;
+  --color-primary-container: #1E3A8A;
   --color-on-primary: #ffffff;
   
-  --color-secondary: #5e5e5c;
-  --color-secondary-container: #e1dfdc;
+  /* Secondary — Slate: sophistication, readability */
+  --color-secondary: #334155;
+  --color-secondary-container: #F1F5F9;
+  --color-on-secondary-container: #1E293B;
   
-  --color-tertiary: #8d4b00;
-  --color-tertiary-container: #ffdcc3;
-  --color-on-tertiary-container: #6e3900;
+  /* Tertiary — Vibrant Red: energy, deals, promotions, urgency */
+  --color-tertiary: #DC2626;
+  --color-tertiary-container: #FEF2F2;
+  --color-on-tertiary-container: #991B1B;
   
-  --color-surface: #fafaf5;
-  --color-surface-container-low: #f4f4ef;
-  --color-surface-container: #eeeee9;
-  --color-surface-container-high: #e8e8e3;
-  --color-surface-container-highest: #e3e3de;
-  --color-surface-container-lowest: #ffffff;
+  /* Surfaces — Cool crisp whites */
+  --color-surface: #F9FAFB;
+  --color-surface-container-low: #F3F4F6;
+  --color-surface-container: #EEEFF2;
+  --color-surface-container-high: #E5E7EB;
+  --color-surface-container-highest: #D9DCE1;
+  --color-surface-container-lowest: #FFFFFF;
   
-  --color-on-surface: #1a1c19;
-  --color-on-surface-variant: #41493e;
+  /* On Surface */
+  --color-on-surface: #111827;
+  --color-on-surface-variant: #4B5563;
   
-  --color-outline: #71796d;
-  --color-outline-variant: #c1c9bb;
+  /* Outlines */
+  --color-outline: #6B7280;
+  --color-outline-variant: #D1D5DB;
   
-  --color-error: #ba1a1a;
+  /* Semantic Colors */
+  --color-error: #DC2626;
+  --color-on-error: #ffffff;
+  --color-warning: #F59E0B;
+  
+  /* Accent */
+  --color-accent: #059669;
+  --color-info: #2563EB;
+  --color-success: #16A34A;
 }
 
 @layer base {
+  :root {
+    --warning: var(--color-warning);
+    --outline-variant: var(--color-outline-variant);
+  }
+
   body {
     @apply bg-surface text-on-surface font-body;
   }
