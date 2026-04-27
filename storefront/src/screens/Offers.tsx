@@ -27,9 +27,9 @@ export default function Offers() {
     },
     {
       id: 2,
-      title: "Seasonal Harvest",
-      description: "15% off all fresh organic vegetables.",
-      code: "HARVEST15",
+      title: "Seasonal Deals",
+      description: "15% off all fresh vegetables.",
+      code: "VEG15",
       gradient: "from-primary-container via-tertiary to-primary",
       icon: <Sparkles className="text-white" size={24} />
     }

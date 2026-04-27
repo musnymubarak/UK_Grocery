@@ -125,7 +125,7 @@ export default function Home() {
             </div>
             <input 
               type="text"
-              placeholder="Search for fresh organic produce..."
+              placeholder="Search for fresh produce..."
               className="w-full bg-surface-container-high border-none rounded-xl py-5 pl-14 pr-6 text-on-surface focus:ring-2 focus:ring-primary/20 placeholder-secondary transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -246,9 +246,9 @@ export default function Home() {
           <div className="bg-primary rounded-lg overflow-hidden flex flex-col md:flex-row items-center">
             <div className="w-full md:w-1/2 p-10 md:p-16 text-on-primary">
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4 block">Seasonal Guide</span>
-              <h2 className="text-4xl font-extrabold tracking-tighter mb-6 leading-tight">The Winter Harvest Kitchen</h2>
+              <h2 className="text-4xl font-extrabold tracking-tighter mb-6 leading-tight">The Winter Kitchen</h2>
               <p className="text-on-primary/80 mb-8 leading-relaxed max-w-md text-lg">
-                Discover the best seasonal ingredients arriving at the Central store this week. Fresh from local British farms.
+                Discover the best seasonal ingredients arriving at the Central store this week. Fresh from local suppliers.
               </p>
               <button className="bg-surface text-primary px-8 py-4 rounded-xl font-bold hover:opacity-90 transition-all active:scale-95">
                 Read the Journal
@@ -257,7 +257,7 @@ export default function Home() {
             <div className="w-full md:w-1/2 h-[300px] md:h-full min-h-[400px]">
               <img 
                 src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200" 
-                alt="Winter Harvest"
+                alt="Winter Kitchen"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />

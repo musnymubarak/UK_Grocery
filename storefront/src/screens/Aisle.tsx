@@ -87,7 +87,7 @@ export default function Aisle() {
         </section>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-10 gap-x-6 lg:gap-x-10 mt-4">
+        <div className="flex flex-col mt-4">
           {products.map(product => (
             <ProductCard key={product.id} product={{
               id: product.id,
