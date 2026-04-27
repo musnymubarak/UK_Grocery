@@ -51,7 +51,7 @@ export default function Login() {
               {isSignUp ? 'Create Account' : 'Welcome Back'}
             </h2>
             <p className="text-on-surface-variant text-sm font-medium">
-              {isSignUp ? 'Join our organic garden of fresh produce' : 'Sign in to continue to checkout'}
+              {isSignUp ? 'Join our community for fresh daily groceries' : 'Sign in to continue to checkout'}
             </p>
           </div>
 
@@ -139,14 +139,14 @@ export default function Login() {
           <div className="w-full h-full relative">
             <img 
               src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200" 
-              alt="Organic Garden" 
+              alt="Fresh Groceries" 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-l from-transparent to-surface"></div>
             <div className="absolute bottom-12 left-12 right-12 p-8 bg-surface-container-lowest/80 backdrop-blur-md rounded-lg shadow-xl">
-              <h3 className="text-2xl font-bold text-primary mb-2">The freshest produce from UK's finest organic farms.</h3>
-              <p className="text-sm text-on-surface-variant leading-relaxed">Join 50,000+ families eating healthier every day with our curated harvest baskets.</p>
+              <h3 className="text-2xl font-bold text-primary mb-2">The freshest groceries from UK's finest suppliers.</h3>
+              <p className="text-sm text-on-surface-variant leading-relaxed">Join 50,000+ families eating healthier every day with our curated grocery baskets.</p>
             </div>
           </div>
         </div>

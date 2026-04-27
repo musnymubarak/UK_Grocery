@@ -150,12 +150,11 @@ export default function OrderTracking() {
     switch(order.status) {
       case 'placed': return 'Your order has been placed and is awaiting confirmation.';
       case 'confirmed': return 'Your order is confirmed and waiting for the curating team.';
-      case 'picking': case 'packed': return 'Our curators are hand-picking your fresh harvest now.';
-      case 'substitution_pending': return 'We are reviewing alternatives for some items.';
-      case 'ready_for_collection': return 'Your harvest is packed and waiting for the courier.';
-      case 'assigned_to_driver': return 'A courier has been assigned to your harvest.';
-      case 'out_for_delivery': case 'on_delivery': return 'Your order is on its way to your conservatory.';
-      case 'delivered': return 'Your harvest has arrived! Enjoy your fresh produce.';
+      case 'picking': case 'packed': return 'Our team is carefully packing your order now.';
+      case 'ready_for_collection': return 'Your order is packed and waiting for the courier.';
+      case 'assigned_to_driver': return 'A courier has been assigned to your order.';
+      case 'out_for_delivery': case 'on_delivery': return 'Your order is out for delivery.';
+      case 'delivered': return 'Your order has arrived! Enjoy your groceries.';
       case 'cancelled': return 'This order has been cancelled.';
       case 'rejected': return 'This order was rejected. Please contact support.';
       case 'delivery_failed': return 'Delivery failed. Our team will contact you.';
@@ -166,14 +165,14 @@ export default function OrderTracking() {
   const statusTitleMap: Record<string, string> = {
     placed: 'Order Placed.',
     confirmed: 'Your order is confirmed.',
-    picking: 'Preparing your harvest.',
-    packed: 'Almost ready for dispatch.',
+    picking: 'Preparing your order.',
+    packed: 'Order packed.',
     substitution_pending: 'Reviewing items.',
-    ready_for_collection: 'Almost ready for dispatch.',
+    ready_for_collection: 'Awaiting courier.',
     assigned_to_driver: 'Courier assigned.',
-    out_for_delivery: 'Your harvest is on its way.',
-    on_delivery: 'Your harvest is on its way.',
-    delivered: 'Welcome home, harvest.',
+    out_for_delivery: 'Your order is on its way.',
+    on_delivery: 'Your order is on its way.',
+    delivered: 'Order delivered.',
     cancelled: 'Order Cancelled',
     rejected: 'Order Rejected',
     delivery_failed: 'Delivery Failed'
@@ -466,7 +465,7 @@ export default function OrderTracking() {
                <AlertCircle className="text-tertiary" size={18} />
             </div>
             <p className="text-[11px] text-on-surface-variant font-medium leading-relaxed">
-              We aim to resolve all claims within <strong className="text-on-surface">3-5 business days</strong>. Approved amounts will be credited back to your harvest wallet immediately.
+              We aim to resolve all claims within <strong className="text-on-surface">3-5 business days</strong>. Approved amounts will be credited back to your wallet immediately.
             </p>
           </div>
         </form>

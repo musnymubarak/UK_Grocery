@@ -29,88 +29,88 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`group relative flex flex-col space-y-4 ${isOutOfStock ? 'opacity-80' : ''}`}
+      className={`relative flex items-center p-4 bg-white border-b border-outline-variant/30 ${isOutOfStock ? 'opacity-60 grayscale' : ''}`}
     >
-      <div className="relative aspect-[4/5] rounded-lg overflow-hidden bg-surface-container-low group-hover:scale-[1.02] transition-transform duration-500">
+      <div className="flex-1 min-w-0 pr-4 flex flex-col justify-between h-full">
+        <div>
+          <Link to={`/product/${product.id}`} className="block mb-1">
+            <h3 className="font-bold text-sm md:text-base text-on-surface line-clamp-2 leading-snug">
+              {product.name}
+            </h3>
+          </Link>
+          <p className="text-xs text-on-surface-variant mb-3">
+            {product.unit || 'each'}
+          </p>
+        </div>
+        
+        <div className="flex items-center justify-between mt-auto">
+          <span className="font-bold text-lg text-primary">
+            £{product.price.toFixed(2)}
+          </span>
+          
+          {!isOutOfStock && (
+            cartItem ? (
+              <div className="flex items-center bg-primary text-white rounded-full px-2 py-1 gap-3">
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product.id, -1);
+                  }}
+                  className="active:scale-75 transition-transform"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="font-bold text-sm min-w-[12px] text-center">{cartItem.quantity}</span>
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product.id, 1);
+                  }}
+                  className="active:scale-75 transition-transform"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addToCart({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    image: productImage,
+                    description: product.description || '',
+                    unit: product.unit || 'each',
+                    quantity: 1,
+                  });
+                }}
+                className="bg-primary text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform hover:bg-primary-container"
+              >
+                <Plus size={14} /> Add
+              </button>
+            )
+          )}
+          {isOutOfStock && (
+              <span className="text-xs font-bold text-error uppercase tracking-widest bg-error/10 px-2 py-1 rounded">Sold Out</span>
+          )}
+        </div>
+      </div>
+      
+      <div className="w-20 h-20 shrink-0 bg-white p-1">
         <Link to={`/product/${product.id}`} className="block w-full h-full">
           <img 
             src={productImage} 
             alt={product.name} 
-            className={`w-full h-full object-cover transition-transform duration-700 ${!isOutOfStock ? 'group-hover:scale-110' : ''}`}
+            className="w-full h-full object-contain mix-blend-multiply"
             referrerPolicy="no-referrer"
           />
-
-          {isOutOfStock && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <span className="bg-error text-on-error px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase">Sold Out</span>
-            </div>
-          )}
         </Link>
-
-        {!isOutOfStock && (
-          cartItem ? (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center bg-primary text-on-primary rounded-full px-4 py-2 gap-4 shadow-xl z-10">
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateQuantity(product.id, -1);
-                }}
-                className="active:scale-75 transition-transform"
-              >
-                <Minus size={16} />
-              </button>
-              <span className="font-bold text-sm">{cartItem.quantity}</span>
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateQuantity(product.id, 1);
-                }}
-                className="active:scale-75 transition-transform"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addToCart({
-                  id: product.id,
-                  name: product.name,
-                  price: product.price,
-                  image: productImage,
-                  description: product.description || '',
-                  unit: product.unit || 'each',
-                  quantity: 1,
-                });
-              }}
-              className="absolute bottom-4 right-4 h-12 w-12 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-all hover:bg-primary-container z-10"
-            >
-              <Plus size={24} />
-            </button>
-          )
-        )}
-      </div>
-      
-      <div className="flex flex-col space-y-1">
-        <Link to={`/product/${product.id}`} className="block">
-          <h3 className={`font-headline font-bold text-lg leading-tight transition-colors ${!isOutOfStock ? 'group-hover:text-primary' : 'text-on-surface-variant'}`}>
-            {product.name}
-          </h3>
-        </Link>
-        {product.description && (
-          <p className="text-sm text-secondary">
-            {product.description}
-          </p>
-        )}
-        <p className="font-headline font-extrabold text-xl mt-2 text-primary">
-          £{product.price.toFixed(2)}
-        </p>
       </div>
     </motion.div>
   );

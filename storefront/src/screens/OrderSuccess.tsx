@@ -31,7 +31,7 @@ export default function OrderSuccess() {
 
           <div className="space-y-4">
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-on-surface">Order Placed Successfully!</h1>
-            <p className="text-secondary text-lg font-medium">Your harvest is being prepared with care by our conservatory team.</p>
+            <p className="text-secondary text-lg font-medium">Your order is being prepared with care by our team.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

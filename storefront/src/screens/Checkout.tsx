@@ -52,7 +52,9 @@ export default function Checkout() {
     }
   }, [isAuthenticated]);
 
-  const finalTotal = Math.max(0, totalPrice - appliedDiscount);
+  const deliveryFee = 2.50;
+  const serviceFee = 0.99;
+  const finalTotal = Math.max(0, totalPrice + deliveryFee + serviceFee - appliedDiscount);
 
   const handleValidatePromo = async () => {
     if (!promoCode.trim() || !selectedStore) return;
@@ -63,7 +65,7 @@ export default function Checkout() {
         code: promoCode.trim(),
         store_id: selectedStore.id,
         subtotal: totalPrice,
-        delivery_fee: 0
+        delivery_fee: deliveryFee
       });
       if (res.data.valid) {
         setAppliedDiscount(res.data.discount_amount);
@@ -123,29 +125,27 @@ export default function Checkout() {
 
   return (
     <Layout title="Checkout" showBack>
-      <div className="max-w-2xl mx-auto px-6 pt-8 pb-64">
-        <div className="mb-10">
-          <h2 className="text-4xl font-extrabold tracking-tight text-primary leading-tight">Review & Secure Checkout</h2>
-          <p className="text-on-surface-variant mt-2 font-medium">Finalize your harvest details below.</p>
-        </div>
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-6 pb-40 font-body">
+        <h2 className="text-2xl font-bold text-on-surface mb-6">Checkout</h2>
 
         {error && (
-          <div className="mb-6 p-4 bg-error/10 border border-error/20 rounded-lg text-error font-medium">
+          <div className="mb-6 p-4 bg-error/10 border border-error/20 rounded-md text-error font-medium text-sm">
             {error}
           </div>
         )}
 
         <div className="space-y-6">
-          <section className="bg-surface-container-low p-8 rounded-lg">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <MapPin className="text-primary" size={24} />
-                <h3 className="text-xl font-bold">Delivery Address</h3>
+          {/* Delivery Address */}
+          <section className="ss-card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="text-primary" size={20} />
+                <h3 className="text-lg font-bold">Delivery Address</h3>
               </div>
               {addresses.length > 0 && (
                 <button 
                   onClick={() => setIsNewAddress(!isNewAddress)}
-                  className="text-xs font-bold text-primary uppercase tracking-widest hover:underline"
+                  className="text-sm font-bold text-primary hover:underline"
                 >
                   {isNewAddress ? "Use Saved" : "Add New"}
                 </button>
@@ -153,50 +153,50 @@ export default function Checkout() {
             </div>
 
             {isLoadingProfile ? (
-              <div className="flex items-center gap-3 text-on-surface-variant py-4">
-                <Loader2 className="animate-spin" size={18} />
-                <span className="text-sm">Fetching your addresses...</span>
+              <div className="flex items-center gap-2 text-on-surface-variant py-2">
+                <Loader2 className="animate-spin" size={16} />
+                <span className="text-sm">Loading addresses...</span>
               </div>
             ) : !isNewAddress && addresses.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {addresses.map((addr) => (
                   <div 
                     key={addr.id}
                     onClick={() => setSelectedAddressId(addr.id)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    className={`p-4 rounded-md border cursor-pointer transition-all ${
                       selectedAddressId === addr.id 
-                        ? 'border-primary bg-primary/5 shadow-sm' 
-                        : 'border-outline-variant hover:border-primary/30 bg-surface'
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-outline-variant/30 hover:border-primary/50 bg-white'
                     }`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-bold text-on-surface">{addr.street}</p>
-                        <p className="text-sm text-on-surface-variant font-medium">{addr.city}, {addr.postcode}</p>
+                        <p className="font-bold text-on-surface text-sm mb-1">{addr.street}</p>
+                        <p className="text-xs text-on-surface-variant">{addr.city}, {addr.postcode}</p>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedAddressId === addr.id ? 'border-primary bg-primary' : 'border-outline-variant'
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        selectedAddressId === addr.id ? 'border-primary bg-white' : 'border-outline-variant/50'
                       }`}>
-                        {selectedAddressId === addr.id && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                        {selectedAddressId === addr.id && <div className="w-2 h-2 bg-primary rounded-full" />}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-5 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-1 gap-4">
                 <Input label="Postcode" placeholder="e.g. SW1A 1AA" value={postcode} onChange={setPostcode} />
                 <Input label="Street Address" placeholder="123 Conservatory Lane" value={address} onChange={setAddress} />
                 <Input label="Contact Number" placeholder="+44 7700 900000" type="tel" value={phone} onChange={setPhone} />
               </div>
             )}
             
-            <div className="mt-6 space-y-1.5 pt-6 border-t border-outline-variant/10">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">Delivery Notes</label>
+            <div className="mt-4 pt-4 ss-separator">
+              <label className="text-sm font-bold text-on-surface block mb-2">Delivery Notes (Optional)</label>
               <textarea 
-                className="w-full bg-surface-container-high border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary/20 transition-shadow resize-none"
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-primary outline-none resize-none"
                 placeholder="Gate code, leave by the porch, etc."
-                rows={3}
+                rows={2}
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
               />
@@ -204,46 +204,48 @@ export default function Checkout() {
           </section>
 
           {/* Payment Method */}
-          <section className="bg-surface-container-low p-8 rounded-lg">
-            <div className="flex items-center gap-3 mb-6">
-              <CreditCard className="text-primary" size={24} />
-              <h3 className="text-xl font-bold">Payment Method</h3>
+          <section className="ss-card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <CreditCard className="text-primary" size={20} />
+              <h3 className="text-lg font-bold">Payment Method</h3>
             </div>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               <button 
                 onClick={() => setPaymentMethod('cod')}
-                className={`flex items-center justify-between p-5 rounded-xl border-2 transition-all ${
-                  paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/20 bg-surface'
+                className={`flex items-center justify-between p-4 rounded-md border transition-all ${
+                  paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-outline-variant/30 bg-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <ShoppingBasket size={20} />
-                  </div>
                   <div className="text-left">
-                    <p className="font-bold">Cash on Delivery</p>
-                    <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Pay at your doorstep</p>
+                    <p className="font-bold text-sm">Cash on Delivery</p>
+                    <p className="text-xs text-on-surface-variant">Pay at your doorstep</p>
                   </div>
                 </div>
-                {paymentMethod === 'cod' && <ShieldCheck className="text-primary" size={24} />}
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  paymentMethod === 'cod' ? 'border-primary bg-white' : 'border-outline-variant/50'
+                }`}>
+                  {paymentMethod === 'cod' && <div className="w-2 h-2 bg-primary rounded-full" />}
+                </div>
               </button>
 
               <button 
                 onClick={() => setPaymentMethod('online')}
-                className={`flex items-center justify-between p-5 rounded-xl border-2 transition-all ${
-                  paymentMethod === 'online' ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/20 bg-surface'
+                className={`flex items-center justify-between p-4 rounded-md border transition-all ${
+                  paymentMethod === 'online' ? 'border-primary bg-primary/5' : 'border-outline-variant/30 bg-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <CreditCard size={20} />
-                  </div>
                   <div className="text-left">
-                    <p className="font-bold">Card Payment</p>
-                    <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Visa, Mastercard, Amex</p>
+                    <p className="font-bold text-sm">Card Payment</p>
+                    <p className="text-xs text-on-surface-variant">Visa, Mastercard, Amex</p>
                   </div>
                 </div>
-                {paymentMethod === 'online' && <ShieldCheck className="text-primary" size={24} />}
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  paymentMethod === 'online' ? 'border-primary bg-white' : 'border-outline-variant/50'
+                }`}>
+                  {paymentMethod === 'online' && <div className="w-2 h-2 bg-primary rounded-full" />}
+                </div>
               </button>
             </div>
 
@@ -251,10 +253,10 @@ export default function Checkout() {
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="mt-6 space-y-4 pt-6 border-t border-outline-variant/10 overflow-hidden"
+                className="mt-4 pt-4 ss-separator space-y-3 overflow-hidden"
               >
                 <Input label="Card Number" placeholder="**** **** **** ****" value={cardDetails.number} onChange={v => setCardDetails({...cardDetails, number: v})} />
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <Input label="Expiry Date" placeholder="MM/YY" value={cardDetails.expiry} onChange={v => setCardDetails({...cardDetails, expiry: v})} />
                   <Input label="CVV" placeholder="***" type="password" value={cardDetails.cvv} onChange={v => setCardDetails({...cardDetails, cvv: v})} />
                 </div>
@@ -262,75 +264,63 @@ export default function Checkout() {
             )}
           </section>
 
-          {/* Trust Indicators */}
-          <div className="grid grid-cols-3 gap-4 py-4">
-            <TrustItem icon={<ShieldCheck size={20} />} label="Secure SSL" />
-            <TrustItem icon={<Leaf size={20} />} label="Carbon Neutral" />
-            <TrustItem icon={<Lock size={20} />} label="Encrypted" />
-          </div>
-
           {/* Promo Code */}
-          <section className="bg-surface-container-low p-8 rounded-lg flex gap-3 items-end">
+          <section className="ss-card p-6 flex gap-2 items-end">
             <div className="flex-1">
               <Input label="Promo Code" placeholder="Enter discount code" value={promoCode} onChange={setPromoCode} />
             </div>
             <button 
               onClick={handleValidatePromo} 
               disabled={isValidatingPromo || !promoCode}
-              className="h-[46px] px-6 bg-primary/10 text-primary font-bold rounded-sm border-none hover:bg-primary/20 transition-colors disabled:opacity-50"
+              className="h-[38px] px-4 bg-surface-container-high text-on-surface font-bold rounded-md border border-outline-variant/30 hover:bg-surface-container-highest transition-colors disabled:opacity-50 text-sm"
             >
-              {isValidatingPromo ? 'Validating...' : 'Apply'}
+              {isValidatingPromo ? '...' : 'Apply'}
             </button>
           </section>
 
           {/* Summary */}
-          <section className="bg-surface-container-highest p-8 rounded-lg shadow-inner">
-            <h3 className="text-lg font-bold mb-6">Order Summary</h3>
-            <div className="space-y-3">
-              {cart.map(item => (
-                <div key={item.id} className="flex justify-between items-center text-sm">
-                  <span className="text-on-surface-variant">{item.name} × {item.quantity}</span>
-                  <span className="font-semibold">£{(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="pt-3 border-t border-outline-variant/20">
-                <div className="flex justify-between items-center">
-                  <span className="text-on-surface-variant">Subtotal</span>
-                  <span className="font-bold">£{totalPrice.toFixed(2)}</span>
-                </div>
+          <section className="ss-card p-6">
+            <h3 className="text-lg font-bold mb-4">Order Summary</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center text-on-surface-variant">
+                <span>Subtotal</span>
+                <span className="font-medium text-on-surface">£{totalPrice.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-on-surface-variant">Delivery Fee</span>
-                <span className="text-primary font-bold">FREE</span>
+              <div className="flex justify-between items-center text-on-surface-variant">
+                <span>Delivery Fee</span>
+                <span className="font-medium text-on-surface">£{deliveryFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-on-surface-variant">
+                <span>Service Fee</span>
+                <span className="font-medium text-on-surface">£{serviceFee.toFixed(2)}</span>
               </div>
               {appliedDiscount > 0 && (
-                <div className="flex justify-between items-center text-primary">
-                  <span className="font-bold">Discount Applied</span>
-                  <span className="font-bold">-£{appliedDiscount.toFixed(2)}</span>
+                <div className="flex justify-between items-center text-success font-medium">
+                  <span>Discount Applied</span>
+                  <span>-£{appliedDiscount.toFixed(2)}</span>
                 </div>
               )}
-              <div className="pt-4 mt-4 border-t border-outline-variant/20 flex justify-between items-center">
-                <span className="text-xl font-extrabold">Total</span>
-                <span className="text-2xl font-extrabold text-primary">£{finalTotal.toFixed(2)}</span>
+              <div className="pt-3 mt-3 ss-separator flex justify-between items-center">
+                <span className="text-base font-bold text-on-surface">Total</span>
+                <span className="text-xl font-extrabold text-primary">£{finalTotal.toFixed(2)}</span>
               </div>
             </div>
           </section>
         </div>
       </div>
 
-      {/* Sticky Bottom Button - Stacked above nav on mobile */}
-      <div className="fixed bottom-[104px] md:bottom-0 left-0 w-full p-6 bg-surface/80 backdrop-blur-xl border-t border-outline-variant/5 z-50">
+      {/* Sticky Bottom Button */}
+      <div className="fixed bottom-[80px] md:bottom-0 left-0 w-full p-4 bg-white border-t border-outline-variant/30 z-50">
         <div className="max-w-2xl mx-auto">
           <button 
             onClick={handlePlaceOrder}
             disabled={submitting}
-            className="w-full h-16 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold text-lg rounded-xl shadow-[0_12px_24px_rgba(30,64,175,0.18)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            className="w-full bg-primary text-white py-3 rounded-md font-bold text-base shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-primary-container disabled:opacity-50 uppercase tracking-wide"
           >
-            {submitting ? <Loader2 className="animate-spin" size={24} /> : (
-              <>Place Order <ShoppingBasket size={24} /></>
+            {submitting ? <Loader2 className="animate-spin" size={20} /> : (
+              <>Place Order</>
             )}
           </button>
-          <p className="text-[10px] text-center mt-3 text-on-surface-variant/60 font-medium">By placing an order, you agree to our Terms & Conditions.</p>
         </div>
       </div>
     </Layout>
@@ -339,26 +329,15 @@ export default function Checkout() {
 
 function Input({ label, placeholder, type = 'text', value, onChange }: { label: string; placeholder: string; type?: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">{label}</label>
+    <div className="space-y-1">
+      <label className="text-xs font-bold text-on-surface block">{label}</label>
       <input 
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-surface-container-high border-none rounded-sm px-4 py-3 focus:ring-2 focus:ring-primary/20 transition-shadow"
+        className="w-full bg-white border border-outline-variant/30 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-primary outline-none"
         placeholder={placeholder}
       />
-    </div>
-  );
-}
-
-function TrustItem({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex flex-col items-center text-center gap-2">
-      <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary">
-        {icon}
-      </div>
-      <span className="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant">{label}</span>
     </div>
   );
 }
