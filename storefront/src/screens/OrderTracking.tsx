@@ -226,7 +226,7 @@ export default function OrderTracking() {
             {/* Refund Status Info */}
             {order.refund_status && (
               <div className={`p-4 rounded-xl flex items-center gap-3 ${
-                order.refund_status === 'pending' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
+                order.refund_status === 'pending' ? 'bg-tertiary/10 text-tertiary border border-tertiary/20' :
                 order.refund_status === 'approved' ? 'bg-primary/10 text-primary border border-primary/20' :
                 'bg-error/10 text-error border border-error/20'
               }`}>

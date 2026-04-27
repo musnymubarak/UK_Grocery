@@ -6,6 +6,15 @@ import { Search, Loader2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
 import { useCart } from '../CartContext';
+import bakeryImg from '../../images/categories/bakery.png';
+import beveragesImg from '../../images/categories/bevarages.png';
+import dairyImg from '../../images/categories/dairy&eggs.png';
+import foodImg from '../../images/categories/food.png';
+import produceImg from '../../images/categories/freshproduce.png';
+import frozenImg from '../../images/categories/frozenfood.png';
+import householdImg from '../../images/categories/household.png';
+import meatImg from '../../images/categories/meat&poultry.png';
+import pantryImg from '../../images/categories/pantryessentials.png';
 
 interface Category {
   id: string;
@@ -59,23 +68,29 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fallback images for categories without images
+  // Local custom images for categories
   const categoryImages: Record<string, string> = {
-    'fruits': 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&q=80&w=800',
-    'dairy': 'https://theloopywhisk.com/wp-content/uploads/2018/04/Are-Eggs-Dairy_663px-2.jpg.webp',
-    'bakery': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800',
-    'meat': 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&q=80&w=800',
-    'snacks': 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?auto=format&fit=crop&q=80&w=800',
-    'beverages': 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&q=80&w=800',
-    'frozen': 'https://images.unsplash.com/photo-1551028150-64b9f398f678?auto=format&fit=crop&q=80&w=800',
-    'household': 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800',
+    'fruits': produceImg,
+    'produce': produceImg,
+    'dairy': dairyImg,
+    'egg': dairyImg,
+    'bakery': bakeryImg,
+    'poultry': meatImg,
+    'meat': meatImg,
+    'snacks': foodImg,
+    'pantry': pantryImg,
+    'frozen': frozenImg,
+    'household': householdImg,
+    'beverage': beveragesImg,
+    // Put 'food' at the end so 'frozen food' matches 'frozen' first
+    'food': foodImg,
   };
 
   const getCategoryImage = (cat: Category) => {
     if (cat.image_url) return cat.image_url;
     // Try to match by name keyword
     const key = Object.keys(categoryImages).find(k => cat.name.toLowerCase().includes(k));
-    return key ? categoryImages[key] : 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800';
+    return key ? categoryImages[key] : foodImg;
   };
 
   if (loading) {
@@ -174,8 +189,11 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
-            {categories.map((category, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {categories.map((category, index) => {
+              const bgColorClass = 'bg-gradient-to-br from-primary via-tertiary to-primary-container border-r border-primary-container/20';
+              
+              return (
               <motion.div
                 key={category.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -184,31 +202,35 @@ export default function Home() {
                 transition={{ delay: index * 0.04 }}
               >
                 <Link to={`/aisle/${category.id}`} className="group block h-full">
-                  <div className="relative aspect-square overflow-hidden rounded-[1.8rem] bg-surface-container shadow-sm group-hover:shadow-[0_20px_40px_rgba(44,104,46,0.12)] transition-all duration-700 active:scale-[0.98]">
-                    <img 
-                      src={getCategoryImage(category)} 
-                      alt={category.name}
-                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 brightness-[0.9] group-hover:brightness-100"
-                      referrerPolicy="no-referrer"
-                    />
+                  <div className="relative h-36 sm:h-44 overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-[0_12px_32px_rgba(30,64,175,0.12)] transition-all duration-300 active:scale-[0.98] border border-outline-variant/30">
                     
-                    {/* Compact 'Well-Arranged' Glassmorphism Overlay */}
-                    <div className="absolute inset-x-2 bottom-2 rounded-[1.4rem] bg-white/10 backdrop-blur-2xl border border-white/30 p-2 sm:p-2.5 shadow-[inset_0_0_8px_rgba(255,255,255,0.2)]">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-[10px] sm:text-[12px] font-bold text-white tracking-tight leading-tight line-clamp-1 flex-1">
-                          {category.name}
-                        </h3>
-                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white text-primary flex-shrink-0 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="sm:w-3.5 sm:h-3.5">
-                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </div>
-                      </div>
+                    {/* Right side image container (60% ratio) */}
+                    <div className="absolute right-0 top-0 bottom-0 w-[60%] p-5 sm:p-8 flex items-center justify-center">
+                      <img 
+                        src={getCategoryImage(category)} 
+                        alt={category.name}
+                        className="w-[85%] h-[85%] object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-[1.15] group-hover:-rotate-2"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+
+                    {/* Left colored block with sharp diamond edge */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-[55%] z-10 flex items-center px-6 sm:px-8 shadow-2xl ${bgColorClass} overflow-hidden`} style={{ clipPath: 'polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%)' }}>
+                      {/* Subtle gradient overlay to enhance the colored effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent mix-blend-overlay"></div>
+                      <h3 className="relative text-2xl sm:text-3xl lg:text-4xl pr-4 font-black text-white leading-[1.1] drop-shadow-md z-20">
+                        {category.name}
+                      </h3>
+                    </div>
+                    
+                    {/* Floating decorative element (Optional) */}
+                    <div className="absolute top-3 right-3 bg-error text-white text-[10px] font-black px-2 py-1 rounded-full shadow-sm z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                      VIEW
                     </div>
                   </div>
                 </Link>
               </motion.div>
-            ))}
+            )})}
           </div>
 
           {categories.length === 0 && (

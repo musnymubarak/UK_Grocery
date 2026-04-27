@@ -25,7 +25,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const cartItem = cart.find(item => item.id === product.id);
   const isOutOfStock = product.stock !== undefined && product.stock <= 0;
 
-  const productImage = product.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=2C682E&color=fff&size=400`;
+  const productImage = product.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=1E40AF&color=fff&size=400`;
 
   return (
     <motion.div 

@@ -40,7 +40,7 @@ export default function Login() {
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-tertiary/5 rounded-full blur-3xl"></div>
 
-        <div className="w-full max-w-md bg-surface-container-lowest rounded-lg shadow-[0_32px_64px_rgba(44,104,46,0.08)] p-8 md:p-10 z-10 relative">
+        <div className="w-full max-w-md bg-surface-container-lowest rounded-lg shadow-[0_32px_64px_rgba(30,64,175,0.07)] p-8 md:p-10 z-10 relative">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center p-4 bg-primary-container/10 rounded-full mb-4 text-primary">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
@@ -126,7 +126,7 @@ export default function Login() {
               <button 
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary py-4 rounded-xl font-bold text-base shadow-[0_8px_24px_rgba(44,104,46,0.2)] hover:shadow-[0_12px_32px_rgba(44,104,46,0.3)] active:scale-95 transition-all duration-300 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary py-4 rounded-xl font-bold text-base shadow-[0_8px_24px_rgba(30,64,175,0.18)] hover:shadow-[0_12px_32px_rgba(30,64,175,0.24)] active:scale-95 transition-all duration-300 disabled:opacity-50"
               >
                 {submitting ? 'Please wait...' : isSignUp ? 'Create Account' : 'Continue'}
               </button>

@@ -80,7 +80,7 @@ export default function StoreSelection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="group relative p-8 rounded-lg transition-all duration-300 flex flex-col h-full border border-transparent bg-surface-container-low hover:bg-surface-container-lowest hover:shadow-[0_48px_64px_rgba(44,104,46,0.08)]"
+              className="group relative p-8 rounded-lg transition-all duration-300 flex flex-col h-full border border-transparent bg-surface-container-low hover:bg-surface-container-lowest hover:shadow-[0_48px_64px_rgba(30,64,175,0.07)]"
             >
               <div className="flex justify-between items-start mb-6">
                 <div className="p-3 rounded-full bg-secondary-container text-secondary">

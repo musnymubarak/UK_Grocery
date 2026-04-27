@@ -48,7 +48,7 @@ export default function Layout({ children, title = 'The Conservatory', subtitle,
   return (
     <div className="min-h-screen bg-surface flex flex-col">
       {/* Top App Bar */}
-      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 py-4 flex justify-between items-center shadow-[0_32px_48px_rgba(44,104,46,0.06)]">
+      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 py-4 flex justify-between items-center shadow-[0_32px_48px_rgba(30,64,175,0.06)]">
         <div className="flex items-center gap-4">
           {showBack && (
             <button 

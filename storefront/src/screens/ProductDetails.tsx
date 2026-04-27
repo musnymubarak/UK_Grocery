@@ -97,7 +97,7 @@ export default function ProductDetails() {
             className="aspect-square rounded-3xl overflow-hidden bg-surface-container-low border border-outline-variant/20"
           >
             <img 
-              src={product.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=2C682E&color=fff&size=600`}
+              src={product.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(product.name)}&background=1E40AF&color=fff&size=600`}
               alt={product.name}
               className="w-full h-full object-cover"
             />
