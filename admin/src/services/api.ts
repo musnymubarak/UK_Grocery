@@ -135,6 +135,7 @@ export const orderApi = {
     updateStatus: (id: string, status: string) => api.patch(`/orders/${id}/status`, { status }),
     assignDelivery: (id: string, delivery_boy_id: string) => api.patch(`/orders/${id}/assign`, { delivery_boy_id }),
     deliveryList: (params?: any) => api.get('/orders/delivery/my-orders', { params }), // For delivery boys
+    rejectSubstitutions: (orderId: string, data: any) => api.post(`/orders/${orderId}/reject-substitutions`, data),
 };
 
 // --- Customers API ---
@@ -220,7 +221,7 @@ export const reviewApi = {
 
 // --- Refunds API ---
 export const refundApi = {
-    list: () => api.get('/refunds'),
+    list: (params?: any) => api.get('/refunds', { params }),
     processItem: (refundId: string, itemId: string, data: any) => 
         api.post(`/refunds/${refundId}/items/${itemId}/process`, data),
 };

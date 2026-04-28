@@ -22,6 +22,10 @@ class Settings(BaseSettings):
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
+    
+    # Payment Gateway
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
 
     # JWT
     JWT_SECRET_KEY: str = "change-this-secret-key"

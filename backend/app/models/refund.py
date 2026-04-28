@@ -72,11 +72,13 @@ class RefundItem(TimestampMixin, Base):
     
     status = Column(String(20), default="pending", nullable=False) # pending, approved, rejected
     admin_notes = Column(Text, nullable=True)
+    customer_notes = Column(Text, nullable=True)
     requires_manual_review = Column(Boolean, default=True, nullable=False)
 
     # Relationships
     refund = relationship("Refund", back_populates="items")
     order_item = relationship("OrderItem", back_populates="refund_items")
+    evidence = relationship("RefundEvidence", backref="refund_item", cascade="all, delete-orphan", lazy="selectin")
 
     __table_args__ = (
         # Prevent multiple PENDING refund requests for the same order item

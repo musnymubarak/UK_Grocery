@@ -86,6 +86,11 @@ class OrderResponse(OrderBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+class SubstitutionRejection(BaseModel):
+    order_item_id: UUID
+    quantity: Decimal
+    notes: Optional[str] = None
+
 class PaginatedOrderResponse(BaseModel):
     items: List[OrderResponse]
     total: int

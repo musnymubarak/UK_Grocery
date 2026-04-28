@@ -68,6 +68,8 @@ class Order(TimestampMixin, Base):
     
     payment_method = Column(String(20), default="cod", nullable=False) # cod, online, wallet
     payment_status = Column(String(20), default="pending", nullable=False) # pending, paid, refunded
+    stripe_charge_id = Column(String(100), nullable=True)
+    stripe_payment_intent_id = Column(String(100), nullable=True)
     
     notes = Column(Text, nullable=True)
     delivery_instructions = Column(Text, nullable=True)

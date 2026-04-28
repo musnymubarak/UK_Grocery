@@ -4,10 +4,13 @@ from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
 
+from app.constants.refund_reasons import RefundReason
+
 class RefundItemRequest(BaseModel):
     order_item_id: UUID
     quantity: Decimal
-    reason: str = Field(..., min_length=5, max_length=500)
+    reason: RefundReason
+    notes: Optional[str] = Field(None, max_length=500)
 
 class RefundRequest(BaseModel):
     order_id: UUID
@@ -27,6 +30,7 @@ class RefundItemResponse(BaseModel):
     amount: Decimal
     status: str
     admin_notes: Optional[str] = None
+    customer_notes: Optional[str] = None
     requires_manual_review: bool
     created_at: datetime
     updated_at: datetime

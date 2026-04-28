@@ -11,7 +11,7 @@ from app.core.database import get_async_session
 from app.core.dependencies import get_current_user, get_current_customer, require_role, get_org_context, get_store_scope, enforce_store_access
 from app.models.user import User
 from app.models.customer import Customer
-from app.schemas.order import OrderCreate, OrderResponse, OrderUpdateStatus, OrderAssign, PaginatedOrderResponse
+from app.schemas.order import OrderCreate, OrderResponse, OrderUpdateStatus, OrderAssign, PaginatedOrderResponse, SubstitutionRejection
 from app.services.order import OrderService
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -87,6 +87,79 @@ async def cancel_my_order(
     order_service = OrderService(db)
     return await order_service.customer_cancel(order_id, current_customer.id)
 
+
+@router.post("/{order_id}/reject-substitutions", response_model=OrderResponse)
+async def reject_substitutions_at_door(
+    order_id: UUID,
+    rejections: List[SubstitutionRejection],
+    current_user: User = Depends(require_role(["delivery_boy", "admin", "manager"])),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Driver records substitutions rejected at the door. Auto-approved refund."""
+    order_service = OrderService(db)
+    order = await order_service.get_order(order_id)
+    
+    if current_user.role == "delivery_boy" and order.assigned_to != current_user.id:
+        from app.core.exceptions import ForbiddenException
+        raise ForbiddenException("You are not assigned to this order")
+        
+    if order.status not in ["out_for_delivery", "delivered"]:
+        from app.core.exceptions import ValidationException
+        raise ValidationException("Order must be out for delivery or delivered to reject substitutions at door")
+        
+    from app.services.refund import RefundService
+    refund_service = RefundService(db)
+    
+    # Validation
+    for r in rejections:
+        item = next((i for i in order.items if str(i.id) == str(r.order_item_id)), None)
+        if not item:
+            from app.core.exceptions import ValidationException
+            raise ValidationException(f"Item {r.order_item_id} not found in order")
+        if not item.is_substituted:
+            from app.core.exceptions import ValidationException
+            raise ValidationException(f"Item {item.product_name} was not substituted")
+    
+    from decimal import Decimal
+    from app.models.refund import Refund, RefundItem
+    
+    # Create auto-approved refund
+    parent_refund = Refund(
+        organization_id=order.organization_id,
+        store_id=order.store_id,
+        customer_id=order.customer_id,
+        order_id=order.id,
+        status="approved",
+        destination="original_method",
+        total_amount=Decimal("0.00")
+    )
+    db.add(parent_refund)
+    await db.flush()
+    
+    for r in rejections:
+        item = next((i for i in order.items if str(i.id) == str(r.order_item_id)))
+        amount = item.effective_unit_price * r.quantity
+        
+        refund_item = RefundItem(
+            refund_id=parent_refund.id,
+            order_item_id=item.id,
+            quantity=r.quantity,
+            amount=amount,
+            reason="substitution_rejected",
+            status="approved",
+            customer_notes=r.notes,
+            requires_manual_review=False
+        )
+        db.add(refund_item)
+        
+        await refund_service.process_refund_item(
+            parent_refund=parent_refund,
+            refund_item=refund_item,
+            status="approved",
+            user=current_user
+        )
+        
+    return await order_service.get_order(order_id)
 
 # ====================
 # ADMIN / STAFF ROUTES

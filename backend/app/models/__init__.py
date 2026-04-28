@@ -24,6 +24,7 @@ from app.models.refresh_token import RefreshToken
 from app.models.driver import DriverProfile
 from app.models.promotion import Promotion
 from app.models.webhook import WebhookEndpoint, WebhookDelivery
+from app.models.refund_evidence import RefundEvidence
 
 __all__ = [
     "Organization",
@@ -58,4 +59,5 @@ __all__ = [
     "Promotion",
     "WebhookEndpoint",
     "WebhookDelivery",
+    "RefundEvidence",
 ]
