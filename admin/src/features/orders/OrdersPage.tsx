@@ -11,6 +11,8 @@ export default function OrdersPage() {
     const queryClient = useQueryClient();
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const [rejections, setRejections] = useState<Record<string, number>>({});
 
     const { data: orders = [], isLoading } = useQuery({
         queryKey: ['orders_list', selectedStore?.id],
@@ -31,6 +33,19 @@ export default function OrdersPage() {
         },
         onError: () => {
             toast.error('Failed to update status');
+        }
+    });
+
+    const rejectSubstitutions = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => orderApi.rejectSubstitutions(id, data),
+        onSuccess: () => {
+            toast.success('Substitutions rejected successfully');
+            setIsRejectModalOpen(false);
+            setRejections({});
+            queryClient.invalidateQueries({ queryKey: ['orders_list'] });
+        },
+        onError: (err: any) => {
+            toast.error(err.response?.data?.detail || 'Failed to reject substitutions');
         }
     });
 
@@ -316,6 +331,7 @@ export default function OrdersPage() {
                                                 <td>
                                                     <div style={{ fontWeight: 600 }}>{item.product_name}</div>
                                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SKU: {item.product_sku || 'N/A'}</div>
+                                                    {item.is_substituted && <div style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 700 }}>Substituted</div>}
                                                 </td>
                                                 <td>{item.quantity}</td>
                                                 <td>£{Number(item.unit_price).toFixed(2)}</td>
@@ -348,11 +364,64 @@ export default function OrdersPage() {
                         </div>
                     </div>
 
-                    <div className="modal-footer" style={{ padding: '24px 32px', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
+                    <div className="modal-footer" style={{ padding: '24px 32px', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between' }}>
+                        {selectedOrder.status === 'out_for_delivery' && selectedOrder.items?.some((i: any) => i.is_substituted) ? (
+                            <button className="btn btn-primary" onClick={() => setIsRejectModalOpen(true)} style={{ background: 'var(--warning)', color: '#000' }}>
+                                Reject Substitutions
+                            </button>
+                        ) : <div />}
                         <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Close Detail</button>
                     </div>
                 </div>
             </div>
+            )}
+
+            {isRejectModalOpen && selectedOrder && (
+                <div className="modal-overlay" onClick={() => setIsRejectModalOpen(false)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                        <div className="modal-header">
+                            <h2>Record Substitution Rejections</h2>
+                            <button className="btn-icon" onClick={() => setIsRejectModalOpen(false)}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '24px' }}>
+                            <p style={{ marginBottom: 16 }}>Select the quantity of substituted items that the customer rejected at the door.</p>
+                            {selectedOrder.items?.filter((i: any) => i.is_substituted).map((item: any) => (
+                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}>
+                                    <div>
+                                        <div style={{ fontWeight: 600 }}>{item.product_name}</div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Qty in Order: {item.quantity}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Reject Qty:</span>
+                                        <input 
+                                            type="number" 
+                                            min="0" 
+                                            max={item.quantity} 
+                                            value={rejections[item.id] || 0}
+                                            onChange={(e) => setRejections({ ...rejections, [item.id]: Number(e.target.value) })}
+                                            style={{ width: 60, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)' }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="modal-footer" style={{ padding: '24px', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                            <button className="btn btn-secondary" onClick={() => setIsRejectModalOpen(false)}>Cancel</button>
+                            <button 
+                                className="btn btn-primary" 
+                                disabled={rejectSubstitutions.isPending || !Object.values(rejections).some(q => q > 0)}
+                                onClick={() => {
+                                    const payload = Object.entries(rejections)
+                                        .filter(([_, qty]) => qty > 0)
+                                        .map(([id, qty]) => ({ order_item_id: id, quantity: qty, notes: "Rejected at door" }));
+                                    rejectSubstitutions.mutate({ id: selectedOrder.id, data: payload });
+                                }}
+                            >
+                                Confirm Rejections
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );

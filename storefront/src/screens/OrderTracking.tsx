@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { orderApi, orderActionsApi, refundApi, getErrorMessage } from '../services/api';
 import { motion } from 'motion/react';
 import Layout from '../components/Layout';
@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 
 export default function OrderTracking() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +18,7 @@ export default function OrderTracking() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [isRefunding, setIsRefunding] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<Record<string, { quantity: number; reason: string }>>({});
+  const [selectedItems, setSelectedItems] = useState<Record<string, { quantity: number; reason: string; notes?: string }>>({});
 
   useEffect(() => {
     fetchOrder();
@@ -57,13 +58,13 @@ export default function OrderTracking() {
       if (next[itemId]) {
         delete next[itemId];
       } else {
-        next[itemId] = { quantity: maxQty, reason: 'Damaged Items' };
+        next[itemId] = { quantity: maxQty, reason: 'damaged_item' };
       }
       return next;
     });
   };
 
-  const handleUpdateItem = (itemId: string, field: 'quantity' | 'reason', value: any) => {
+  const handleUpdateItem = (itemId: string, field: 'quantity' | 'reason' | 'notes', value: any) => {
     setSelectedItems(prev => ({
       ...prev,
       [itemId]: { ...prev[itemId], [field]: value }
@@ -72,10 +73,11 @@ export default function OrderTracking() {
 
   const handleRequestRefund = async (e: React.FormEvent) => {
     e.preventDefault();
-    const itemsToRefund = Object.entries(selectedItems).map(([id, data]) => ({
+    const itemsToRefund = Object.entries(selectedItems).map(([id, data]: [string, any]) => ({
       order_item_id: id,
       quantity: Number(data.quantity),
-      reason: data.reason
+      reason: data.reason,
+      notes: data.notes || undefined
     }));
 
     if (itemsToRefund.length === 0) {
@@ -93,7 +95,7 @@ export default function OrderTracking() {
       toast.success('Refund request submitted successfully');
       setShowRefundModal(false);
       setSelectedItems({});
-      fetchOrder();
+      navigate('/refunds');
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -322,12 +324,24 @@ export default function OrderTracking() {
               <div className="pt-6 border-t border-surface-container-highest flex flex-col gap-2">
                 <div className="flex justify-between items-center text-secondary">
                   <span>Subtotal</span>
-                  <span>£{Number(order.subtotal).toFixed(2)}</span>
+                  <span>£{(order.items?.reduce((acc: number, item: any) => acc + Number(item.total), 0) || 0).toFixed(2)}</span>
                 </div>
+                {Number(order.service_fee || 0) > 0 && (
+                  <div className="flex justify-between items-center text-secondary">
+                    <span>Service Fee</span>
+                    <span>£{Number(order.service_fee).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-secondary">
                   <span>Delivery Fee</span>
-                  <span>£{Number(order.delivery_fee).toFixed(2)}</span>
+                  <span>£{Number(order.delivery_fee || 0).toFixed(2)}</span>
                 </div>
+                {Number(order.discount || 0) > 0 && (
+                  <div className="flex justify-between items-center text-secondary">
+                    <span>Discount</span>
+                    <span className="text-success">-£{Number(order.discount).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-2">
                   <span className="font-bold text-lg">Total</span>
                   <span className="text-2xl font-extrabold text-primary">£{Number(order.total).toFixed(2)}</span>
@@ -355,7 +369,7 @@ export default function OrderTracking() {
         isOpen={showRefundModal}
         onClose={() => setShowRefundModal(false)}
         title="Request a Refund"
-        size="lg"
+        maxWidth="600px"
         footer={
           <div className="w-full flex flex-col gap-4">
              <div className="flex justify-between items-center px-2">
@@ -444,12 +458,24 @@ export default function OrderTracking() {
                                 onChange={e => handleUpdateItem(item.id, 'reason', e.target.value)}
                                 className="w-full bg-surface-container-highest border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-1 focus:ring-primary/20 appearance-none"
                               >
-                                <option value="Damaged Items">Damaged Items</option>
-                                <option value="Missing Items">Missing Items</option>
-                                <option value="Poor Quality">Poor Quality</option>
-                                <option value="Wrong Item Received">Wrong Item Received</option>
-                                <option value="Other">Other</option>
+                                <option value="damaged_item">Damaged Items</option>
+                                <option value="missing_item">Missing Items</option>
+                                <option value="quality_issue">Poor Quality</option>
+                                <option value="wrong_item">Wrong Item Received</option>
+                                <option value="expired_item">Expired Item</option>
+                                <option value="not_received">Not Received</option>
+                                <option value="other">Other</option>
                               </select>
+                          </div>
+                          <div className="space-y-2 mt-2">
+                            <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant block">Additional Details (Optional)</span>
+                            <textarea
+                              value={selectedItems[item.id].notes || ''}
+                              onChange={e => handleUpdateItem(item.id, 'notes', e.target.value)}
+                              placeholder="Any extra context for the refund request"
+                              className="w-full bg-surface-container-highest border-none rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-primary/20"
+                              rows={2}
+                            />
                           </div>
                         </motion.div>
                       )}
@@ -524,13 +550,14 @@ function TimelineStep({ label, active, completed, current, icon }: { label: stri
 }
 
 function RecapItem({ name, desc, price, img, refundedQty }: { name: string; desc: string; price: string; img: string; refundedQty?: number; key?: React.Key }) {
+  const hasRefund = (refundedQty || 0) > 0;
   return (
     <div className="flex items-center gap-4">
       <div className="relative">
         <div className="w-16 h-16 rounded-md bg-surface-container-high overflow-hidden">
           <img src={img} alt={name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
         </div>
-        {refundedQty && refundedQty > 0 && (
+        {hasRefund && (
           <div className="absolute -top-1 -right-1 bg-error text-on-error text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
             -{refundedQty}
           </div>
@@ -540,14 +567,14 @@ function RecapItem({ name, desc, price, img, refundedQty }: { name: string; desc
         <p className="font-bold text-on-surface">{name}</p>
         <div className="flex items-center gap-2">
           <p className="text-sm text-on-surface-variant">{desc}</p>
-          {refundedQty && refundedQty > 0 && (
+          {hasRefund && (
             <span className="text-[10px] font-bold text-error uppercase tracking-wider bg-error/10 px-2 py-0.5 rounded">Refunded</span>
           )}
         </div>
       </div>
       <div className="text-right">
         <p className="font-bold">£{price}</p>
-        {refundedQty && refundedQty > 0 && (
+        {hasRefund && (
           <p className="text-[10px] text-error font-medium italic">Adjusted</p>
         )}
       </div>

@@ -35,8 +35,7 @@ class GDPRService:
             "profile": {
                 "id": str(customer.id),
                 "email": customer.email,
-                "first_name": customer.first_name,
-                "last_name": customer.last_name,
+                "full_name": customer.full_name,
                 "phone": customer.phone,
                 "created_at": customer.created_at.isoformat(),
                 "is_active": customer.is_active,
@@ -54,9 +53,9 @@ class GDPRService:
         for o in orders:
             data["orders"].append({
                 "id": str(o.id),
-                "reference": o.reference,
+                "reference": o.order_number,
                 "status": o.status,
-                "total_amount": float(o.total_amount),
+                "total_amount": float(o.total),
                 "created_at": o.created_at.isoformat(),
                 "items_count": len(o.items) if hasattr(o, 'items') else 0,
             })
@@ -92,8 +91,7 @@ class GDPRService:
         anon_email = f"deleted-{email_hash}@anonymized.invalid"
 
         # 2. Update Customer record
-        customer.first_name = "Deleted"
-        customer.last_name = "User"
+        customer.full_name = "Deleted User"
         customer.email = anon_email
         customer.phone = None
         customer.password_hash = "ANONYMIZED"

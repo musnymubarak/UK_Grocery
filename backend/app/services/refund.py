@@ -137,8 +137,22 @@ class RefundService:
                     notes=f"Refund for item in Order: {order_item.order_id}. Reason: {refund_item.reason}"
                 )
             elif parent_refund.destination == "original_method":
-                # TODO: Integrate with Payment Gateway (Stripe/WebxPay) refund API
-                pass
+                order = await self.db.get(Order, parent_refund.order_id)
+                if order and order.stripe_charge_id:
+                    from app.services.payment import PaymentService
+                    payment_svc = PaymentService()
+                    amount_pence = int(refund_item.amount * 100)
+                    await payment_svc.create_refund(
+                        charge_id=order.stripe_charge_id,
+                        amount_pence=amount_pence,
+                        metadata={"refund_item_id": str(refund_item.id)}
+                    )
+                else:
+                    refund_item.requires_manual_review = True
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        f"No stripe_charge_id on order {parent_refund.order_id}"
+                    )
 
         # 4. Recalculate Parent State
         await self._recalc_parent_refund(parent_refund)
@@ -146,6 +160,22 @@ class RefundService:
         # 5. TODO: Hook for customer notification (approved/rejected)
         
         await self.db.flush()
+        
+        # 5. Fire Webhook
+        from app.services.webhook import WebhookService
+        webhook_svc = WebhookService(self.db)
+        await webhook_svc.dispatch(
+            org_id=parent_refund.organization_id,
+            event=f"refund.item.{status}",
+            payload={
+                "refund_id": str(parent_refund.id),
+                "refund_item_id": str(refund_item.id),
+                "order_id": str(parent_refund.order_id),
+                "status": status,
+                "amount": float(refund_item.amount)
+            }
+        )
+        
         return refund_item
 
     async def _recalc_parent_refund(self, refund: Refund):
@@ -180,6 +210,12 @@ class RefundService:
         if new_status == "approved" and order.order_type == "delivery":
             approved_sum += order.delivery_fee
             
+            # Add service fee logic if the entire order is fully cancelled/refunded
+            all_items_qty = sum(oi.quantity for oi in order.items)
+            all_refunded_qty = sum(oi.refunded_quantity for oi in order.items)
+            if all_refunded_qty >= all_items_qty:
+                approved_sum += order.service_fee
+            
         refund.total_amount = approved_sum
 
         # Sync Order Payment Status
@@ -191,16 +227,30 @@ class RefundService:
     async def get_refunds_for_org(
         self, org_id: UUID, status_filter: str = None, skip: int = 0, limit: int = 50
     ) -> List[Refund]:
-        """Admin: list all refund requests (Latest first)."""
+        """Admin: list all refund requests. Priority: pending first, then oldest."""
+        from app.models.refund import RefundItem
+        from sqlalchemy.orm import selectinload
+        
         query = (
             select(Refund)
+            .options(
+                selectinload(Refund.items).selectinload(RefundItem.evidence)
+            )
             .join(Order, Order.id == Refund.order_id)
             .where(Order.organization_id == org_id)
         )
         if status_filter:
             query = query.where(Refund.status == status_filter)
-        
-        query = query.order_by(Refund.created_at.desc()).offset(skip).limit(limit)
+            if status_filter == "pending":
+                query = query.order_by(Refund.created_at.asc())
+            else:
+                query = query.order_by(Refund.created_at.desc())
+        else:
+            from sqlalchemy import case
+            status_order = case((Refund.status == "pending", 1), else_=2)
+            query = query.order_by(status_order, Refund.created_at.desc())
+            
+        query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
@@ -248,14 +298,20 @@ class RefundService:
                 notes=f"Full Refund for Cancelled Order: {order.order_number}"
             )
         elif destination == "original_method":
-            # For original_method, we mark it. A separate background worker or admin-led manual
-            # process typically checks for 'original_method' refunds to hit the Stripe/Paypal API.
-            # We log it here for now.
-            import logging
-            logging.getLogger(__name__).info(
-                f"ORDER_AUTO_REFUND_PENDING: Original method refund needed for Order {order.order_number} "
-                f"Amt: {order.total}"
-            )
+            if order.stripe_charge_id:
+                from app.services.payment import PaymentService
+                payment_svc = PaymentService()
+                amount_pence = int(refund.total_amount * 100)
+                await payment_svc.create_refund(
+                    charge_id=order.stripe_charge_id,
+                    amount_pence=amount_pence,
+                    metadata={"order_id": str(order.id)}
+                )
+            else:
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"No stripe_charge_id on order {order.id} for automated full refund"
+                )
 
         # 5. Update Order Payment Status
         order.payment_status = "refunded"

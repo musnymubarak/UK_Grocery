@@ -10,12 +10,18 @@ export default function RefundsPage() {
     const [processingItem, setProcessingItem] = useState<{refundId: string, itemId: string} | null>(null);
     const [action, setAction] = useState<'approved' | 'rejected' | null>(null);
     const [notes, setNotes] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved'>('pending');
 
     const { data: refunds = [], isLoading } = useQuery({
-        queryKey: ['refunds'],
+        queryKey: ['refunds', statusFilter],
         queryFn: async () => {
-            const res = await refundApi.list();
-            return res.data;
+            const params = statusFilter === 'all' ? {} : { status: statusFilter === 'resolved' ? 'processed' : statusFilter };
+            const res = await refundApi.list(params);
+            let data = res.data;
+            if (statusFilter === 'resolved') {
+                data = data.filter((r: any) => r.status !== 'pending');
+            }
+            return data;
         },
     });
 
@@ -54,13 +60,38 @@ export default function RefundsPage() {
 
     return (
         <div className="p-6">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
-                <div style={{ background: 'var(--primary)15', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
-                    <Undo2 size={24} color="var(--primary)" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ background: 'var(--primary)15', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
+                        <Undo2 size={24} color="var(--primary)" />
+                    </div>
+                    <div>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Refund Requests</h2>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Review and process item-level refund claims</p>
+                    </div>
                 </div>
-                <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Refund Requests</h2>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Review and process item-level refund claims</p>
+
+                <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '100px' }}>
+                    {['pending', 'resolved', 'all'].map(tab => (
+                        <button 
+                            key={tab}
+                            onClick={() => setStatusFilter(tab as any)}
+                            style={{
+                                padding: '8px 20px',
+                                borderRadius: '100px',
+                                border: 'none',
+                                background: statusFilter === tab ? 'var(--primary-200)' : 'transparent',
+                                color: statusFilter === tab ? 'var(--primary-dark)' : 'var(--text-secondary)',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                cursor: 'pointer',
+                                textTransform: 'capitalize',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {tab}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -200,6 +231,20 @@ export default function RefundsPage() {
                                                     <td style={{ fontWeight: 600 }}>£{Number(item.amount).toFixed(2)}</td>
                                                     <td style={{ fontSize: '0.85rem' }}>
                                                         <div className="badge badge-outline" style={{ fontSize: '0.7rem' }}>{item.reason.replace('_', ' ')}</div>
+                                                        {item.customer_notes && (
+                                                            <div style={{ marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                                "{item.customer_notes}"
+                                                            </div>
+                                                        )}
+                                                        {item.evidence?.length > 0 && (
+                                                            <div style={{ marginTop: '8px', display: 'flex', gap: '4px' }}>
+                                                                {item.evidence.map((ev: any, idx: number) => (
+                                                                    <a key={idx} href={ev.file_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
+                                                                        <img src={ev.file_url} alt="Evidence" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--border)' }} />
+                                                                    </a>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td>
                                                         <div style={{ color: itemStatus.color, display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', fontWeight: 600 }}>

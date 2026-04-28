@@ -17,6 +17,7 @@ import Profile from './screens/Profile';
 import Offers from './screens/Offers';
 import Login from './screens/Login';
 import ProductDetails from './screens/ProductDetails';
+import RefundStatus from './screens/RefundStatus';
 import { AnimatePresence } from 'motion/react';
 
 function AnimatedRoutes() {
@@ -34,6 +35,7 @@ function AnimatedRoutes() {
         <Route path="/success" element={<OrderSuccess />} />
         <Route path="/tracking/:id" element={<OrderTracking />} />
         <Route path="/history" element={<OrderHistory />} />
+        <Route path="/refunds" element={<RefundStatus />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/offers" element={<Offers />} />
         <Route path="/stores" element={<StoreSelection />} />

@@ -181,6 +181,14 @@ export const reviewApi = {
 // ─── Refund Endpoints ────────────────────────────────────────────
 export const refundApi = {
   request: (data: any) => api.post('/refunds/request', data),
+  listMine: () => api.get('/refunds/me'),
+  uploadEvidence: (itemId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/refunds/${itemId}/evidence`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  }
 };
 
 // ─── GDPR Endpoints ─────────────────────────────────────────────
