@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, MapPin, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, Search, ShoppingBasket, Truck, ShieldCheck, Clock } from 'lucide-react';
 import React, { useState } from 'react';
 
 // Use categories images for floating elements
@@ -10,117 +10,159 @@ import beveragesImg from '../../images/categories/bevarages.png';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [postcode, setPostcode] = useState('');
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate('/stores');
-  };
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-surface flex flex-col relative overflow-hidden font-body">
       {/* Header */}
-      <header className="px-6 py-4 flex items-center gap-2 relative z-20 bg-white">
-        <Leaf className="text-primary" size={28} />
-        <span className="font-headline font-extrabold text-xl text-primary tracking-tight">The Conservatory</span>
+      <header className="px-6 py-5 flex items-center justify-between relative z-20 bg-white/80 backdrop-blur-md border-b border-outline-variant/10 shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+            <ShoppingBasket size={24} />
+          </div>
+          <span className="font-headline font-black text-2xl text-on-surface tracking-tighter">
+            Daily<span className="text-primary">Grocer</span>
+          </span>
+        </div>
+        <div className="hidden md:flex items-center gap-6">
+            <button className="text-sm font-bold text-on-surface-variant hover:text-primary transition-colors">Our Stores</button>
+            <button className="text-sm font-bold text-on-surface-variant hover:text-primary transition-colors">Support</button>
+            <button 
+                onClick={() => navigate('/login')}
+                className="bg-primary/10 text-primary px-5 py-2 rounded-full font-bold text-sm hover:bg-primary/20 transition-all"
+            >
+                Sign In
+            </button>
+        </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-grow flex flex-col relative z-10 bg-surface">
-        {/* Blue Ellipse Hero */}
-        <div className="relative bg-primary pt-16 pb-32 px-4 md:px-6 overflow-hidden rounded-b-[3rem] md:rounded-b-[10rem]">
+        {/* Hero Section with Professional Gradient */}
+        <div className="relative bg-gradient-to-br from-primary to-primary-container pt-20 pb-36 px-4 md:px-6 overflow-hidden rounded-b-[4rem] md:rounded-b-[12rem] shadow-2xl">
           <div className="max-w-4xl mx-auto w-full relative z-20 text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             >
-              <h1 className="text-4xl md:text-6xl font-headline font-extrabold text-white tracking-tight leading-tight mb-4">
-                Local store to door
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full text-white text-xs font-bold uppercase tracking-widest mb-8">
+                <Truck size={14} className="animate-pulse" />
+                Delivery from 30 minutes
+              </div>
+              
+              <h1 className="text-5xl md:text-7xl font-headline font-black text-white tracking-tight leading-[1.1] mb-6">
+                Fresh Groceries,<br /> 
+                <span className="text-white/80">Delivered Simply.</span>
               </h1>
               
-              <p className="text-white/90 text-lg md:text-xl mb-10 font-medium">
-                From as little as 30 minutes
+              <p className="text-white/90 text-lg md:text-2xl mb-12 font-medium max-w-2xl mx-auto leading-relaxed">
+                Shop from your favorite local stores and get your essentials delivered to your doorstep in minutes.
               </p>
 
-              {/* Postcode Search Box */}
-              <form onSubmit={handleSearch} className="max-w-2xl mx-auto bg-white rounded-lg p-2 flex flex-col sm:flex-row gap-2 shadow-2xl">
-                <div className="flex-1 flex items-center bg-surface-container-low rounded-md px-4 py-3">
-                  <MapPin className="text-primary mr-3" size={20} />
-                  <input 
-                    type="text"
-                    placeholder="Enter your postcode"
-                    className="bg-transparent border-none focus:ring-0 w-full text-on-surface outline-none font-medium"
-                    value={postcode}
-                    onChange={(e) => setPostcode(e.target.value)}
-                    required
-                  />
-                </div>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mt-10"
+              >
                 <button 
-                  type="submit"
-                  className="bg-primary text-white px-8 py-3 rounded-md font-bold text-lg hover:bg-primary-container transition-colors whitespace-nowrap active:scale-95"
+                  onClick={() => navigate('/stores')}
+                  className="bg-white text-primary px-12 py-5 rounded-2xl font-black text-xl hover:bg-surface transition-all shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 flex items-center gap-3 mx-auto"
                 >
-                  Search Local Stores
+                  <ShoppingBasket size={28} />
+                  View Available Stores
                 </button>
-              </form>
+              </motion.div>
+              
+              <div className="mt-8 flex items-center justify-center gap-8 text-white/70 font-bold text-sm">
+                  <div className="flex items-center gap-2">
+                      <ShieldCheck size={18} />
+                      Secure Payments
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <Clock size={18} />
+                      Real-time Tracking
+                  </div>
+              </div>
             </motion.div>
           </div>
 
-          {/* Floating Images (Decorative) */}
+          {/* Floating Images (Refined placement) */}
           <motion.img 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
+            initial={{ opacity: 0, x: -50, rotate: -10 }}
+            animate={{ opacity: 1, x: 0, rotate: 0 }}
+            transition={{ duration: 1.2, delay: 0.2 }}
             src={freshproduceImg} 
-            className="absolute top-10 left-[-5%] md:left-[5%] w-32 md:w-48 opacity-90 z-10 drop-shadow-2xl object-contain hidden sm:block" 
+            className="absolute top-12 left-[-2%] md:left-[2%] w-40 md:w-64 opacity-90 z-10 drop-shadow-[0_35px_35px_rgba(0,0,0,0.4)] object-contain hidden md:block" 
             alt="Produce" 
           />
           <motion.img 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
+            initial={{ opacity: 0, x: 50, rotate: 10 }}
+            animate={{ opacity: 1, x: 0, rotate: 0 }}
+            transition={{ duration: 1.2, delay: 0.3 }}
             src={bakeryImg} 
-            className="absolute bottom-5 right-[-5%] md:right-[5%] w-36 md:w-56 opacity-90 z-10 drop-shadow-2xl object-contain hidden sm:block" 
+            className="absolute bottom-10 right-[-2%] md:right-[2%] w-44 md:w-72 opacity-90 z-10 drop-shadow-[0_35px_35px_rgba(0,0,0,0.4)] object-contain hidden md:block" 
             alt="Bakery" 
           />
           <motion.img 
             initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 }}
+            animate={{ opacity: 0.8, scale: 1 }}
+            transition={{ duration: 1, delay: 0.4 }}
             src={beveragesImg} 
-            className="absolute top-8 right-[5%] md:right-[15%] w-24 md:w-36 opacity-80 z-10 drop-shadow-2xl object-contain hidden lg:block" 
+            className="absolute top-10 right-[8%] md:right-[12%] w-32 md:w-48 z-10 drop-shadow-2xl object-contain hidden lg:block" 
             alt="Beverages" 
           />
         </div>
         
-        {/* Lower Section (Optional Info) */}
-        <div className="py-20 px-6 text-center">
-            <h2 className="text-3xl font-bold text-on-surface mb-10">How it works</h2>
-            <div className="flex flex-col md:flex-row justify-center gap-6 max-w-5xl mx-auto">
-                <div className="flex-1 p-8 ss-card flex flex-col items-center">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6">
-                        <MapPin size={32} />
-                    </div>
-                    <h3 className="font-bold text-xl mb-3">1. Find Local Store</h3>
-                    <p className="text-on-surface-variant">Enter your postcode to find partner stores near you.</p>
+        {/* Value Propositions Section */}
+        <div className="py-24 px-6 relative overflow-hidden">
+            <div className="max-w-6xl mx-auto">
+                <div className="text-center mb-16">
+                    <h2 className="text-sm font-black text-primary uppercase tracking-[0.2em] mb-4">How it works</h2>
+                    <h3 className="text-4xl md:text-5xl font-black text-on-surface tracking-tight">Your grocery journey</h3>
                 </div>
-                <div className="flex-1 p-8 ss-card flex flex-col items-center">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6">
-                        <Search size={32} />
-                    </div>
-                    <h3 className="font-bold text-xl mb-3">2. Browse Menu</h3>
-                    <p className="text-on-surface-variant">Select from thousands of grocery products.</p>
-                </div>
-                <div className="flex-1 p-8 ss-card flex flex-col items-center">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6">
-                        <Leaf size={32} />
-                    </div>
-                    <h3 className="font-bold text-xl mb-3">3. Fast Delivery</h3>
-                    <p className="text-on-surface-variant">Get your order delivered to your door quickly.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                        { icon: <MapPin size={36} />, title: "1. Find Stores", desc: "Browse a curated list of local grocers in your area by entering your postcode." },
+                        { icon: <Search size={36} />, title: "2. Fill Your Basket", desc: "Select from fresh produce, dairy, bakery items, and household essentials." },
+                        { icon: <Truck size={36} />, title: "3. Fast Delivery", desc: "Relax as our delivery partners bring your groceries to your door in as little as 30 mins." }
+                    ].map((step, idx) => (
+                        <div key={idx} className="bg-white p-10 rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group">
+                            <div className="w-20 h-20 bg-primary/5 rounded-2xl flex items-center justify-center text-primary mb-8 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                                {step.icon}
+                            </div>
+                            <h4 className="font-black text-2xl mb-4 text-on-surface">{step.title}</h4>
+                            <p className="text-on-surface-variant font-medium leading-relaxed">{step.desc}</p>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
       </main>
+      
+      {/* Professional Footer */}
+      <footer className="bg-on-surface text-white py-12 px-6">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                    <ShoppingBasket size={18} />
+                </div>
+                <span className="font-headline font-black text-xl tracking-tighter">
+                    Daily<span className="text-primary">Grocer</span>
+                </span>
+              </div>
+              <div className="flex gap-8 text-sm font-bold text-white/60">
+                  <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
+                  <span className="hover:text-white cursor-pointer transition-colors">Terms of Service</span>
+                  <span className="hover:text-white cursor-pointer transition-colors">Cookie Policy</span>
+              </div>
+              <div className="text-sm font-medium text-white/40">
+                  © 2026 Daily Grocer. All rights reserved.
+              </div>
+          </div>
+      </footer>
     </div>
   );
 }
+

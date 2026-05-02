@@ -35,7 +35,7 @@ export default function Login() {
   };
 
   return (
-    <Layout title="The Conservatory" showBack>
+    <Layout title="Daily Grocer" showBack>
       <main className="flex-grow flex items-center justify-center p-6 md:p-12 relative overflow-hidden">
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-tertiary/5 rounded-full blur-3xl"></div>

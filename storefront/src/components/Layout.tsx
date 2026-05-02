@@ -14,7 +14,7 @@ interface LayoutProps {
   showBack?: boolean;
 }
 
-export default function Layout({ children, title = 'The Conservatory', subtitle, showBack = false }: LayoutProps) {
+export default function Layout({ children, title = 'Daily Grocer', subtitle, showBack = false }: LayoutProps) {
   const { totalItems, selectedStore } = useCart();
   const { isAuthenticated, customer } = useAuth();
   const location = useLocation();

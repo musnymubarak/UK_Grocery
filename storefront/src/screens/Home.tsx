@@ -185,7 +185,7 @@ export default function Home() {
           <div className="flex justify-between items-end mb-8">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tighter text-on-surface mb-1">Aisles & Collections</h2>
-              <p className="text-secondary font-medium">Curated selections from the conservatory</p>
+              <p className="text-secondary font-medium">Curated selections for your kitchen</p>
             </div>
           </div>
           
