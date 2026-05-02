@@ -17,7 +17,7 @@ export const CATEGORY_IMAGES: Record<string, string> = {
 
 // App configuration
 export const APP_CONFIG = {
-  name: 'The Conservatory',
+  name: 'Daily Grocer',
   tagline: 'Fresh groceries delivered to your door',
   currency: '£',
   deliveryFee: 3.99,

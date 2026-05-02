@@ -125,7 +125,7 @@ export default function Checkout() {
 
   return (
     <Layout title="Checkout" showBack>
-      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-6 pb-40 font-body">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-6 pb-80 font-body">
         <h2 className="text-2xl font-bold text-on-surface mb-6">Checkout</h2>
 
         {error && (
@@ -309,15 +309,15 @@ export default function Checkout() {
         </div>
       </div>
 
-      {/* Sticky Bottom Button */}
-      <div className="fixed bottom-[80px] md:bottom-0 left-0 w-full p-4 bg-white border-t border-outline-variant/30 z-50">
+      {/* Sticky Bottom Button - Positioned higher to clear the curved bottom navigation bar */}
+      <div className="fixed bottom-[140px] left-0 w-full p-4 z-50">
         <div className="max-w-2xl mx-auto">
           <button 
             onClick={handlePlaceOrder}
             disabled={submitting}
-            className="w-full bg-primary text-white py-3 rounded-md font-bold text-base shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-primary-container disabled:opacity-50 uppercase tracking-wide"
+            className="w-full bg-primary text-white py-4 rounded-xl font-black text-lg shadow-[0_12px_40px_rgba(30,64,175,0.25)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-primary-container disabled:opacity-50 uppercase tracking-widest border border-white/20 backdrop-blur-md"
           >
-            {submitting ? <Loader2 className="animate-spin" size={20} /> : (
+            {submitting ? <Loader2 className="animate-spin" size={24} /> : (
               <>Place Order</>
             )}
           </button>

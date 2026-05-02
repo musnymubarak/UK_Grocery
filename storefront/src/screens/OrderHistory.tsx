@@ -53,7 +53,7 @@ export default function OrderHistory() {
 
   if (loading) {
     return (
-      <Layout title="The Conservatory" showBack>
+    <Layout title="Daily Grocer" showBack>
         <div className="flex items-center justify-center min-h-[60vh] py-12">
           <InnovativeLoader />
         </div>
@@ -62,7 +62,7 @@ export default function OrderHistory() {
   }
 
   return (
-    <Layout title="The Conservatory" showBack>
+    <Layout title="Daily Grocer" showBack>
       <div className="max-w-4xl mx-auto px-6 py-10 pb-32">
         <div className="mb-10">
           <h2 className="text-4xl font-extrabold tracking-tight mb-2 text-on-surface">Order History</h2>

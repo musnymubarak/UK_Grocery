@@ -57,20 +57,7 @@ export default function StoreSelection() {
   return (
     <Layout title="Stores">
       <div className="max-w-4xl mx-auto px-4 pt-6 pb-32 font-body">
-        {/* Search Bar */}
-        <div className="mb-6 ss-card p-2 flex items-center gap-2">
-          <div className="flex-1 flex items-center bg-surface-container-low rounded-md px-3 py-2">
-            <Search className="text-outline mr-2" size={18} />
-            <input 
-              type="text"
-              placeholder="Postcode e.g. DD2 1TF"
-              className="bg-transparent border-none focus:ring-0 w-full text-on-surface outline-none text-sm font-medium"
-            />
-          </div>
-          <button className="bg-primary text-white px-4 py-2 rounded-md font-bold text-sm hover:bg-primary-container transition-colors whitespace-nowrap">
-            Search
-          </button>
-        </div>
+
 
         <div className="mb-8">
           <h2 className="text-xl font-bold text-on-surface mb-4">Open Stores</h2>
