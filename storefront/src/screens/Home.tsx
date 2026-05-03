@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import InnovativeLoader from '../components/InnovativeLoader';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
 import { useCart } from '../CartContext';
@@ -31,18 +31,32 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [currentBanner, setCurrentBanner] = useState(0);
 
   useEffect(() => {
-    catalogApi.getCategories()
-      .then(res => {
-        setCategories(res.data);
+    Promise.all([
+      catalogApi.getCategories(),
+      catalogApi.getBanners(selectedStore?.id)
+    ])
+      .then(([catRes, bannerRes]) => {
+        setCategories(catRes.data);
+        setBanners(bannerRes.data);
         setLoading(false);
       })
       .catch(() => {
-        setError('Failed to load categories');
+        setError('Failed to load application data');
         setLoading(false);
       });
-  }, []);
+  }, [selectedStore?.id]);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentBanner(prev => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [banners.length]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -117,6 +131,78 @@ export default function Home() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-6 pt-8 pb-32">
+        {/* Hero Banners */}
+        {banners.length > 0 && (
+          <section className="mb-12 relative h-[300px] md:h-[450px] overflow-hidden rounded-3xl group">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={banners[currentBanner].id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="absolute inset-0"
+              >
+                <img 
+                  src={banners[currentBanner].image_url} 
+                  alt={banners[currentBanner].title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex flex-col justify-center px-10 md:px-20 text-white">
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="max-w-lg"
+                  >
+                    <h1 className="text-4xl md:text-6xl font-black mb-4 leading-tight tracking-tighter">
+                      {banners[currentBanner].title}
+                    </h1>
+                    <p className="text-lg md:text-xl text-white/80 mb-8 font-medium">
+                      {banners[currentBanner].subtitle}
+                    </p>
+                    <Link 
+                      to={banners[currentBanner].link_url || '/browse'}
+                      className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20"
+                    >
+                      Shop Now <ArrowRight size={20} />
+                    </Link>
+                  </motion.div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Navigation Arrows */}
+            {banners.length > 1 && (
+              <>
+                <button 
+                  onClick={() => setCurrentBanner(prev => (prev - 1 + banners.length) % banners.length)}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white/20"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button 
+                  onClick={() => setCurrentBanner(prev => (prev + 1) % banners.length)}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white/20"
+                >
+                  <ChevronRight size={24} />
+                </button>
+
+                {/* Indicators */}
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+                  {banners.map((_, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => setCurrentBanner(i)}
+                      className={`h-1.5 rounded-full transition-all ${i === currentBanner ? 'w-8 bg-primary' : 'w-2 bg-white/40'}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
         {/* Search Section */}
         <section className="mb-10">
           <div className="relative group">

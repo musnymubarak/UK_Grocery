@@ -23,6 +23,7 @@ class CustomerService:
             hashed_password=hash_password(data.password),
             full_name=data.full_name,
             phone=data.phone,
+            dob=data.dob,
         )
         db.add(customer)
         await db.flush()
@@ -67,6 +68,8 @@ class CustomerService:
             customer.phone = data.phone
         if data.is_active is not None:
             customer.is_active = data.is_active
+        if data.dob is not None:
+            customer.dob = data.dob
             
         await db.flush()
         await db.refresh(customer)

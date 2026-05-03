@@ -12,6 +12,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [dob, setDob] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -25,7 +26,7 @@ export default function Login() {
     clearError();
     try {
       if (isSignUp) {
-        await register(name, email, password);
+        await register(name, email, password, undefined, dob || undefined);
       } else {
         await login(email, password);
       }
@@ -78,17 +79,29 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               {isSignUp && (
-                <div className="group">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 px-1">Full Name</label>
-                  <input 
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-sm px-4 py-4 text-on-surface placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-highest transition-all outline-none text-sm"
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
+                <>
+                  <div className="group">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 px-1">Full Name</label>
+                    <input 
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      className="w-full bg-surface-container-high border-none rounded-sm px-4 py-4 text-on-surface placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-highest transition-all outline-none text-sm"
+                      placeholder="John Doe"
+                      required
+                    />
+                  </div>
+                  <div className="group">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 px-1">Date of Birth</label>
+                    <input 
+                      type="date"
+                      value={dob}
+                      onChange={e => setDob(e.target.value)}
+                      className="w-full bg-surface-container-high border-none rounded-sm px-4 py-4 text-on-surface placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-highest transition-all outline-none text-sm"
+                      required
+                    />
+                  </div>
+                </>
               )}
               <div className="group">
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 px-1">Email Address</label>

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import InnovativeLoader from '../components/InnovativeLoader';
 import Modal from '../components/Modal';
-import { User, Phone, MapPin, Plus, Trash2, Loader2, Save, Star, Award, Gift, AlertCircle, Wallet, ShieldCheck, Download, UserMinus } from 'lucide-react';
-import { customerAuthApi, rewardsApi, walletApi, gdprApi, getErrorMessage } from '../services/api';
+import { User, Phone, MapPin, Plus, Trash2, Loader2, Save, Star, Award, Gift, AlertCircle, Wallet, ShieldCheck, Download, UserMinus, Copy, Check, Users } from 'lucide-react';
+import { customerAuthApi, rewardsApi, walletApi, gdprApi, referralApi, getErrorMessage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 export default function Profile() {
   const { user, setUser } = useAuth();
@@ -15,6 +16,10 @@ export default function Profile() {
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [addressToDelete, setAddressToDelete] = useState<any>(null);
   const [showForgetConfirm, setShowForgetConfirm] = useState(false);
+  const [referralCode, setReferralCode] = useState<string>('');
+  const [appliedReferral, setAppliedReferral] = useState<string>('');
+  const [isApplyingReferral, setIsApplyingReferral] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   
   // Form fields
   const [name, setName] = useState('');
@@ -27,25 +32,29 @@ export default function Profile() {
   const [postcode, setPostcode] = useState('');
 
   useEffect(() => {
-    customerAuthApi.getProfile()
-      .then(res => {
-        setProfile(res.data);
-        setName(res.data.full_name || '');
-        setPhone(res.data.phone || '');
+    const fetchData = async () => {
+      try {
+        const profileRes = await customerAuthApi.getProfile();
+        setProfile(profileRes.data);
+        setName(profileRes.data.full_name || '');
+        setPhone(profileRes.data.phone || '');
+
+        const [rewardsRes, walletRes, referralRes] = await Promise.all([
+          rewardsApi.myProgress().catch(() => ({ data: { total_spend: 0, events: [] } })),
+          walletApi.getBalance().catch(() => ({ data: { balance: 0 } })),
+          referralApi.getMyCode().catch(() => ({ data: { referral_code: '' } }))
+        ]);
+
+        setRewardsProgress(rewardsRes.data);
+        setWalletBalance(Number(walletRes.data.balance) || 0);
+        setReferralCode(referralRes.data.referral_code);
+      } catch (err) {
+        console.error("Data fetch error:", err);
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
-
-    rewardsApi.myProgress()
-      .then(res => setRewardsProgress(res.data))
-      .catch(err => {
-        console.error("Rewards API error:", err);
-        setRewardsProgress({ total_spend: 0, events: [] });
-      });
-
-    walletApi.getBalance()
-      .then(res => setWalletBalance(Number(res.data.balance) || 0))
-      .catch(err => console.error("Wallet API error:", err));
+      }
+    };
+    fetchData();
   }, []);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -55,12 +64,36 @@ export default function Profile() {
       const res = await customerAuthApi.updateProfile({ name, phone });
       setProfile(res.data);
       if (setUser) setUser({ ...user, name });
-      alert('Profile updated successfully');
+      toast.success('Profile updated successfully');
     } catch (err) {
-      alert(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleApplyReferral = async () => {
+    if (!appliedReferral) return;
+    setIsApplyingReferral(true);
+    try {
+      await referralApi.applyCode(appliedReferral);
+      toast.success('Referral code applied! Your bonus will appear after your first order.');
+      setAppliedReferral('');
+      const res = await customerAuthApi.getProfile();
+      setProfile(res.data);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setIsApplyingReferral(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (!referralCode) return;
+    navigator.clipboard.writeText(referralCode);
+    setCopySuccess(true);
+    toast.success('Code copied to clipboard!');
+    setTimeout(() => setCopySuccess(false), 2000);
   };
 
   const handleAddAddress = async (e: React.FormEvent) => {
@@ -235,6 +268,77 @@ export default function Profile() {
           </section>
         )}
 
+        {/* Referral System */}
+        <section className="bg-surface-container-low rounded-lg p-8 border border-outline-variant/30">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-12 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary">
+              <Users size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold tracking-tight">Refer & Earn</h3>
+              <p className="text-on-surface-variant font-medium">Share the love and get wallet credits</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Share Code */}
+            <div className="space-y-4 p-6 bg-surface-container rounded-2xl border border-outline-variant/50 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                 <Users size={80} />
+              </div>
+              <div className="relative">
+                <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Your Referral Code</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-surface rounded-xl px-4 py-3 font-mono font-bold text-lg text-primary border border-outline-variant">
+                    {referralCode || '-------'}
+                  </div>
+                  <button 
+                    onClick={copyToClipboard}
+                    className={`p-3 rounded-xl transition-all ${copySuccess ? 'bg-success text-white' : 'bg-primary text-white hover:bg-primary-container'}`}
+                  >
+                    {copySuccess ? <Check size={20} /> : <Copy size={20} />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-on-surface-variant mt-3 font-medium">
+                  Share this code with friends. They get a discount on their first order, and you get <strong className="text-on-surface">£5.00</strong> in your wallet!
+                </p>
+              </div>
+            </div>
+
+            {/* Apply Code */}
+            {!profile?.referred_by && (
+              <div className="space-y-4 p-6 bg-surface-container rounded-2xl border border-outline-variant/50">
+                <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Have a code?</p>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    value={appliedReferral}
+                    onChange={e => setAppliedReferral(e.target.value.toUpperCase())}
+                    placeholder="ENTER-CODE"
+                    className="flex-1 bg-surface rounded-xl px-4 py-3 font-mono font-bold border border-outline-variant focus:ring-2 focus:ring-primary/20"
+                  />
+                  <button 
+                    onClick={handleApplyReferral}
+                    disabled={isApplyingReferral || !appliedReferral}
+                    className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2"
+                  >
+                    {isApplyingReferral ? <Loader2 className="animate-spin" size={18} /> : 'Apply'}
+                  </button>
+                </div>
+                <p className="text-[10px] text-on-surface-variant mt-3 font-medium">
+                  If a friend invited you, enter their code here to claim your welcome bonus.
+                </p>
+              </div>
+            )}
+            {profile?.referred_by && (
+              <div className="p-6 bg-success/5 rounded-2xl border border-success/20 flex items-center gap-4 text-success">
+                <Check className="shrink-0" size={24} />
+                <p className="text-sm font-bold">Referral code applied! Enjoy your member benefits.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
         <section className="space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-2xl font-bold tracking-tight">Delivery Addresses</h3>
@@ -328,7 +432,10 @@ export default function Profile() {
               <div className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">Available Balance</div>
               <div className="text-4xl font-black text-primary">£{walletBalance.toFixed(2)}</div>
             </div>
-            <button className="bg-on-surface text-surface px-6 py-2 rounded-lg font-bold hover:opacity-90 transition-opacity">
+            <button 
+              onClick={() => toast.info('Wallet top-up via card is coming soon. Currently, wallet credits are issued for refunds and referrals.')}
+              className="bg-on-surface text-surface px-6 py-2 rounded-lg font-bold hover:opacity-90 transition-opacity"
+            >
               Top Up
             </button>
           </div>

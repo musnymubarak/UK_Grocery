@@ -17,7 +17,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
+  register: (name: string, email: string, password: string, phone?: string, dob?: string) => Promise<void>;
   logout: () => void;
   error: string | null;
   clearError: () => void;
@@ -81,11 +81,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string, phone?: string) => {
+  const register = useCallback(async (name: string, email: string, password: string, phone?: string, dob?: string) => {
     setError(null);
     setIsLoading(true);
     try {
-      await customerAuthApi.register({ full_name: name, email, password, phone });
+      await customerAuthApi.register({ full_name: name, email, password, phone, dob });
       // Auto-login after registration
       await login(email, password);
     } catch (err) {
@@ -97,7 +97,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [login]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await customerAuthApi.logout();
+    } catch (err) {
+      console.error("Backend logout failed:", err);
+    }
     localStorage.removeItem('customer_token');
     localStorage.removeItem('customer_data');
     setCustomer(null);
