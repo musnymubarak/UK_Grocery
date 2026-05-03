@@ -289,6 +289,60 @@ async def list_banners(
     ]
 
 
+@router.get("/offers", summary="Active product offers (public)")
+@cached("storefront:offers:{store_id}", ttl=300)
+async def list_offers(
+    store_id: Optional[UUID] = None,
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Get products with active promotions."""
+    org = await _get_default_org(db)
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    
+    if store_id:
+        query = select(Product, Inventory.quantity).where(
+            Product.organization_id == org.id,
+            Product.is_deleted == False,
+            Product.promo_price != None,
+            (Product.promo_start == None) | (Product.promo_start <= now),
+            (Product.promo_end == None) | (Product.promo_end >= now),
+        ).join(Inventory, (Inventory.product_id == Product.id) & (Inventory.store_id == store_id))
+    else:
+        query = select(Product, literal(0)).where(
+            Product.organization_id == org.id,
+            Product.is_deleted == False,
+            Product.promo_price != None,
+            (Product.promo_start == None) | (Product.promo_start <= now),
+            (Product.promo_end == None) | (Product.promo_end >= now),
+        )
+
+    # limit to 20 deals for the deals page
+    query = query.limit(20)
+    result = await db.execute(query)
+    rows = result.all()
+
+    items = []
+    for p, qty in rows:
+        items.append({
+            "id": str(p.id),
+            "name": p.name,
+            "sku": p.sku,
+            "description": getattr(p, 'description', None),
+            "price": float(p.selling_price),
+            "category_id": str(p.category_id) if p.category_id else None,
+            "image_url": getattr(p, 'image_url', None),
+            "unit": getattr(p, 'unit', None),
+            "stock": qty if qty is not None else 0,
+            "member_price": float(p.member_price) if p.member_price is not None else None,
+            "promo_price": float(p.promo_price) if p.promo_price is not None else None,
+            "promo_start": p.promo_start.isoformat() if p.promo_start else None,
+            "promo_end": p.promo_end.isoformat() if p.promo_end else None,
+        })
+    
+    return items
+
+
 @router.get("/stores/{store_id}/stock", summary="Store stock levels (public)")
 async def get_store_stock(
     store_id: UUID,

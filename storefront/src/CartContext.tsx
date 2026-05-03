@@ -18,6 +18,7 @@ export interface SelectedStore {
   city: string;
   postcode: string;
   openUntil: string;
+  is_open: boolean;
   lat?: number;
   lng?: number;
 }

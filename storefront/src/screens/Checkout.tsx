@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { orderApi, couponApi, customerAuthApi, catalogApi, getErrorMessage } from '../services/api';
 import { useState, useEffect } from 'react';
 import React from 'react';
+import toast from 'react-hot-toast';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -29,10 +30,14 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [addressError, setAddressError] = useState<string | null>(null);
+  const [ageError, setAgeError] = useState<string | null>(null);
   const [isAgeConfirmed, setIsAgeConfirmed] = useState(false);
 
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
 
   // Delivery Fee Calculation
@@ -73,14 +78,14 @@ export default function Checkout() {
         .then(res => {
           setDeliveryInfo({
             deliverable: res.data.deliverable,
-            fee: res.data.delivery_fee,
-            distance: res.data.distance_miles,
+            fee: Number(res.data.delivery_fee || 0),
+            distance: Number(res.data.distance_miles || 0),
             message: res.data.message
           });
           if (!res.data.deliverable) {
-            setError(res.data.message || 'Delivery not available to this location.');
+            setAddressError(res.data.message || 'Delivery not available to this location.');
           } else {
-            setError(null);
+            setAddressError(null);
           }
         })
         .catch(() => {
@@ -99,7 +104,8 @@ export default function Checkout() {
   const handleValidatePromo = async () => {
     if (!promoCode.trim() || !selectedStore) return;
     setIsValidatingPromo(true);
-    setError(null);
+    setPromoError(null);
+    setPromoSuccess(null);
     try {
       const res = await couponApi.validate({
         code: promoCode.trim(),
@@ -108,14 +114,23 @@ export default function Checkout() {
         delivery_fee: deliveryFee
       });
       if (res.data.valid) {
-        setAppliedDiscount(res.data.discount_amount);
+        setAppliedDiscount(Number(res.data.discount_amount || 0));
+        setPromoError(null);
+        const msg = `Promo applied! You saved £${Number(res.data.discount_amount).toFixed(2)}`;
+        setPromoSuccess(msg);
+        toast.success(msg);
       } else {
         setAppliedDiscount(0);
-        setError(res.data.message || 'Invalid promo code');
+        setPromoSuccess(null);
+        const msg = res.data.message || 'Invalid promo code';
+        setPromoError(msg);
+        toast.error(msg);
       }
     } catch (err) {
       setAppliedDiscount(0);
-      setError(getErrorMessage(err, 'Failed to validate promo code'));
+      const msg = getErrorMessage(err, 'Failed to validate promo code');
+      setPromoError(msg);
+      toast.error(msg);
     } finally {
       setIsValidatingPromo(false);
     }
@@ -131,7 +146,9 @@ export default function Checkout() {
       return;
     }
     if (cart.length === 0) {
-      setError('Your cart is empty.');
+      const msg = 'Your cart is empty.';
+      setError(msg);
+      toast.error(msg);
       return;
     }
     if (deliveryInfo && !deliveryInfo.deliverable) {
@@ -140,12 +157,20 @@ export default function Checkout() {
     }
 
     if (selectedStore && !selectedStore.is_open) {
-      setError('Sorry, this store is currently closed and not accepting orders.');
+      const msg = 'Sorry, this store is currently closed and not accepting orders.';
+      setError(msg);
+      toast.error(msg);
       return;
     }
+    
+    setAgeError(null);
+    setAddressError(null);
+    setPromoError(null);
 
     if (hasAgeRestrictedItems && !isAgeConfirmed) {
-      setError('Please confirm your age for restricted items.');
+      const msg = 'Please confirm your age for restricted items.';
+      setAgeError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -168,11 +193,13 @@ export default function Checkout() {
       });
       clearCart();
       const orderId = res.data.id;
+      toast.success('Order placed successfully! Cheerio!');
       navigate(`/tracking/${orderId}`);
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
       const message = typeof detail === 'string' ? detail : getErrorMessage(err, 'Failed to place order. Please try again.');
       setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -182,12 +209,6 @@ export default function Checkout() {
     <Layout title="Checkout" showBack>
       <div className="max-w-2xl mx-auto px-4 md:px-6 pt-6 pb-80 font-body">
         <h2 className="text-2xl font-bold text-on-surface mb-6">Checkout</h2>
-
-        {error && (
-          <div className="mb-6 p-4 bg-error/10 border border-error/20 rounded-md text-error font-medium text-sm">
-            {error}
-          </div>
-        )}
 
         <div className="space-y-6">
           {/* Delivery Address */}
@@ -256,6 +277,9 @@ export default function Checkout() {
                 onChange={e => setNotes(e.target.value)}
               />
             </div>
+            {addressError && (
+              <p className="mt-3 text-xs font-bold text-error bg-error/5 p-2 rounded-lg border border-error/10 uppercase tracking-wider">{addressError}</p>
+            )}
           </section>
 
           {/* Payment Method */}
@@ -320,17 +344,25 @@ export default function Checkout() {
           </section>
 
           {/* Promo Code */}
-          <section className="ss-card p-6 flex gap-2 items-end">
-            <div className="flex-1">
-              <Input label="Promo Code" placeholder="Enter discount code" value={promoCode} onChange={setPromoCode} />
+          <section className="ss-card p-6">
+            <div className="flex gap-2 items-end mb-2">
+              <div className="flex-1">
+                <Input label="Promo Code" placeholder="Enter discount code" value={promoCode} onChange={setPromoCode} />
+              </div>
+              <button 
+                onClick={handleValidatePromo} 
+                disabled={isValidatingPromo || !promoCode}
+                className="h-[46px] px-6 bg-primary text-white font-bold rounded-xl shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50 text-sm active:scale-95"
+              >
+                {isValidatingPromo ? <Loader2 className="animate-spin" size={18} /> : 'Apply'}
+              </button>
             </div>
-            <button 
-              onClick={handleValidatePromo} 
-              disabled={isValidatingPromo || !promoCode}
-              className="h-[38px] px-4 bg-surface-container-high text-on-surface font-bold rounded-md border border-outline-variant/30 hover:bg-surface-container-highest transition-colors disabled:opacity-50 text-sm"
-            >
-              {isValidatingPromo ? '...' : 'Apply'}
-            </button>
+            {promoError && (
+              <p className="text-[10px] font-black text-error uppercase tracking-[0.2em] mt-3 bg-error/5 p-2 rounded-lg border border-error/10 text-center">{promoError}</p>
+            )}
+            {promoSuccess && (
+              <p className="text-[10px] font-black text-success uppercase tracking-[0.2em] mt-3 bg-success/5 p-2 rounded-lg border border-success/10 text-center">{promoSuccess}</p>
+            )}
           </section>
 
           {/* Age Verification */}
@@ -363,6 +395,9 @@ export default function Checkout() {
                   </label>
                 </div>
               </div>
+              {ageError && (
+                <p className="mt-4 text-[10px] font-bold text-error uppercase tracking-wider">{ageError}</p>
+              )}
             </section>
           )}
 
@@ -399,7 +434,13 @@ export default function Checkout() {
               {appliedDiscount > 0 && (
                 <div className="flex justify-between items-center text-success font-medium">
                   <span>Discount Applied</span>
-                  <span>-£{appliedDiscount.toFixed(2)}</span>
+                  <span>-£{Number(appliedDiscount).toFixed(2)}</span>
+                </div>
+              )}
+              
+              {error && (
+                <div className="mt-4 p-4 bg-error/10 border border-error/20 rounded-xl text-error font-bold text-sm text-center">
+                  {error}
                 </div>
               )}
               <div className="pt-3 mt-3 ss-separator flex justify-between items-center">
