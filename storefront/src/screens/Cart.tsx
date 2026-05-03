@@ -1,14 +1,23 @@
 import { motion } from 'motion/react';
 import { useCart } from '../CartContext';
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { Minus, Plus, Trash2, ArrowRight, ShoppingBag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, MapPin } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Cart() {
   const { cart, updateQuantity, removeFromCart, totalPrice } = useCart();
-  const deliveryFee = 2.50;
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const serviceFee = 0.99;
-  const total = totalPrice + deliveryFee + serviceFee;
+
+  const handleCheckout = () => {
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/checkout');
+    } else {
+      navigate('/checkout');
+    }
+  };
 
   return (
     <Layout title="Basket" showBack>
@@ -97,25 +106,24 @@ export default function Cart() {
                   </div>
                   <div className="flex justify-between text-on-surface-variant">
                     <span>Delivery Fee</span>
-                    <span className="font-medium text-on-surface">£{deliveryFee.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-on-surface-variant">
-                    <span>Service Fee</span>
-                    <span className="font-medium text-on-surface">£{serviceFee.toFixed(2)}</span>
+                    <span className="font-medium text-on-surface-variant text-xs flex items-center gap-1">
+                      <MapPin size={12} />
+                      Calculated at checkout
+                    </span>
                   </div>
                 </div>
                 
                 <div className="pt-4 border-t border-outline-variant/30 flex justify-between items-end mb-6">
                   <span className="text-base font-bold">Total</span>
-                  <span className="text-2xl font-extrabold text-primary">£{total.toFixed(2)}</span>
+                  <span className="text-2xl font-extrabold text-primary">£{totalPrice.toFixed(2)}</span>
                 </div>
                 
-                <Link 
-                  to="/checkout"
+                <button 
+                  onClick={handleCheckout}
                   className="w-full bg-primary text-white py-3 rounded-md font-bold text-base shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-primary-container uppercase tracking-wide"
                 >
                   Checkout <ArrowRight size={18} />
-                </Link>
+                </button>
               </div>
             </aside>
           )}
@@ -124,3 +132,4 @@ export default function Cart() {
     </Layout>
   );
 }
+

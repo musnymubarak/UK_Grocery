@@ -4,7 +4,7 @@ import { MapPin, CreditCard, ShieldCheck, Leaf, Lock, ShoppingBasket, Loader2 } 
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderApi, couponApi, customerAuthApi, getErrorMessage } from '../services/api';
+import { orderApi, couponApi, customerAuthApi, catalogApi, getErrorMessage } from '../services/api';
 import { useState, useEffect } from 'react';
 import React from 'react';
 
@@ -34,6 +34,10 @@ export default function Checkout() {
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
 
+  // Delivery Fee Calculation
+  const [deliveryInfo, setDeliveryInfo] = useState<{ deliverable: boolean, fee: number, distance: number, message?: string } | null>(null);
+  const [isCalculatingFee, setIsCalculatingFee] = useState(false);
+
   useEffect(() => {
     if (isAuthenticated) {
       setIsLoadingProfile(true);
@@ -52,9 +56,44 @@ export default function Checkout() {
     }
   }, [isAuthenticated]);
 
-  const deliveryFee = 2.50;
-  const serviceFee = 0.99;
-  const finalTotal = Math.max(0, totalPrice + deliveryFee + serviceFee - appliedDiscount);
+  // Handle distance-based fee calculation
+  useEffect(() => {
+    let activePostcode = '';
+    if (isNewAddress) {
+      if (postcode.length >= 5) activePostcode = postcode;
+    } else {
+      const selected = addresses.find(a => a.id === selectedAddressId);
+      if (selected) activePostcode = selected.postcode;
+    }
+
+    if (activePostcode && selectedStore) {
+      setIsCalculatingFee(true);
+      catalogApi.calculateDistanceFee(selectedStore.id, activePostcode)
+        .then(res => {
+          setDeliveryInfo({
+            deliverable: res.data.deliverable,
+            fee: res.data.delivery_fee,
+            distance: res.data.distance_miles,
+            message: res.data.message
+          });
+          if (!res.data.deliverable) {
+            setError(res.data.message || 'Delivery not available to this location.');
+          } else {
+            setError(null);
+          }
+        })
+        .catch(() => {
+          // Fallback
+          setDeliveryInfo({ deliverable: true, fee: 1.99, distance: 0 });
+        })
+        .finally(() => setIsCalculatingFee(false));
+    } else {
+      setDeliveryInfo(null);
+    }
+  }, [postcode, selectedAddressId, isNewAddress, addresses, selectedStore]);
+
+  const deliveryFee = deliveryInfo?.fee ?? 0;
+  const finalTotal = Math.max(0, totalPrice + deliveryFee - appliedDiscount);
 
   const handleValidatePromo = async () => {
     if (!promoCode.trim() || !selectedStore) return;
@@ -83,7 +122,7 @@ export default function Checkout() {
 
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
-      navigate('/login');
+      navigate('/login?redirect=/checkout');
       return;
     }
     if (!selectedStore) {
@@ -92,6 +131,10 @@ export default function Checkout() {
     }
     if (cart.length === 0) {
       setError('Your cart is empty.');
+      return;
+    }
+    if (deliveryInfo && !deliveryInfo.deliverable) {
+      setError(deliveryInfo.message || 'Sorry, we cannot deliver to this address.');
       return;
     }
 
@@ -104,12 +147,12 @@ export default function Checkout() {
           product_id: item.id,
           quantity: item.quantity,
         })),
-        delivery_address_id: !isNewAddress ? selectedAddressId : undefined,
+        delivery_address_id: (!isNewAddress && selectedAddressId) ? selectedAddressId : undefined,
         delivery_address: isNewAddress ? address : undefined,
-        delivery_postcode: isNewAddress ? postcode : undefined,
+        delivery_postcode: isNewAddress ? (postcode || undefined) : (selectedAddressId ? addresses.find(a => a.id === selectedAddressId)?.postcode : undefined),
         payment_method: paymentMethod,
-        notes,
-        coupon_code: appliedDiscount > 0 ? promoCode.trim().toUpperCase() : undefined,
+        notes: notes || undefined,
+        coupon_code: (appliedDiscount > 0 && promoCode.trim()) ? promoCode.trim().toUpperCase() : undefined,
       });
       clearCart();
       const orderId = res.data.id;
@@ -288,11 +331,25 @@ export default function Checkout() {
               </div>
               <div className="flex justify-between items-center text-on-surface-variant">
                 <span>Delivery Fee</span>
-                <span className="font-medium text-on-surface">£{deliveryFee.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center text-on-surface-variant">
-                <span>Service Fee</span>
-                <span className="font-medium text-on-surface">£{serviceFee.toFixed(2)}</span>
+                <div className="flex flex-col items-end">
+                  {isCalculatingFee ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="animate-spin" size={14} />
+                      <span className="text-xs">Calculating...</span>
+                    </div>
+                  ) : deliveryInfo ? (
+                    <>
+                      <span className="font-medium text-on-surface">£{deliveryFee.toFixed(2)}</span>
+                      {deliveryInfo.distance > 0 && (
+                        <span className="text-[10px] text-primary font-bold uppercase tracking-wider">
+                          {deliveryInfo.distance} miles away
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-xs">Enter address...</span>
+                  )}
+                </div>
               </div>
               {appliedDiscount > 0 && (
                 <div className="flex justify-between items-center text-success font-medium">

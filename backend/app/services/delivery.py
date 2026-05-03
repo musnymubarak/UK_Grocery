@@ -40,6 +40,37 @@ class DeliveryZoneService:
 
     @staticmethod
     async def calculate_fee(db: AsyncSession, data: FeeCalculationRequest) -> FeeCalculationResponse:
+        from app.models.store import Store
+        from app.services.distance import geocode_postcode, get_driving_distance_miles, get_delivery_fee
+        
+        # Prefer distance-based calculation if store has coordinates
+        store = await db.get(Store, data.store_id)
+        if store and store.lat and store.lng:
+            try:
+                cust_lat, cust_lng = await geocode_postcode(data.postcode)
+                distance = await get_driving_distance_miles(
+                    float(store.lat), float(store.lng),
+                    cust_lat, cust_lng
+                )
+                fee = get_delivery_fee(distance)
+                
+                if fee is not None:
+                    # Check for free delivery threshold from store model
+                    if store.free_delivery_threshold > 0 and data.order_total >= store.free_delivery_threshold:
+                        fee = Decimal("0.00")
+                        
+                    return FeeCalculationResponse(
+                        deliverable=True,
+                        fee=fee,
+                        zone_name=f"Distance ({round(distance, 1)} mi)"
+                    )
+                else:
+                    return FeeCalculationResponse(deliverable=False, fee=Decimal("0.00"), zone_name="Too far")
+            except Exception:
+                # Fallback to zone-based if distance fails
+                pass
+
+        # Original Zone-based logic
         # First check explicit exact mapping mappings
         query = select(PostcodeZoneMapping).where(PostcodeZoneMapping.postcode == data.postcode)
         result = await db.execute(query)
@@ -51,7 +82,6 @@ class DeliveryZoneService:
             
         if not zone:
             # Check wildcard prefix matching if there was no explicit mapping
-            # (e.g. prefix match like '400-*')
             zones = await DeliveryZoneService.get_zones(db, data.store_id)
             for z in zones:
                 if not z.is_active:

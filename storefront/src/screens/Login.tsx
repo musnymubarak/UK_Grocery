@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import Layout from '../components/Layout';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,7 +14,10 @@ export default function Login() {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, register, error, clearError } = useAuth();
+
+  const redirectTo = searchParams.get('redirect') || '/browse';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +29,7 @@ export default function Login() {
       } else {
         await login(email, password);
       }
-      navigate('/checkout');
+      navigate(redirectTo);
     } catch {
       // Error is already set in AuthContext
     } finally {
