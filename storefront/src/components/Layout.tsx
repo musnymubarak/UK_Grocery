@@ -48,25 +48,25 @@ export default function Layout({ children, title = 'Daily Grocer', subtitle, sho
   return (
     <div className="min-h-screen bg-surface flex flex-col">
       {/* Top App Bar */}
-      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 py-4 flex justify-between items-center shadow-[0_32px_48px_rgba(30,64,175,0.06)]">
-        <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/20 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center shadow-sm">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           {showBack && (
             <button 
               onClick={() => navigate(-1)}
-              className="p-2 -ml-2 text-primary hover:bg-primary/5 rounded-full transition-colors active:scale-95"
+              className="p-2 -ml-2 text-primary hover:bg-primary/10 rounded-full transition-colors active:scale-95 shrink-0"
             >
-              <ArrowLeft size={24} />
+              <ArrowLeft size={22} />
             </button>
           )}
-          <div className="flex flex-col">
-            {subtitle ? (
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-secondary leading-none mb-1">{subtitle}</span>
-            ) : selectedStore ? (
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-secondary leading-none mb-1">{selectedStore.name}</span>
-            ) : null}
-            <h1 className="text-primary font-headline font-extrabold tracking-tighter text-lg leading-tight">
+          <div className="flex flex-col justify-center min-w-0">
+            <h1 className="text-primary font-headline font-bold text-lg leading-tight truncate">
               {title}
             </h1>
+            {subtitle ? (
+              <span className="text-[11px] font-medium text-on-surface-variant mt-0.5 truncate">{subtitle}</span>
+            ) : selectedStore ? (
+              <span className="text-[11px] font-medium text-on-surface-variant mt-0.5 truncate">{selectedStore.name}</span>
+            ) : null}
           </div>
         </div>
 
