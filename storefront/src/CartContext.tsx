@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export interface CartItem {
   id: string;
@@ -17,6 +17,8 @@ export interface SelectedStore {
   city: string;
   postcode: string;
   openUntil: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface CartContextType {
@@ -31,11 +33,37 @@ interface CartContextType {
   setSelectedStore: (store: SelectedStore) => void;
 }
 
+const CART_KEY = 'dg_cart';
+const STORE_KEY = 'dg_store';
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+function loadFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [selectedStore, setSelectedStore] = useState<SelectedStore | null>(null);
+  const [cart, setCart] = useState<CartItem[]>(() => loadFromStorage(CART_KEY, []));
+  const [selectedStore, setSelectedStore] = useState<SelectedStore | null>(() => loadFromStorage(STORE_KEY, null));
+
+  // Persist cart to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  }, [cart]);
+
+  // Persist selected store to localStorage on every change
+  useEffect(() => {
+    if (selectedStore) {
+      localStorage.setItem(STORE_KEY, JSON.stringify(selectedStore));
+    } else {
+      localStorage.removeItem(STORE_KEY);
+    }
+  }, [selectedStore]);
 
   const addToCart = (item: CartItem) => {
     setCart(prev => {
@@ -63,7 +91,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }).filter(item => item.quantity > 0));
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    localStorage.removeItem(CART_KEY);
+  };
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);

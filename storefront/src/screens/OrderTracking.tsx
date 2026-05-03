@@ -326,12 +326,7 @@ export default function OrderTracking() {
                   <span>Subtotal</span>
                   <span>£{(order.items?.reduce((acc: number, item: any) => acc + Number(item.total), 0) || 0).toFixed(2)}</span>
                 </div>
-                {Number(order.service_fee || 0) > 0 && (
-                  <div className="flex justify-between items-center text-secondary">
-                    <span>Service Fee</span>
-                    <span>£{Number(order.service_fee).toFixed(2)}</span>
-                  </div>
-                )}
+
                 <div className="flex justify-between items-center text-secondary">
                   <span>Delivery Fee</span>
                   <span>£{Number(order.delivery_fee || 0).toFixed(2)}</span>

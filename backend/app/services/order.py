@@ -95,12 +95,14 @@ class OrderService:
 
         # Handle delivery address
         delivery_instr = data.delivery_instructions or ""
+        captured_postcode = data.delivery_postcode
         
         if data.delivery_address_id:
             db_addr = await self.db.get(CustomerAddress, data.delivery_address_id)
             if not db_addr or db_addr.customer_id != customer_id:
                 raise ValidationException("Invalid delivery address")
             
+            captured_postcode = db_addr.postcode
             addr_str = f"Saved Address: {db_addr.street}, {db_addr.city}, {db_addr.postcode}"
             delivery_instr = f"{addr_str}\n{delivery_instr}".strip()
             
@@ -123,7 +125,7 @@ class OrderService:
             customer_id=customer_id,
             delivery_address_id=data.delivery_address_id,
             delivery_address=data.delivery_address,
-            delivery_postcode=data.delivery_postcode,
+            delivery_postcode=captured_postcode,
             order_number=self._generate_order_number(),
             status="placed",
             payment_method=pm,
@@ -135,7 +137,7 @@ class OrderService:
             order_type=data.order_type,
             delivery_fee=Decimal("0.00"),
             discount=Decimal("0.00"),
-            service_fee=Decimal("0.50"),
+            service_fee=Decimal("0.00"),
             tip_amount=Decimal("0.00"),
         )
         self.db.add(order)

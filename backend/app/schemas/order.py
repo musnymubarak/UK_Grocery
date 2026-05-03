@@ -18,9 +18,9 @@ class OrderItemResponse(OrderItemBase):
     product_name: str
     product_sku: Optional[str] = None
     product_image_url: Optional[str] = None
-    unit_price: Decimal
-    tax_amount: Decimal
-    total: Decimal
+    unit_price: Decimal = Decimal("0.00")
+    tax_amount: Decimal = Decimal("0.00")
+    total: Decimal = Decimal("0.00")
     created_at: datetime
     updated_at: datetime
     is_substituted: bool = False
@@ -70,16 +70,13 @@ class OrderResponse(OrderBase):
     refund_status: Optional[str] = None
     
     # shop.md extensions
-    order_type: str
-    service_fee: Decimal
-    tip_amount: Decimal
+    service_fee: Decimal = Decimal("0.00")
+    tip_amount: Decimal = Decimal("0.00")
     coupon_code: Optional[str] = None
     confirmed_at: Optional[datetime] = None
     picked_at: Optional[datetime] = None
     dispatched_at: Optional[datetime] = None
     cancel_window_expires_at: Optional[datetime] = None
-    scheduled_delivery_start: Optional[datetime] = None
-    scheduled_delivery_end: Optional[datetime] = None
     rejected_reason: Optional[str] = None
     items: List[OrderItemResponse] = []
     customer: Optional[CustomerResponse] = None

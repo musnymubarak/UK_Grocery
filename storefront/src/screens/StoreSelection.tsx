@@ -15,6 +15,8 @@ interface StoreData {
   postcode?: string;
   phone?: string;
   is_active?: boolean;
+  lat?: number;
+  lng?: number;
 }
 
 export default function StoreSelection() {
@@ -40,6 +42,8 @@ export default function StoreSelection() {
       city: store.city || '',
       postcode: store.postcode || '',
       openUntil: '10 PM',
+      lat: store.lat,
+      lng: store.lng,
     });
     navigate('/browse');
   };

@@ -242,6 +242,10 @@ async def list_stores(
             "is_open": s.is_open,
             "is_surge_active": bool(s.is_surge_active) if s.is_surge_active is not None else False,
             "surge_multiplier": float(s.surge_multiplier) if s.surge_multiplier is not None else 1.0,
+
+            # Coordinates for distance calculation
+            "lat": float(s.lat) if s.lat else None,
+            "lng": float(s.lng) if s.lng else None,
         }
         for s in stores
     ]

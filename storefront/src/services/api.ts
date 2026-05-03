@@ -65,6 +65,9 @@ export const catalogApi = {
     store_id: string;
     postcode: string;
   }) => api.post('/delivery/calculate-fee', data),
+
+  calculateDistanceFee: (store_id: string, postcode: string) => 
+    api.post('/delivery/calculate-distance-fee', null, { params: { store_id, postcode } }),
 };
 
 // ─── Customer Auth Endpoints ──────────────────────────────────────
