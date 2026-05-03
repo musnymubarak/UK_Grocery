@@ -8,6 +8,7 @@ export interface CartItem {
   image: string;
   description: string;
   unit: string;
+  is_age_restricted?: boolean;
 }
 
 export interface SelectedStore {
@@ -29,6 +30,7 @@ interface CartContextType {
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
+  hasAgeRestrictedItems: boolean;
   selectedStore: SelectedStore | null;
   setSelectedStore: (store: SelectedStore) => void;
 }
@@ -98,9 +100,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const hasAgeRestrictedItems = cart.some(item => item.is_age_restricted);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice, selectedStore, setSelectedStore }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice, hasAgeRestrictedItems, selectedStore, setSelectedStore }}>
       {children}
     </CartContext.Provider>
   );

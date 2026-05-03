@@ -93,6 +93,18 @@ class OrderService:
         if not data.items:
             raise ValidationException("Order must have at least one item")
 
+        # Age Restriction Validation
+        from app.models.product import Product
+        has_age_restricted = False
+        for item_data in data.items:
+            product = await self.db.get(Product, item_data.product_id)
+            if product and product.is_age_restricted:
+                has_age_restricted = True
+                break
+        
+        if has_age_restricted and not data.age_confirmed:
+            raise ValidationException("Age confirmation is required for restricted items.")
+
         # Handle delivery address
         delivery_instr = data.delivery_instructions or ""
         captured_postcode = data.delivery_postcode

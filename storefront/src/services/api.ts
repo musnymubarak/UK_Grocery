@@ -68,6 +68,10 @@ export const catalogApi = {
 
   calculateDistanceFee: (store_id: string, postcode: string) => 
     api.post('/delivery/calculate-distance-fee', null, { params: { store_id, postcode } }),
+
+  getBanners: (storeId?: string) => api.get('/storefront/banners', { params: { store_id: storeId } }),
+
+  getOffers: (storeId?: string) => api.get('/storefront/offers', { params: { store_id: storeId } }),
 };
 
 // ─── Customer Auth Endpoints ──────────────────────────────────────
@@ -78,12 +82,15 @@ export const customerAuthApi = {
     email: string;
     password: string;
     phone?: string;
+    dob?: string;
   }) => api.post('/customers/register', data),
 
   login: (data: {
     email: string;
     password: string;
   }) => api.post('/customers/login', data),
+
+  logout: () => api.post('/customers/logout'),
 
   getProfile: () => api.get('/customers/me'),
 
@@ -130,6 +137,7 @@ export const orderApi = {
     payment_method?: string;
     coupon_code?: string;
     notes?: string;
+    age_confirmed?: boolean;
   }) => api.post(`/orders/checkout?store_id=${storeId}`, data),
 
   myOrders: () => api.get('/orders/me'),
@@ -148,6 +156,11 @@ export const couponApi = {
 
 export const rewardsApi = {
   myProgress: () => api.get('/rewards/me/progress'),
+};
+
+export const referralApi = {
+  getMyCode: () => api.get('/customers/me/referral-code'),
+  applyCode: (code: string) => api.post('/customers/me/apply-referral', null, { params: { code } }),
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────

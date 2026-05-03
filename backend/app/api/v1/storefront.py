@@ -327,3 +327,42 @@ async def get_store_stock(
         }
         for p, qty in rows
     ]
+
+
+@router.get("/offers", summary="Current offers & deals (public)")
+async def list_offers(
+    store_id: Optional[UUID] = None,
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Get products with active promotions."""
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    
+    org = await _get_default_org(db)
+    
+    query = select(Product).where(
+        Product.organization_id == org.id,
+        Product.is_deleted == False,
+        Product.promo_price != None,
+        (Product.promo_start == None) | (Product.promo_start <= now),
+        (Product.promo_end == None) | (Product.promo_end >= now),
+    )
+    
+    if store_id:
+        query = query.join(Inventory, (Inventory.product_id == Product.id) & (Inventory.store_id == store_id))
+    
+    query = query.order_by(Product.name).limit(50)
+    result = await db.execute(query)
+    products = result.scalars().all()
+
+    return [
+        {
+            "id": str(p.id),
+            "name": p.name,
+            "price": float(p.selling_price),
+            "promo_price": float(p.promo_price),
+            "image_url": getattr(p, 'image_url', None),
+            "category_id": str(p.category_id) if p.category_id else None,
+        }
+        for p in products
+    ]

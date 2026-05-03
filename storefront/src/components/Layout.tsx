@@ -69,6 +69,15 @@ export default function Layout({ children, title = 'Daily Grocer', subtitle, sho
             </h1>
           </div>
         </div>
+
+        {/* Desktop Navigation Menu */}
+        <nav className="hidden md:flex items-center gap-8">
+          <DesktopNavLink to="/browse" label="Aisles" active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')} />
+          <DesktopNavLink to="/stores" label="Stores" active={location.pathname === '/stores'} />
+          <DesktopNavLink to="/offers" label="Offers" active={location.pathname === '/offers'} />
+          <DesktopNavLink to="/history" label="Orders" active={location.pathname === '/history' || location.pathname.startsWith('/tracking') || location.pathname === '/success'} />
+        </nav>
+
         <div className="flex items-center gap-2">
           {isAuthenticated ? (
             <Link to="/profile" className="flex items-center gap-2 text-sm font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-full transition-colors">
@@ -108,14 +117,32 @@ export default function Layout({ children, title = 'Daily Grocer', subtitle, sho
         </div>
       </header>
 
-      {/* Main Content - pb-32 ensures content clears the fixed bottom nav */}
-      <main className="flex-grow pb-32">
+      {/* Main Content - pb-32 ensures content clears the fixed bottom nav on mobile */}
+      <main className="flex-grow pb-32 md:pb-0">
         {children}
+
+        {/* UK Compliance Footer */}
+        <footer className="mt-20 border-t border-outline-variant/10 px-6 py-12 bg-surface-container-lowest/50 text-center">
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex items-center gap-2 text-primary font-black tracking-tighter opacity-40">
+              <Leaf size={20} />
+              <span>DAILY GROCER</span>
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+              <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+              <Link to="/cookies" className="hover:text-primary transition-colors">Cookies Policy</Link>
+            </div>
+            <p className="text-[10px] font-medium text-on-surface-variant/40 max-w-md">
+              © 2026 Daily Grocer Ltd. Registered in England & Wales. Delivery partners operating Challenge 25 policy.
+            </p>
+          </div>
+        </footer>
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation (Mobile Only) */}
       {!hideBottomNav && (
-        <nav className="fixed bottom-0 left-0 w-full bg-surface/80 backdrop-blur-2xl border-t border-outline-variant/10 px-4 pb-8 pt-4 flex justify-around items-center rounded-t-[2.5rem] z-50 shadow-[0_-12px_40px_rgba(0,0,0,0.06)]">
+        <nav className="fixed bottom-0 left-0 w-full bg-surface/80 backdrop-blur-2xl border-t border-outline-variant/10 px-4 pb-8 pt-4 flex justify-around items-center rounded-t-[2.5rem] z-50 shadow-[0_-12px_40px_rgba(0,0,0,0.06)] md:hidden">
           <NavLink to="/browse" icon={<LayoutGrid size={24} />} label="Aisles" active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')} />
           <NavLink to="/stores" icon={<MapPin size={24} />} label="Stores" active={location.pathname === '/stores'} />
           <NavLink to="/offers" icon={<Tag size={24} />} label="Offers" active={location.pathname === '/offers'} />
@@ -153,6 +180,25 @@ export default function Layout({ children, title = 'Daily Grocer', subtitle, sho
         </div>
       </Modal>
     </div>
+  );
+}
+
+function DesktopNavLink({ to, label, active }: { to: string; label: string; active: boolean }) {
+  return (
+    <Link 
+      to={to} 
+      className={`relative py-2 text-sm font-black uppercase tracking-widest transition-colors ${
+        active ? 'text-primary' : 'text-secondary hover:text-primary'
+      }`}
+    >
+      {label}
+      {active && (
+        <motion.div 
+          layoutId="activeNav"
+          className="absolute -bottom-[21px] left-0 right-0 h-1 bg-primary rounded-t-full"
+        />
+      )}
+    </Link>
   );
 }
 

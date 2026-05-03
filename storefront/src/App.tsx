@@ -18,6 +18,10 @@ import Offers from './screens/Offers';
 import Login from './screens/Login';
 import ProductDetails from './screens/ProductDetails';
 import RefundStatus from './screens/RefundStatus';
+import PrivacyPolicy from './screens/PrivacyPolicy';
+import TermsOfService from './screens/TermsOfService';
+import CookiePolicy from './screens/CookiePolicy';
+import CookieBanner from './components/CookieBanner';
 import { AnimatePresence } from 'motion/react';
 
 function AnimatedRoutes() {
@@ -40,6 +44,9 @@ function AnimatedRoutes() {
         <Route path="/offers" element={<Offers />} />
         <Route path="/stores" element={<StoreSelection />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
       </Routes>
     </AnimatePresence>
   );
@@ -51,6 +58,7 @@ export default function App() {
       <CartProvider>
         <Router>
           <AnimatedRoutes />
+          <CookieBanner />
         </Router>
       </CartProvider>
     </AuthProvider>

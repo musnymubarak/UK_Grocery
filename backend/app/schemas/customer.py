@@ -37,6 +37,7 @@ class CustomerBase(BaseModel):
 
 class CustomerCreate(CustomerBase):
     password: str
+    dob: Optional[date] = None
 
 class CustomerUpdate(BaseModel):
     full_name: Optional[str] = None

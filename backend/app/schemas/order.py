@@ -39,6 +39,7 @@ class OrderBase(BaseModel):
     delivery_instructions: Optional[str] = None
     scheduled_delivery_start: Optional[datetime] = None
     scheduled_delivery_end: Optional[datetime] = None
+    age_confirmed: bool = False
 
 class OrderCreate(OrderBase):
     items: List[OrderItemCreate]

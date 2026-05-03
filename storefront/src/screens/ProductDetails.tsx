@@ -5,7 +5,7 @@ import InnovativeLoader from '../components/InnovativeLoader';
 import { catalogApi, reviewApi, getErrorMessage } from '../services/api';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
-import { Loader2, Star, ShoppingBasket, MessageSquare, ShieldCheck, Truck, Plus, Minus } from 'lucide-react';
+import { Loader2, Star, ShoppingBasket, MessageSquare, ShieldCheck, Truck, Plus, Minus, AlertCircle, Leaf, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import toast from 'react-hot-toast';
 
@@ -148,7 +148,8 @@ export default function ProductDetails() {
                     image: product.image_url,
                     unit: product.unit || 'each',
                     quantity: 1,
-                    description: product.description || ''
+                    description: product.description || '',
+                    is_age_restricted: product.is_age_restricted
                   });
                   toast.success('Added to basket');
                 }}
@@ -168,6 +169,61 @@ export default function ProductDetails() {
               {product.description || 'No detailed description available for this product.'}
             </p>
           </div>
+
+          {/* Allergen & Nutritional Info */}
+          {(product.allergens?.length > 0 || product.nutritional_info) && (
+            <div className="mb-8 space-y-6">
+              {product.allergens && product.allergens.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    <AlertCircle className="text-error" size={20} />
+                    Allergen Information
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {product.allergens.map((allergen: string) => (
+                      <span key={allergen} className="px-3 py-1 bg-error/10 text-error text-xs font-bold rounded-full uppercase tracking-wider">
+                        {allergen}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {product.nutritional_info && (
+                <div>
+                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    <Leaf className="text-primary" size={20} />
+                    Nutritional Facts
+                  </h3>
+                  <div className="bg-surface-container-low rounded-xl border border-outline-variant/30 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-surface-container-high border-b border-outline-variant/30 text-on-surface-variant">
+                          <th className="px-4 py-2 text-left font-bold uppercase tracking-widest text-[10px]">Component</th>
+                          <th className="px-4 py-2 text-right font-bold uppercase tracking-widest text-[10px]">Per 100g/ml</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/20">
+                        {Object.entries(product.nutritional_info).map(([key, value]) => (
+                          <tr key={key}>
+                            <td className="px-4 py-2 text-on-surface-variant font-medium capitalize">{key.replace(/_/g, ' ')}</td>
+                            <td className="px-4 py-2 text-right font-bold text-on-surface">{String(value)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
+                <Info className="text-amber-600 shrink-0" size={20} />
+                <p className="text-xs text-amber-800 leading-relaxed italic">
+                  <strong>Disclaimer:</strong> While we aim to provide accurate product information, it is provided by manufacturers and not verified by us. <strong>Always check the physical product label</strong> for the most accurate allergen and nutritional information before consumption.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Trust Badges */}
           <div className="flex flex-col gap-3 mb-10 bg-surface-container-low p-4 rounded-lg border border-outline-variant/30">

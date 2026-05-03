@@ -18,6 +18,7 @@ interface Product {
   category_name?: string;
   description?: string;
   stock?: number;
+  is_age_restricted?: boolean;
 }
 
 export default function Aisle() {
@@ -98,6 +99,7 @@ export default function Aisle() {
               description: product.description || '',
               category: product.category_id || '',
               stock: product.stock,
+              is_age_restricted: product.is_age_restricted
             }} />
           ))}
         </div>

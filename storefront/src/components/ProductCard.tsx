@@ -13,6 +13,7 @@ interface ProductCardProduct {
   description?: string;
   category?: string;
   stock?: number;
+  is_age_restricted?: boolean;
 }
 
 interface ProductCardProps {
@@ -88,6 +89,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     description: product.description || '',
                     unit: product.unit || 'each',
                     quantity: 1,
+                    is_age_restricted: product.is_age_restricted
                   });
                 }}
                 className="bg-primary text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform hover:bg-primary-container"

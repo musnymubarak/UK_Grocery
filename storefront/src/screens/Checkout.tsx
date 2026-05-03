@@ -10,7 +10,7 @@ import React from 'react';
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { cart, totalPrice, clearCart, selectedStore } = useCart();
+  const { cart, totalPrice, clearCart, selectedStore, hasAgeRestrictedItems } = useCart();
   const { isAuthenticated } = useAuth();
   
   // States
@@ -29,6 +29,7 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAgeConfirmed, setIsAgeConfirmed] = useState(false);
 
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
@@ -138,6 +139,16 @@ export default function Checkout() {
       return;
     }
 
+    if (selectedStore && !selectedStore.is_open) {
+      setError('Sorry, this store is currently closed and not accepting orders.');
+      return;
+    }
+
+    if (hasAgeRestrictedItems && !isAgeConfirmed) {
+      setError('Please confirm your age for restricted items.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -153,6 +164,7 @@ export default function Checkout() {
         payment_method: paymentMethod,
         notes: notes || undefined,
         coupon_code: (appliedDiscount > 0 && promoCode.trim()) ? promoCode.trim().toUpperCase() : undefined,
+        age_confirmed: hasAgeRestrictedItems ? isAgeConfirmed : undefined,
       });
       clearCart();
       const orderId = res.data.id;
@@ -320,6 +332,39 @@ export default function Checkout() {
               {isValidatingPromo ? '...' : 'Apply'}
             </button>
           </section>
+
+          {/* Age Verification */}
+          {hasAgeRestrictedItems && (
+            <section className="ss-card p-6 border-2 border-primary/20 bg-primary/5">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-primary/10 text-primary rounded-full shrink-0">
+                  <ShieldCheck size={24} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-primary mb-1">Age Restricted Items</h3>
+                  <p className="text-sm text-on-surface-variant mb-4">
+                    Your basket contains items that require you to be 18 or older. You will be asked for valid ID upon delivery.
+                  </p>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+                      isAgeConfirmed ? 'bg-primary border-primary' : 'border-outline group-hover:border-primary'
+                    }`}>
+                      {isAgeConfirmed && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      className="hidden" 
+                      checked={isAgeConfirmed} 
+                      onChange={() => setIsAgeConfirmed(!isAgeConfirmed)} 
+                    />
+                    <span className="text-sm font-bold text-on-surface">
+                      I confirm I am 18+ years old
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Summary */}
           <section className="ss-card p-6">

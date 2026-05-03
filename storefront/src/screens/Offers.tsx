@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import InnovativeLoader from '../components/InnovativeLoader';
 import { Tag, Ticket, Percent, Sparkles, Gift, Clock, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { couponApi, rewardsApi } from '../services/api';
+import { couponApi, rewardsApi, catalogApi } from '../services/api';
+import { useCart } from '../CartContext';
 
 export default function Offers() {
   const [loading, setLoading] = useState(true);
   const [rewards, setRewards] = useState<any>(null);
+  const [promoProducts, setPromoProducts] = useState<any[]>([]);
+  const { selectedStore } = useCart();
 
   useEffect(() => {
-    rewardsApi.myProgress()
-        .then(res => setRewards(res.data))
-        .catch(() => setRewards({ total_spend: 0, events: [] }))
-        .finally(() => setLoading(false));
-  }, []);
+    Promise.all([
+      rewardsApi.myProgress().catch(() => ({ data: { total_spend: 0, events: [] } })),
+      catalogApi.getOffers(selectedStore?.id).catch(() => ({ data: [] }))
+    ])
+    .then(([rewardsRes, offersRes]) => {
+      setRewards(rewardsRes.data);
+      setPromoProducts(offersRes.data);
+    })
+    .finally(() => setLoading(false));
+  }, [selectedStore?.id]);
 
   const featuredOffers = [
     {
@@ -130,6 +139,39 @@ export default function Offers() {
             </div>
           </div>
         </section>
+
+        {/* Dynamic Promotions */}
+        {promoProducts.length > 0 && (
+          <section className="space-y-6">
+            <div className="flex justify-between items-end">
+              <h3 className="text-2xl font-bold tracking-tight">Active Deals</h3>
+              <p className="text-primary text-sm font-bold">Limited time only</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {promoProducts.map((product) => (
+                <Link to={`/product/${product.id}`} key={product.id} className="group">
+                  <div className="bg-surface-container-low rounded-2xl border border-outline-variant/30 p-4 transition-all hover:shadow-xl hover:border-primary/30">
+                    <div className="aspect-square rounded-xl overflow-hidden mb-4 relative">
+                      <img 
+                        src={product.image_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400'} 
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute top-2 left-2 bg-error text-white text-[10px] font-black px-2 py-1 rounded-full shadow-lg">
+                        SAVE £{(product.price - product.promo_price).toFixed(2)}
+                      </div>
+                    </div>
+                    <h4 className="font-bold text-sm text-on-surface line-clamp-1 mb-1">{product.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <span className="text-primary font-black">£{product.promo_price.toFixed(2)}</span>
+                      <span className="text-on-surface-variant text-xs line-through opacity-50">£{product.price.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Coupon List */}
         <section className="space-y-6">
