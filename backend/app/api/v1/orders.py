@@ -153,10 +153,9 @@ async def reject_substitutions_at_door(
         db.add(refund_item)
         
         await refund_service.process_refund_item(
-            parent_refund=parent_refund,
-            refund_item=refund_item,
+            refund_item_id=refund_item.id,
             status="approved",
-            user=current_user
+            admin_user=current_user
         )
         
     return await order_service.get_order(order_id)

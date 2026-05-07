@@ -10,6 +10,18 @@ from app.core.database import Base, TimestampMixin
 class Refund(TimestampMixin, Base):
     __tablename__ = "refunds"
 
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    store_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("stores.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     order_id = Column(
         UUID(as_uuid=True),
         ForeignKey("orders.id", ondelete="CASCADE"),

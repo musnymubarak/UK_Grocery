@@ -45,6 +45,8 @@ class RefundService:
 
         # Create parent Refund
         refund = Refund(
+            organization_id=order.organization_id,
+            store_id=order.store_id,
             order_id=order_id,
             customer_id=customer_id,
             destination=destination,
@@ -166,7 +168,7 @@ class RefundService:
         webhook_svc = WebhookService(self.db)
         await webhook_svc.dispatch(
             org_id=parent_refund.organization_id,
-            event=f"refund.item.{status}",
+            event_type=f"refund.item.{status}",
             payload={
                 "refund_id": str(parent_refund.id),
                 "refund_item_id": str(refund_item.id),
@@ -261,6 +263,8 @@ class RefundService:
         
         # 2. Create Parent Refund (Auto-approved)
         refund = Refund(
+            organization_id=order.organization_id,
+            store_id=order.store_id,
             order_id=order.id,
             customer_id=order.customer_id,
             destination=destination,
