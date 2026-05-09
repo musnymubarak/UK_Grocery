@@ -580,7 +580,7 @@ export default function ProductsPage() {
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                         fontFamily: 'monospace', color: '#000', fontSize: '0.65rem', textAlign: 'center',
                                     }}>
-                                        <div style={{ fontSize: '0.55rem', fontWeight: 500, opacity: 0.7 }}>RetailPOS</div>
+                                        <div style={{ fontSize: '0.55rem', fontWeight: 500, opacity: 0.7 }}>Daily Grocer</div>
                                         <div style={{ fontSize: '0.7rem', fontWeight: 600, margin: '2px 0' }}>{p.name}</div>
                                         <div style={{ fontSize: '1rem', fontWeight: 800 }}>£{Number(p.selling_price).toFixed(2)}</div>
                                         {p.barcode && (
@@ -604,7 +604,7 @@ export default function ProductsPage() {
                                     <div key={`${p.id}-${qi}`} className="single-label" style={{
                                         width: labelDims[labelSize].w, height: labelDims[labelSize].h,
                                     }}>
-                                        <div style={{ fontSize: '7px', fontWeight: 500, opacity: 0.7 }}>RetailPOS</div>
+                                        <div style={{ fontSize: '7px', fontWeight: 500, opacity: 0.7 }}>Daily Grocer</div>
                                         <div style={{ fontSize: '9px', fontWeight: 600, margin: '1px 0' }}>{p.name}</div>
                                         <div style={{ fontSize: '14px', fontWeight: 800 }}>£{Number(p.selling_price).toFixed(2)}</div>
                                         {p.barcode && (

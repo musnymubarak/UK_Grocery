@@ -3,7 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: uk_grocery_db
+    container_name: daily_grocer_db
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-pos_user}
@@ -16,7 +16,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: uk_grocery_redis
+    container_name: daily_grocer_redis
     restart: always
     networks:
       - app-network
@@ -25,7 +25,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: uk_grocery_backend
+    container_name: daily_grocer_backend
     restart: always
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-pos_user}:${POSTGRES_PASSWORD:-pos_password}@db:5432/${POSTGRES_DB:-pos_db}
@@ -47,7 +47,7 @@ services:
     build:
       context: ./storefront
       dockerfile: Dockerfile
-    container_name: uk_grocery_storefront
+    container_name: daily_grocer_storefront
     restart: always
     networks:
       - app-network
@@ -56,7 +56,7 @@ services:
     build:
       context: ./admin
       dockerfile: Dockerfile
-    container_name: uk_grocery_admin
+    container_name: daily_grocer_admin
     restart: always
     networks:
       - app-network
@@ -65,7 +65,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
-    container_name: uk_grocery_nginx
+    container_name: daily_grocer_nginx
     restart: always
     ports:
       - "8000:80"

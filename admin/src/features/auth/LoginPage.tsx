@@ -41,7 +41,7 @@ export default function LoginPage() {
                         <ShoppingBag size={28} />
                     </div>
                     <h2>Welcome Back</h2>
-                    <p>Sign in to your RetailPOS account</p>
+                    <p>Sign in to your Daily Grocer account</p>
                 </div>
 
                 {error && <div className="login-error">{error}</div>}

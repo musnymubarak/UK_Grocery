@@ -117,39 +117,12 @@ services:
   # Certbot for SSL certificate management
   certbot:
     image: certbot/certbot
-    container_name: grocery_certbot
+    container_name: daily_grocer_certbot
     volumes:
       - certbot_certs:/etc/letsencrypt
       - certbot_www:/var/www/certbot
 
-  # Database backup service
-  db-backup:
-    build:
-      context: ./backup
-      dockerfile: Dockerfile
-    container_name: grocery_db_backup
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      AZURE_STORAGE_ACCOUNT: ${AZURE_STORAGE_ACCOUNT}
-      AZURE_STORAGE_KEY: ${AZURE_STORAGE_KEY}
-      AZURE_STORAGE_CONTAINER: ${AZURE_STORAGE_CONTAINER}
-      HEALTHCHECKS_PING_URL: ${HEALTHCHECKS_PING_URL}
-    volumes:
-      - postgres_backups:/backups
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - app-network
-    healthcheck:
-      test: [ "CMD", "pgrep", "crond" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+
 
 volumes:
   postgres_backups:

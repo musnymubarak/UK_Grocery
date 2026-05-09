@@ -8,7 +8,7 @@ Usage:
     python seed.py
 
 All seeded users share the password: password123
-Admin login: admin@retailpos.com / password123
+Admin login: admin@dailygrocer.co.uk / password123
 """
 
 import uuid
@@ -79,11 +79,11 @@ def seq_dt(day: int, hour: int = 9) -> datetime:
 # Data definitions
 # ---------------------------------------------------------------------------
 STORE_DATA = [
-    {"name": "Downtown Central",    "code": "DTC", "city": "Mumbai",   "state": "Maharashtra",   "country": "India", "address": "12 MG Road, Fort",           "phone": "+91-22-12345678", "email": "downtown@retailpos.com"},
-    {"name": "Mall of India Store", "code": "MOI", "city": "Noida",    "state": "Uttar Pradesh", "country": "India", "address": "Mall of India, Sector 18",   "phone": "+91-120-2345678", "email": "moi@retailpos.com"},
-    {"name": "Tech Park Outlet",    "code": "TPO", "city": "Bangalore", "state": "Karnataka",    "country": "India", "address": "Manyata Tech Park, Block C", "phone": "+91-80-34567890", "email": "techpark@retailpos.com"},
-    {"name": "Lake City Store",     "code": "LCS", "city": "Udaipur",  "state": "Rajasthan",     "country": "India", "address": "45 Lake Palace Road",        "phone": "+91-294-4567890", "email": "lakecity@retailpos.com"},
-    {"name": "Heritage Market",     "code": "HMK", "city": "Jaipur",   "state": "Rajasthan",     "country": "India", "address": "Johari Bazaar, Old City",    "phone": "+91-141-5678901", "email": "heritage@retailpos.com"},
+    {"name": "Downtown Central",    "code": "DTC", "city": "Mumbai",   "state": "Maharashtra",   "country": "India", "address": "12 MG Road, Fort",           "phone": "+91-22-12345678", "email": "downtown@dailygrocer.co.uk"},
+    {"name": "Mall of India Store", "code": "MOI", "city": "Noida",    "state": "Uttar Pradesh", "country": "India", "address": "Mall of India, Sector 18",   "phone": "+91-120-2345678", "email": "moi@dailygrocer.co.uk"},
+    {"name": "Tech Park Outlet",    "code": "TPO", "city": "Bangalore", "state": "Karnataka",    "country": "India", "address": "Manyata Tech Park, Block C", "phone": "+91-80-34567890", "email": "techpark@dailygrocer.co.uk"},
+    {"name": "Lake City Store",     "code": "LCS", "city": "Udaipur",  "state": "Rajasthan",     "country": "India", "address": "45 Lake Palace Road",        "phone": "+91-294-4567890", "email": "lakecity@dailygrocer.co.uk"},
+    {"name": "Heritage Market",     "code": "HMK", "city": "Jaipur",   "state": "Rajasthan",     "country": "India", "address": "Johari Bazaar, Old City",    "phone": "+91-141-5678901", "email": "heritage@dailygrocer.co.uk"},
 ]
 
 CATEGORY_DATA = [
@@ -182,7 +182,7 @@ def seed():
 
     try:
         # ── Idempotency check ────────────────────────────────────────
-        cur.execute("SELECT id FROM organizations WHERE slug = 'retailpos-demo' LIMIT 1")
+        cur.execute("SELECT id FROM organizations WHERE slug = 'daily-grocer' LIMIT 1")
         row = cur.fetchone()
         if row:
             print("⚠️  Seed data already exists. Wiping and re-seeding…")
@@ -199,13 +199,13 @@ def seed():
                                        contact_email, contact_phone, address,
                                        created_at, updated_at, is_deleted)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (org_id, "RetailPOS Demo", "retailpos-demo",
+        """, (org_id, "Daily Grocer Demo", "daily-grocer",
               "Multi-store retail demo organization",
               '{"currency":"INR","tax_inclusive":false}',
-              None, "admin@retailpos.com", "+91-11-99999999",
+              None, "admin@dailygrocer.co.uk", "+91-11-99999999",
               "Corporate HQ, Connaught Place, New Delhi",
               START_DATE, START_DATE, False))
-        print(f"✅ Organization created: RetailPOS Demo")
+        print(f"✅ Organization created: Daily Grocer Demo")
 
         # ── 2. Stores ────────────────────────────────────────────────
         store_ids = []
@@ -234,7 +234,7 @@ def seed():
             INSERT INTO users (id, organization_id, store_id, email, hashed_password,
                                full_name, role, phone, is_active, created_at, updated_at, is_deleted)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (admin_id, org_id, None, "admin@retailpos.com", HASHED_PW,
+        """, (admin_id, org_id, None, "admin@dailygrocer.co.uk", HASHED_PW,
               "Rahul Sharma (Admin)", "admin", "+91-99000-00001", True,
               START_DATE, START_DATE, False))
         user_ids.append(admin_id)
@@ -251,7 +251,7 @@ def seed():
                 INSERT INTO users (id, organization_id, store_id, email, hashed_password,
                                    full_name, role, phone, is_active, created_at, updated_at, is_deleted)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (mgr_id, org_id, sid, f"manager{i+1}@retailpos.com", HASHED_PW,
+            """, (mgr_id, org_id, sid, f"manager{i+1}@dailygrocer.co.uk", HASHED_PW,
                   f"{MANAGER_NAMES[i]} (Manager)", "manager", f"+91-99000-{10+i:05d}",
                   True, START_DATE, START_DATE, False))
             user_ids.append(mgr_id)
@@ -266,7 +266,7 @@ def seed():
                     INSERT INTO users (id, organization_id, store_id, email, hashed_password,
                                        full_name, role, phone, is_active, created_at, updated_at, is_deleted)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                """, (cid, org_id, sid, f"cashier{cashier_idx+1}@retailpos.com", HASHED_PW,
+                """, (cid, org_id, sid, f"cashier{cashier_idx+1}@dailygrocer.co.uk", HASHED_PW,
                       f"{CASHIER_NAMES[cashier_idx]} (Cashier)", "cashier",
                       f"+91-99000-{100+cashier_idx:05d}", True, START_DATE, START_DATE, False))
                 user_ids.append(cid)
@@ -533,9 +533,9 @@ def seed():
         print(f"   Sale items:      {item_count}")
         print(f"   Stock movements: {mv_count}")
         print(f"   Sync logs:       {sl_count}")
-        print(f"\n   🔑 Admin:    admin@retailpos.com / {PASSWORD}")
-        print(f"   🔑 Managers: manager1@retailpos.com … manager5@retailpos.com / {PASSWORD}")
-        print(f"   🔑 Cashiers: cashier1@retailpos.com … cashier15@retailpos.com / {PASSWORD}")
+        print(f"\n   🔑 Admin:    admin@dailygrocer.co.uk / {PASSWORD}")
+        print(f"   🔑 Managers: manager1@dailygrocer.co.uk … manager5@dailygrocer.co.uk / {PASSWORD}")
+        print(f"   🔑 Cashiers: cashier1@dailygrocer.co.uk … cashier15@dailygrocer.co.uk / {PASSWORD}")
 
     except Exception as e:
         conn.rollback()

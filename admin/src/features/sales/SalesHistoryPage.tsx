@@ -266,7 +266,7 @@ export default function SalesHistoryPage() {
                         <div id="receipt-print-area" className="receipt-print" style={{ padding: '20px 0', fontFamily: 'monospace' }}>
                             {/* Receipt Header */}
                             <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                                <h2 style={{ margin: '0 0 5px 0' }}>RetailPOS</h2>
+                                <h2 style={{ margin: '0 0 5px 0' }}>Daily Grocer</h2>
                                 <h4 style={{ margin: 0, fontWeight: 'normal', fontSize: '1.2rem', color: 'var(--text-primary)' }}>TAX INVOICE</h4>
                                 {selectedSale.sale_type === 'preorder' && <div style={{ marginTop: 5, fontSize: '0.85rem' }}>Converted Pre-Order</div>}
                             </div>

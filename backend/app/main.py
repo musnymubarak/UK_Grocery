@@ -1,5 +1,5 @@
 """
-UK Grocery Backend — FastAPI Application Entry Point
+Daily Grocer Backend — FastAPI Application Entry Point
 """
 import logging
 from contextlib import asynccontextmanager
@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Application factory."""
     application = FastAPI(
-        title="UK Grocery API",
+        title="Daily Grocer API",
         version=settings.APP_VERSION,
         description="Multi-location online grocery platform",
         docs_url="/docs" if settings.DEBUG else None,
