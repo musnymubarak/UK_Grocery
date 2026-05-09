@@ -1178,7 +1178,7 @@ a859fb85-b615-4a1a-a6a9-a37448e044bf	4a40ff36-86e2-4a9f-8cf6-a1616574fd06	fb8800
 --
 
 COPY public.organizations (name, slug, description, settings, logo_url, contact_email, contact_phone, address, id, created_at, updated_at, is_deleted) FROM stdin;
-UK Grocery HQ	uk-grocery-hq	Main headquarters	{"currency": "GBP"}	\N	\N	\N	\N	a859fb85-b615-4a1a-a6a9-a37448e044bf	2026-04-12 11:12:30.283912+05:30	2026-04-12 11:12:30.283912+05:30	f
+Daily Grocer HQ	daily-grocer-hq	Main headquarters	{"currency": "GBP"}	\N	\N	\N	\N	a859fb85-b615-4a1a-a6a9-a37448e044bf	2026-04-12 11:12:30.283912+05:30	2026-04-12 11:12:30.283912+05:30	f
 \.
 
 

@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     """Application settings from environment."""
 
     # App
-    APP_NAME: str = "RetailPOS"
+    APP_NAME: str = "Daily Grocer"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     CORS_ORIGINS: str = "http://localhost,http://localhost:5173"

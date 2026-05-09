@@ -1,6 +1,6 @@
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Search, ShoppingBasket, Truck, ShieldCheck, Clock } from 'lucide-react';
+import { MapPin, Search, ShoppingBasket, Truck, ShieldCheck, Clock, Menu, X, ChevronDown, UserCircle, ChevronUp } from 'lucide-react';
 import React, { useState } from 'react';
 
 // Use categories images for floating elements
@@ -10,6 +10,37 @@ import beveragesImg from '../../images/categories/bevarages.png';
 
 export default function Landing() {
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  const toggleSection = (section: string) => {
+    setExpandedSection(expandedSection === section ? null : section);
+  };
+
+  const menuItems = {
+    about: [
+      { name: 'Shop Now', path: '/stores' },
+      { name: 'What we do', path: '#' },
+      { name: 'FAQs', path: '#' },
+      { name: 'Contact', path: '#' },
+      { name: 'Retailers', path: '#' },
+      { name: 'Careers', path: '#' },
+      { name: 'Terms & Conditions', path: '/terms' },
+      { name: 'Privacy Policy', path: '/privacy' },
+    ],
+    delivery: [
+      { name: 'Sweets Delivery', path: '#' },
+      { name: 'Alcohol Delivery', path: '#' },
+      { name: 'Fruit & Veg Delivery', path: '#' },
+      { name: 'Grocery Delivery', path: '#' },
+      { name: 'Frozen Food Delivery', path: '#' },
+      { name: 'Breakfast Delivery', path: '#' },
+      { name: 'Magazine & Newspaper Delivery', path: '#' },
+      { name: 'Milkshake Delivery', path: '#' },
+      { name: 'Beer Delivery', path: '#' },
+      { name: 'Wine Delivery', path: '#' },
+    ]
+  };
 
   return (
     <div className="min-h-screen bg-surface flex flex-col relative overflow-hidden font-body">
@@ -23,8 +54,10 @@ export default function Landing() {
             Daily<span className="text-primary">Grocer</span>
           </span>
         </div>
+        
+        {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-6">
-            <button className="text-sm font-bold text-on-surface-variant hover:text-primary transition-colors">Our Stores</button>
+            <button onClick={() => navigate('/stores')} className="text-sm font-bold text-on-surface-variant hover:text-primary transition-colors">Our Stores</button>
             <button className="text-sm font-bold text-on-surface-variant hover:text-primary transition-colors">Support</button>
             <button 
                 onClick={() => navigate('/login')}
@@ -33,7 +66,127 @@ export default function Landing() {
                 Sign In
             </button>
         </div>
+
+        {/* Hamburger Button (All screens, matches Snappy Shopper) */}
+        <button 
+          onClick={() => setIsMenuOpen(true)}
+          className="p-2 text-on-surface hover:bg-on-surface/5 rounded-lg transition-colors"
+        >
+          <Menu size={28} />
+        </button>
       </header>
+
+      {/* Hamburger Menu Overlay */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div 
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 bg-white z-[100] flex flex-col overflow-y-auto"
+          >
+            {/* Menu Header */}
+            <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/20">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                  <ShoppingBasket size={20} />
+                </div>
+                <span className="font-headline font-black text-xl text-on-surface tracking-tighter">
+                  Daily<span className="text-primary">Grocer</span>
+                </span>
+              </div>
+              <button 
+                onClick={() => setIsMenuOpen(false)}
+                className="p-2 text-on-surface hover:bg-on-surface/5 rounded-lg transition-colors"
+              >
+                <X size={28} />
+              </button>
+            </div>
+
+            {/* Menu Content */}
+            <div className="flex flex-col">
+              {/* Login Item */}
+              <button 
+                onClick={() => { setIsMenuOpen(false); navigate('/login'); }}
+                className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10 hover:bg-on-surface/5 transition-colors"
+              >
+                <span className="text-lg font-bold text-primary">Login</span>
+                <UserCircle size={24} className="text-primary" />
+              </button>
+
+              {/* About Us Section */}
+              <div className="border-b border-outline-variant/10">
+                <button 
+                  onClick={() => toggleSection('about')}
+                  className="w-full px-6 py-5 flex items-center justify-between hover:bg-on-surface/5 transition-colors"
+                >
+                  <span className="text-lg font-bold text-on-surface">About Us</span>
+                  {expandedSection === 'about' ? <ChevronUp size={24} className="text-primary" /> : <ChevronDown size={24} className="text-primary" />}
+                </button>
+                <AnimatePresence>
+                  {expandedSection === 'about' && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden bg-surface-container-low"
+                    >
+                      {menuItems.about.map((item) => (
+                        <button 
+                          key={item.name}
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            if (item.path !== '#') navigate(item.path);
+                          }}
+                          className="w-full px-10 py-3.5 text-left text-sm font-medium text-on-surface-variant hover:text-primary transition-colors border-b border-outline-variant/5 last:border-0"
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Food & Alcohol Delivery Section */}
+              <div className="border-b border-outline-variant/10">
+                <button 
+                  onClick={() => toggleSection('delivery')}
+                  className="w-full px-6 py-5 flex items-center justify-between hover:bg-on-surface/5 transition-colors"
+                >
+                  <span className="text-lg font-bold text-on-surface">Food & Alcohol Delivery</span>
+                  {expandedSection === 'delivery' ? <ChevronUp size={24} className="text-primary" /> : <ChevronDown size={24} className="text-primary" />}
+                </button>
+                <AnimatePresence>
+                  {expandedSection === 'delivery' && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden bg-surface-container-low"
+                    >
+                      {menuItems.delivery.map((item) => (
+                        <button 
+                          key={item.name}
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            // Navigate to browse with category filter if implemented
+                            navigate('/browse');
+                          }}
+                          className="w-full px-10 py-3.5 text-left text-sm font-medium text-on-surface-variant hover:text-primary transition-colors border-b border-outline-variant/5 last:border-0"
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content */}
       <main className="flex-grow flex flex-col relative z-10 bg-surface">
