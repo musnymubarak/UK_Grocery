@@ -110,6 +110,19 @@ async def list_products(
             "nutritional_info": p.nutritional_info,
             "weight_unit": p.weight_unit,
             "calories_per_100g": float(p.calories_per_100g) if p.calories_per_100g is not None else None,
+
+            # Extended Details
+            "safety_statements": p.safety_statements,
+            "allergy_advice": p.allergy_advice,
+            "product_marketing": p.product_marketing,
+            "features": p.features,
+            "storage_type": p.storage_type,
+            "country_of_origin": p.country_of_origin,
+            "alcohol_data": p.alcohol_data,
+            "company_name": p.company_name,
+            "company_address": p.company_address,
+            "manufacturer_name": p.manufacturer_name,
+            "disclaimer": p.disclaimer,
         }
         items.append(item)
 
@@ -175,6 +188,19 @@ async def get_product(
         "allergens": product.allergens,
         "nutritional_info": product.nutritional_info,
         "weight_unit": product.weight_unit,
+
+        # Extended Details
+        "safety_statements": product.safety_statements,
+        "allergy_advice": product.allergy_advice,
+        "product_marketing": product.product_marketing,
+        "features": product.features,
+        "storage_type": product.storage_type,
+        "country_of_origin": product.country_of_origin,
+        "alcohol_data": product.alcohol_data,
+        "company_name": product.company_name,
+        "company_address": product.company_address,
+        "manufacturer_name": product.manufacturer_name,
+        "disclaimer": product.disclaimer,
     }
 
 

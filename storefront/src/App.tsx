@@ -17,6 +17,7 @@ import Profile from './screens/Profile';
 import Offers from './screens/Offers';
 import Login from './screens/Login';
 import ProductDetails from './screens/ProductDetails';
+import Search from './screens/Search';
 import RefundStatus from './screens/RefundStatus';
 import PrivacyPolicy from './screens/PrivacyPolicy';
 import TermsOfService from './screens/TermsOfService';
@@ -32,6 +33,7 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Landing />} />
         <Route path="/browse" element={<Home />} />
+        <Route path="/search" element={<Search />} />
         <Route path="/aisle/:id" element={<Aisle />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />

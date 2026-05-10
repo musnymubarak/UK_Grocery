@@ -1,8 +1,8 @@
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import InnovativeLoader from '../components/InnovativeLoader';
-import { Search, Loader2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Info, Bike } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
 import { useCart } from '../CartContext';
@@ -28,9 +28,6 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [banners, setBanners] = useState<any[]>([]);
   const [currentBanner, setCurrentBanner] = useState(0);
 
@@ -57,30 +54,6 @@ export default function Home() {
     }, 5000);
     return () => clearInterval(timer);
   }, [banners.length]);
-
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setIsSearching(true);
-      catalogApi.getProducts({ 
-        search: searchQuery, 
-        store_id: selectedStore?.id,
-        limit: 12 
-      })
-        .then(res => {
-          setSearchResults(res.data.items || []);
-          setIsSearching(false);
-        })
-        .catch(() => setIsSearching(false));
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   // Local custom images for categories
   const categoryImages: Record<string, string> = {
@@ -130,144 +103,122 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-6 pt-8 pb-32">
-        {/* Hero Banners */}
-        {banners.length > 0 && (
-          <section className="mb-12 relative h-[300px] md:h-[450px] overflow-hidden rounded-3xl group">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={banners[currentBanner].id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="absolute inset-0"
-              >
-                <img 
-                  src={banners[currentBanner].image_url} 
-                  alt={banners[currentBanner].title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent flex flex-col justify-center px-10 md:px-20 text-white">
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="max-w-lg"
-                  >
-                    <h1 className="text-4xl md:text-6xl font-black mb-4 leading-tight tracking-tighter">
-                      {banners[currentBanner].title}
-                    </h1>
-                    <p className="text-lg md:text-xl text-white/80 mb-8 font-medium">
-                      {banners[currentBanner].subtitle}
-                    </p>
-                    <Link 
-                      to={banners[currentBanner].link_url || '/browse'}
-                      className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20"
-                    >
-                      Shop Now <ArrowRight size={20} />
-                    </Link>
-                  </motion.div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Navigation Arrows */}
-            {banners.length > 1 && (
-              <>
-                <button 
-                  onClick={() => setCurrentBanner(prev => (prev - 1 + banners.length) % banners.length)}
-                  className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white/20"
-                >
-                  <ChevronLeft size={24} />
-                </button>
-                <button 
-                  onClick={() => setCurrentBanner(prev => (prev + 1) % banners.length)}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white/20"
-                >
-                  <ChevronRight size={24} />
-                </button>
-
-                {/* Indicators */}
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-                  {banners.map((_, i) => (
-                    <button 
-                      key={i}
-                      onClick={() => setCurrentBanner(i)}
-                      className={`h-1.5 rounded-full transition-all ${i === currentBanner ? 'w-8 bg-primary' : 'w-2 bg-white/40'}`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </section>
-        )}
-
-        {/* Search Section */}
-        <section className="mb-10">
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-primary">
-              <Search size={20} />
-            </div>
-            <input 
-              type="text"
-              placeholder="Search for fresh produce..."
-              className="w-full bg-surface-container-high border-none rounded-xl py-5 pl-14 pr-6 text-on-surface focus:ring-2 focus:ring-primary/20 placeholder-secondary transition-all"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {isSearching && (
-              <div className="absolute inset-y-0 right-5 flex items-center">
-                <Loader2 className="animate-spin text-primary" size={20} />
-              </div>
-            )}
+      <div className="bg-white min-h-screen">
+        
+        {/* Store Header */}
+        <div className="flex items-center justify-between py-4 px-4 bg-white border-b border-outline-variant/10">
+          <div className="flex-1 flex justify-center">
+            <h2 className="text-[17px] font-black tracking-tight text-on-surface">
+              {selectedStore?.name || "Daily Grocer Local"}
+            </h2>
           </div>
-        </section>
+          <button className="text-primary">
+            <Info size={22} strokeWidth={1.5} />
+          </button>
+        </div>
 
-        {searchQuery ? (
-          /* Search Results Section */
-          <section className="mb-20 min-h-[40vh]">
-             <div className="flex justify-between items-end mb-8">
-              <div>
-                <h2 className="text-3xl font-extrabold tracking-tighter text-on-surface mb-1">Search Results</h2>
-                <p className="text-secondary font-medium">Found {searchResults.length} items for "{searchQuery}"</p>
+        <div className="max-w-4xl mx-auto pb-32">
+          {/* Hero Banners Carousel (Full bleed on mobile) */}
+          {banners.length > 0 && (
+            <section className="relative h-[220px] md:h-[300px] group overflow-hidden md:rounded-b-2xl md:mx-4">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={banners[currentBanner].id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="absolute inset-0"
+                >
+                  <img 
+                    src={banners[currentBanner].image_url} 
+                    alt={banners[currentBanner].title}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Subtle overlay for text readability if needed */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Navigation Arrows */}
+              {banners.length > 1 && (
+                <>
+                  <button 
+                    onClick={() => setCurrentBanner(prev => (prev - 1 + banners.length) % banners.length)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-on-surface shadow-sm opacity-90 transition-all hover:bg-white"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button 
+                    onClick={() => setCurrentBanner(prev => (prev + 1) % banners.length)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-on-surface shadow-sm opacity-90 transition-all hover:bg-white"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+
+                  {/* Indicators - Snappy style (small dots) */}
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 bg-white/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    {banners.map((_, i) => (
+                      <button 
+                        key={i}
+                        onClick={() => setCurrentBanner(i)}
+                        className={`h-1.5 rounded-full transition-all ${i === currentBanner ? 'w-1.5 bg-primary' : 'w-1.5 bg-white/70'}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          <div className="px-4 mt-4">
+            {/* Pricing Information Block */}
+            <div className="mb-4 border border-dashed border-primary/30 rounded-xl p-3 flex items-center justify-between bg-white shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="text-primary">
+                  <Bike size={22} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-on-surface-variant leading-tight">Pricing Information</p>
+                  <p className="text-[15px] font-black text-on-surface leading-tight mt-0.5">£0 - £3</p>
+                </div>
+              </div>
+              <button className="text-primary">
+                <Info size={20} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            {/* Static Promotional Banners Stack */}
+            <div className="flex flex-col gap-3 mb-8">
+              {/* Rewards Banner */}
+              <div className="relative rounded-xl overflow-hidden bg-blue-700 text-white p-5 shadow-sm">
+                <div className="relative z-10 w-[70%]">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="font-extrabold text-sm tracking-tight">daily grocer rewards</span>
+                  </div>
+                  <h3 className="text-2xl font-black leading-tight mb-4 tracking-tighter">Get Rewards in a Snap!</h3>
+                  <button className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                    Find out more
+                  </button>
+                </div>
+                {/* Decorative floating elements */}
+                <div className="absolute right-[-10%] top-[-10%] bottom-0 w-[50%] bg-blue-800/40 rounded-full blur-2xl"></div>
+              </div>
+
+              {/* Free Delivery Banner */}
+              <div className="rounded-xl overflow-hidden bg-[#e6203a] text-white p-5 flex items-center gap-4 shadow-sm relative">
+                <div className="bg-white text-[#e6203a] rounded-2xl p-3 transform -rotate-3 shadow-lg z-10 shrink-0 border-b-4 border-gray-200">
+                  <h3 className="text-[28px] font-black leading-[0.9] tracking-tighter text-center uppercase">Free<br/>Delivery</h3>
+                </div>
+                <div className="flex-1 z-10">
+                  <h3 className="text-xl md:text-2xl font-black leading-tight tracking-tighter uppercase text-right">ON ALL ORDERS OVER £40</h3>
+                </div>
               </div>
             </div>
 
-            {searchResults.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                {searchResults.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-surface-container-low p-4 rounded-xl border border-outline-variant hover:border-primary transition-all group"
-                  >
-                    <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-white">
-                      <img 
-                        src={product.image_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400'} 
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    </div>
-                    <h4 className="font-bold text-sm text-on-surface line-clamp-1">{product.name}</h4>
-                    <p className="text-secondary text-xs mb-2">Each</p>
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-on-surface">£{Number(product.selling_price).toFixed(2)}</span>
-                      <Link to={`/aisle/${product.category_id}`} className="text-primary text-[10px] font-bold uppercase tracking-wider">View</Link>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : !isSearching && (
-              <div className="text-center py-10 text-secondary">
-                <p>No products found matching your search.</p>
-              </div>
-            )}
-          </section>
-        ) : (
-          /* Category Grid */
-          <section>
+
+        {/* Category Grid */}
+        <section>
           <div className="flex justify-between items-end mb-8">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tighter text-on-surface mb-1">Aisles & Collections</h2>
@@ -277,8 +228,26 @@ export default function Home() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {categories.map((category, index) => {
-              const bgColorClass = 'bg-gradient-to-br from-primary via-tertiary to-primary-container border-r border-primary-container/20';
-              
+              // Dynamic gradients based on category keywords
+              const categoryGradients: Record<string, string> = {
+                'alcohol': 'from-amber-700 via-red-800 to-rose-950',
+                'baby': 'from-sky-400 via-indigo-500 to-violet-600',
+                'bakery': 'from-orange-500 via-amber-700 to-yellow-900',
+                'beverage': 'from-blue-600 via-cyan-700 to-teal-600',
+                'dairy': 'from-sky-100 via-indigo-200 to-blue-300', // Note: keep text dark for light bg
+                'frozen': 'from-cyan-500 via-blue-600 to-indigo-800',
+                'produce': 'from-emerald-500 via-green-700 to-lime-800',
+                'meat': 'from-rose-700 via-red-800 to-stone-950',
+                'household': 'from-violet-500 via-purple-700 to-fuchsia-800',
+                'health': 'from-teal-400 via-emerald-600 to-cyan-700',
+                'food': 'from-orange-600 via-red-700 to-amber-800',
+              };
+
+              const catName = category.name.toLowerCase();
+              const gradientKey = Object.keys(categoryGradients).find(k => catName.includes(k)) || 'food';
+              const gradientClass = categoryGradients[gradientKey];
+              const isLight = gradientKey === 'dairy';
+
               return (
               <motion.div
                 key={category.id}
@@ -288,7 +257,7 @@ export default function Home() {
                 transition={{ delay: index * 0.04 }}
               >
                 <Link to={`/aisle/${category.id}`} className="group block h-full">
-                  <div className="relative h-36 sm:h-44 overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-[0_12px_32px_rgba(30,64,175,0.12)] transition-all duration-300 active:scale-[0.98] border border-outline-variant/30">
+                  <div className="relative h-36 sm:h-44 overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] transition-all duration-300 active:scale-[0.98] border border-outline-variant/30">
                     
                     {/* Right side image container (60% ratio) */}
                     <div className="absolute right-0 top-0 bottom-0 w-[60%] p-5 sm:p-8 flex items-center justify-center">
@@ -301,16 +270,16 @@ export default function Home() {
                     </div>
 
                     {/* Left colored block with sharp diamond edge */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-[55%] z-10 flex items-center px-6 sm:px-8 shadow-2xl ${bgColorClass} overflow-hidden`} style={{ clipPath: 'polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%)' }}>
+                    <div className={`absolute left-0 top-0 bottom-0 w-[55%] z-10 flex items-center px-6 sm:px-8 shadow-2xl bg-gradient-to-br ${gradientClass} overflow-hidden`} style={{ clipPath: 'polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%)' }}>
                       {/* Subtle gradient overlay to enhance the colored effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent mix-blend-overlay"></div>
-                      <h3 className="relative text-2xl sm:text-3xl lg:text-4xl pr-4 font-black text-white leading-[1.1] drop-shadow-md z-20">
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent mix-blend-overlay"></div>
+                      <h3 className={`relative text-2xl sm:text-3xl lg:text-4xl pr-4 font-black leading-[1.1] drop-shadow-md z-20 ${isLight ? 'text-primary' : 'text-white'}`}>
                         {category.name}
                       </h3>
                     </div>
                     
                     {/* Floating decorative element (Optional) */}
-                    <div className="absolute top-3 right-3 bg-error text-white text-[10px] font-black px-2 py-1 rounded-full shadow-sm z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className={`absolute top-3 right-3 text-white text-[10px] font-black px-2 py-1 rounded-full shadow-sm z-20 opacity-0 group-hover:opacity-100 transition-opacity ${isLight ? 'bg-primary' : 'bg-black/20 backdrop-blur-sm'}`}>
                       VIEW
                     </div>
                   </div>
@@ -325,31 +294,9 @@ export default function Home() {
             </div>
           )}
         </section>
-        )}
 
-        {/* Editorial Block */}
-        <section className="my-20">
-          <div className="bg-primary rounded-lg overflow-hidden flex flex-col md:flex-row items-center">
-            <div className="w-full md:w-1/2 p-10 md:p-16 text-on-primary">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4 block">Seasonal Guide</span>
-              <h2 className="text-4xl font-extrabold tracking-tighter mb-6 leading-tight">The Winter Kitchen</h2>
-              <p className="text-on-primary/80 mb-8 leading-relaxed max-w-md text-lg">
-                Discover the best seasonal ingredients arriving at the Central store this week. Fresh from local suppliers.
-              </p>
-              <button className="bg-surface text-primary px-8 py-4 rounded-xl font-bold hover:opacity-90 transition-all active:scale-95">
-                Read the Journal
-              </button>
-            </div>
-            <div className="w-full md:w-1/2 h-[300px] md:h-full min-h-[400px]">
-              <img 
-                src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200" 
-                alt="Winter Kitchen"
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            </div>
           </div>
-        </section>
+        </div>
       </div>
     </Layout>
   );
