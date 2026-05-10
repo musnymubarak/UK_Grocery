@@ -1,11 +1,12 @@
 import { motion } from 'motion/react';
 import Layout from '../components/Layout';
 import InnovativeLoader from '../components/InnovativeLoader';
-import { Search, Filter, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, Package, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, ReceiptText } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { orderApi, getErrorMessage } from '../services/api';
+import { orderApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import React from 'react';
 
 interface OrderData {
   id: string;
@@ -34,27 +35,30 @@ export default function OrderHistory() {
       .catch(() => setLoading(false));
   }, [isAuthenticated, navigate]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'delivered': return 'bg-primary/10 text-primary';
-      case 'received': case 'packed': case 'on_delivery': return 'bg-tertiary-container text-on-tertiary-container';
-      case 'cancelled': return 'bg-error/10 text-error';
-      default: return 'bg-secondary-container text-on-secondary-container';
+      case 'delivered': 
+        return { color: 'text-success bg-success/5', icon: <CheckCircle2 size={14} />, label: 'Delivered' };
+      case 'cancelled': 
+        return { color: 'text-error bg-error/5', icon: <XCircle size={14} />, label: 'Cancelled' };
+      case 'on_delivery': 
+        return { color: 'text-primary bg-primary/5', icon: <Truck size={14} />, label: 'Out for Delivery' };
+      default: 
+        return { color: 'text-on-surface-variant bg-surface-container', icon: <Clock size={14} />, label: status.replace('_', ' ') };
     }
   };
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleDateString('en-GB', { 
-        year: 'numeric', month: 'long', day: 'numeric' 
-      });
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     } catch { return dateStr; }
   };
 
   if (loading) {
     return (
-    <Layout title="Daily Grocer" showBack>
-        <div className="flex items-center justify-center min-h-[60vh] py-12">
+      <Layout title="Orders" showBack>
+        <div className="flex items-center justify-center min-h-[80vh]">
           <InnovativeLoader />
         </div>
       </Layout>
@@ -62,59 +66,82 @@ export default function OrderHistory() {
   }
 
   return (
-    <Layout title="Daily Grocer" showBack>
-      <div className="max-w-4xl mx-auto px-6 py-10 pb-32">
-        <div className="mb-10">
-          <h2 className="text-4xl font-extrabold tracking-tight mb-2 text-on-surface">Order History</h2>
-          <p className="text-on-surface-variant">Review and track your orders.</p>
-        </div>
+    <Layout title="Orders" showBack>
+      <div className="max-w-2xl mx-auto bg-surface-container-lowest min-h-screen pb-32 font-body">
+        <div className="px-4 py-8">
+          <div className="mb-8">
+            <h2 className="text-3xl font-black text-on-surface tracking-tight mb-2">My Orders</h2>
+            <p className="text-on-surface-variant font-medium text-sm">Review and track your shopping history</p>
+          </div>
 
-        <div className="space-y-6">
-          {orders.length === 0 ? (
-            <div className="text-center py-20 bg-surface-container-low rounded-lg">
-              <p className="text-secondary text-lg mb-4">No orders yet</p>
-              <button onClick={() => navigate('/browse')} className="text-primary font-bold hover:underline">
-                Start shopping
-              </button>
-            </div>
-          ) : (
-            orders.map((order, index) => (
-              <motion.div 
-                key={order.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-surface-container-lowest rounded-lg overflow-hidden group shadow-sm hover:shadow-md transition-all"
-              >
-                <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:items-center">
-                  <div className="flex-shrink-0 w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-                    {order.items?.length || '?'}
-                  </div>
-                  <div className="flex-grow space-y-1">
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm font-semibold tracking-widest text-outline uppercase">Order #{order.id.slice(0, 8)}</span>
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${getStatusColor(order.status)}`}>
-                        {order.status}
-                      </span>
-                    </div>
-                    <p className="text-on-surface-variant text-sm">Placed on {formatDate(order.created_at)}</p>
-                  </div>
-                  <div className="md:text-right flex flex-row md:flex-col justify-between md:justify-center items-center md:items-end gap-2 md:pl-8 md:border-l md:border-surface-container">
-                    {order.total && (
-                      <p className="text-2xl font-bold text-primary">£{Number(order.total).toFixed(2)}</p>
-                    )}
-                    <button 
-                      onClick={() => navigate(`/tracking/${order.id}`)}
-                      className="flex items-center gap-1 text-sm font-bold text-primary hover:opacity-70 transition-opacity"
-                    >
-                      View Details
-                      <ChevronRight size={18} />
-                    </button>
-                  </div>
+          <div className="space-y-4">
+            {orders.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-3xl border border-outline-variant/10 shadow-sm">
+                <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-6 text-on-surface-variant/20">
+                  <Package size={40} />
                 </div>
-              </motion.div>
-            ))
-          )}
+                <h3 className="text-xl font-bold text-on-surface mb-2">No orders found</h3>
+                <p className="text-on-surface-variant mb-8">You haven't placed any orders yet.</p>
+                <button 
+                  onClick={() => navigate('/browse')}
+                  className="bg-primary text-white px-8 py-3.5 rounded-xl font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/20 transition-all active:scale-95"
+                >
+                  Start Shopping
+                </button>
+              </div>
+            ) : (
+              orders.map((order, index) => {
+                const status = getStatusConfig(order.status);
+                return (
+                  <motion.div 
+                    key={order.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => navigate(`/tracking/${order.id}`)}
+                    className="bg-white rounded-2xl border border-outline-variant/10 p-4 shadow-sm cursor-pointer group active:scale-[0.98] transition-all"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+                          <ShoppingBag size={24} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-black tracking-widest text-on-surface-variant">Order ID</p>
+                          <p className="text-sm font-bold text-on-surface">#{order.id.slice(0, 8).toUpperCase()}</p>
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black uppercase tracking-widest text-[10px] ${status.color}`}>
+                        {status.icon}
+                        <span>{status.label}</span>
+                      </div>
+                    </div>
+
+                    <div className="ss-separator pt-4 flex items-end justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs font-bold text-on-surface-variant">
+                          <Clock size={14} className="text-primary/40" />
+                          <span>{formatDate(order.created_at)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-bold text-on-surface-variant">
+                          <ReceiptText size={14} className="text-primary/40" />
+                          <span>{order.items?.length || 0} items</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <p className="text-2xl font-black text-primary tracking-tight">£{Number(order.total).toFixed(2)}</p>
+                        <div className="flex items-center justify-end gap-1 text-[10px] font-black uppercase tracking-widest text-primary/40 group-hover:text-primary transition-colors">
+                          <span>View Details</span>
+                          <ChevronRight size={14} />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </Layout>

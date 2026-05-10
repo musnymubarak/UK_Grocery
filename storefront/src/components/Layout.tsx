@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingBag, LayoutGrid, MapPin, Tag, CircleUser, Search, Leaf, ShoppingBasket, User, Bell, Check, Info } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, LayoutGrid, MapPin, Tag, CircleUser, Search, Leaf, ShoppingBasket, User, Bell, Check, Info, Package } from 'lucide-react';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
 import { notificationApi } from '../services/api';
@@ -154,6 +154,7 @@ export default function Layout({ children, title = 'Daily Grocer', subtitle, sho
         <nav className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-outline-variant/5 px-2 pb-1 pt-1 flex justify-around items-center z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] md:hidden">
           <NavLink to="/stores" icon={<MapPin size={22} />} label="Stores" active={location.pathname === '/stores'} />
           <NavLink to="/browse" icon={<LayoutGrid size={22} />} label="Menu" active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')} />
+          <NavLink to="/history" icon={<Package size={22} />} label="Orders" active={location.pathname === '/history'} />
           <NavLink to={isAuthenticated ? "/profile" : "/login"} icon={<CircleUser size={22} />} label="Account" active={location.pathname === '/profile' || location.pathname === '/login'} />
           
           <Link to="/cart" className="flex flex-col items-center justify-center px-3 py-1 transition-all active:scale-95">
