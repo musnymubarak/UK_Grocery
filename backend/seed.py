@@ -175,7 +175,7 @@ CASHIER_NAMES = [
 # Seed function
 # ---------------------------------------------------------------------------
 def seed():
-    print("🔌 Connecting to:", DATABASE_URL.split("@")[-1])  # hide creds
+    print("Connecting to:", DATABASE_URL.split("@")[-1])  # hide creds
     conn = psycopg2.connect(DATABASE_URL)
     conn.autocommit = False
     cur = conn.cursor()
@@ -185,8 +185,8 @@ def seed():
         cur.execute("SELECT id FROM organizations WHERE slug = 'daily-grocer' LIMIT 1")
         row = cur.fetchone()
         if row:
-            print("⚠️  Seed data already exists. Wiping and re-seeding…")
-            for tbl in ["sync_logs", "stock_movements", "sale_items", "sales",
+            print("[WARN]  Seed data already exists. Wiping and re-seeding…")
+            for tbl in ["sync_logs", "stock_movements", "order_items", "orders",
                         "inventory", "products", "categories", "users", "stores", "organizations"]:
                 cur.execute(f"DELETE FROM {tbl}")
             conn.commit()
@@ -205,7 +205,7 @@ def seed():
               None, "admin@dailygrocer.co.uk", "+91-11-99999999",
               "Corporate HQ, Connaught Place, New Delhi",
               START_DATE, START_DATE, False))
-        print(f"✅ Organization created: Daily Grocer Demo")
+        print(f"[OK] Organization created: Daily Grocer Demo")
 
         # ── 2. Stores ────────────────────────────────────────────────
         store_ids = []
@@ -221,7 +221,7 @@ def seed():
                   START_DATE, START_DATE, False))
             store_ids.append(sid)
             store_codes.append(sd["code"])
-        print(f"✅ Stores: {len(store_ids)} created")
+        print(f"[OK] Stores: {len(store_ids)} created")
 
         # ── 3. Users ─────────────────────────────────────────────────
         user_ids = []
@@ -276,7 +276,7 @@ def seed():
                 cashier_idx += 1
             store_cashier_map[sid] = cashiers_for_store
 
-        print(f"✅ Users: {len(user_ids)} created (1 admin + 5 managers + 15 cashiers)")
+        print(f"[OK] Users: {len(user_ids)} created (1 admin + 5 managers + 15 cashiers)")
 
         # ── 4. Categories ────────────────────────────────────────────
         cat_ids = []
@@ -289,7 +289,7 @@ def seed():
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (cid, org_id, name, desc, parent, idx, START_DATE, START_DATE, False))
             cat_ids.append(cid)
-        print(f"✅ Categories: {len(cat_ids)} created")
+        print(f"[OK] Categories: {len(cat_ids)} created")
 
         # ── 5. Products ──────────────────────────────────────────────
         prod_ids = []
@@ -299,20 +299,39 @@ def seed():
         for idx, (name, sku, cat_idx, cost, sell, tax, unit) in enumerate(PRODUCT_DATA):
             pid = uid()
             barcode = f"890{idx:010d}"
+            
+            import json
+            is_booze = any(k in name.lower() for k in ["shiraz", "wine", "beer", "whiskey", "vodka", "gin"])
+            safety = "Do not drive. Pregnancy Warning. Challenge 25 policy applies." if is_booze else "Keep out of reach of small children."
+            allergy = "Contains Sulfites." if is_booze else "May contain traces of nuts and dairy." if any(k in name.lower() for k in ["biscuit", "chocolate", "cake"]) else "None"
+            marketing = f"This {name} is a premium selection from our curated collection. Known for its exceptional quality and taste, it is a favorite among our customers."
+            feat = json.dumps(["Premium Quality", "Authentic Sourcing", "Sustainable Packaging", "Customer Favorite"])
+            storage = "Ambient" if any(k in name.lower() for k in ["rice", "dal", "sugar"]) else "Chilled" if any(k in name.lower() for k in ["milk", "butter", "cheese", "paneer"]) else "Store in a cool, dry place"
+            origin = "United Kingdom" if idx % 2 == 0 else "India"
+            alc_data = json.dumps({"abv": "13.5%", "vol": "75cl", "type": "Red Wine"}) if is_booze else None
+            
             cur.execute("""
                 INSERT INTO products (id, organization_id, category_id, name, description,
                                       sku, barcode, qr_code_data, cost_price, selling_price,
                                       tax_rate, unit, low_stock_threshold, image_url,
+                                      safety_statements, allergy_advice, product_marketing, features,
+                                      storage_type, country_of_origin, alcohol_data, company_name,
+                                      company_address, manufacturer_name, disclaimer,
                                       created_at, updated_at, is_deleted)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (pid, org_id, cat_ids[cat_idx], name, f"Dummy description for {name}",
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (pid, org_id, cat_ids[cat_idx], name, f"Lindeman's Bin 50 Shiraz has been brought to life through artist David Bromley's eyes; his interpretation of 'colourful, bright and smooth' has been coupled with the bold flavours of Shiraz to bring you this contemporary, approachable style of wine." if "Shiraz" in name else f"Detailed description for {name}. This product is carefully sourced to ensure the highest standards of quality for our Daily Grocer customers.",
                   sku, barcode, None, Decimal(str(cost)), Decimal(str(sell)),
-                  Decimal(str(tax)), unit, 10, None, START_DATE, START_DATE, False))
+                  Decimal(str(tax)), unit, 10, None, 
+                  safety, allergy, marketing, feat,
+                  storage, origin, alc_data, "Daily Grocer Distribution Ltd",
+                  "Unit 12, Retail Park, London", "Global Foods Manufacturing", 
+                  "Images are for illustration purposes only. Always check the physical label before consumption.",
+                  START_DATE, START_DATE, False))
             prod_ids.append(pid)
             prod_prices.append((Decimal(str(sell)), Decimal(str(tax))))
             prod_names.append(name)
             prod_skus.append(sku)
-        print(f"✅ Products: {len(prod_ids)} created")
+        print(f"[OK] Products: {len(prod_ids)} created")
 
         # ── 6. Inventory (every product × every store) ───────────────
         inv_count = 0
@@ -325,13 +344,15 @@ def seed():
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
                 """, (uid(), pid, sid, qty, 0, START_DATE, START_DATE, False))
                 inv_count += 1
-        print(f"✅ Inventory: {inv_count} rows")
+        print(f"[OK] Inventory: {inv_count} rows")
 
         # ── 7. Sales + SaleItems ─────────────────────────────────────
-        sale_count = 0
+        conn.commit()
+        return 
+        order_count = 0
         item_count = 0
         invoice_counter = 1
-        sale_refs = []  # (sale_id, store_id, user_id, created_at, invoice_number)
+        order_refs = []  # (order_id, store_id, user_id, created_at, invoice_number)
 
         for day in range(TOTAL_DAYS):
             num_sales = random.randint(8, 12)
@@ -339,7 +360,7 @@ def seed():
                 store_idx = random.randint(0, len(store_ids) - 1)
                 sid = store_ids[store_idx]
                 cashier_id = random.choice(store_cashier_map[sid])
-                sale_dt = seq_dt(day, hour=random.randint(9, 21))
+                order_dt = seq_dt(day, hour=random.randint(9, 21))
 
                 # Pick 1-5 random products
                 num_items = random.randint(1, 5)
@@ -360,39 +381,39 @@ def seed():
                     items_to_insert.append((
                         uid(), None, prod_ids[pi], prod_names[pi], prod_skus[pi],
                         qty, sell_price, Decimal("0"), item_tax, item_total,
-                        sale_dt, sale_dt, False
+                        order_dt, order_dt, False
                     ))
 
-                sale_discount = Decimal("0")
+                order_discount = Decimal("0")
                 if random.random() < 0.15:
-                    sale_discount = (subtotal * Decimal("0.05")).quantize(Decimal("0.01"))
-                sale_total = (subtotal - sale_discount + tax_total).quantize(Decimal("0.01"))
+                    order_discount = (subtotal * Decimal("0.05")).quantize(Decimal("0.01"))
+                order_total = (subtotal - order_discount + tax_total).quantize(Decimal("0.01"))
                 subtotal = subtotal.quantize(Decimal("0.01"))
 
-                inv_num = f"INV-{sale_dt.strftime('%Y%m%d')}-{invoice_counter:06d}"
+                inv_num = f"INV-{order_dt.strftime('%Y%m%d')}-{invoice_counter:06d}"
                 invoice_counter += 1
 
-                sale_id = uid()
+                order_id = uid()
                 cur.execute("""
-                    INSERT INTO sales (id, store_id, user_id, invoice_number, subtotal,
+                    INSERT INTO orders (id, store_id, user_id, invoice_number, subtotal,
                                        discount_amount, tax_amount, total, status,
                                        payment_method, notes, client_id,
                                        created_at, updated_at, is_deleted)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                """, (sale_id, sid, cashier_id, inv_num, subtotal,
-                      sale_discount, tax_total, sale_total, "completed",
+                """, (order_id, sid, cashier_id, inv_num, subtotal,
+                      order_discount, tax_total, order_total, "completed",
                       random.choice(PAYMENT_METHODS), None, None,
-                      sale_dt, sale_dt, False))
-                sale_count += 1
-                sale_refs.append((sale_id, sid, cashier_id, sale_dt, inv_num))
+                      order_dt, order_dt, False))
+                order_count += 1
+                order_refs.append((order_id, sid, cashier_id, order_dt, inv_num))
 
                 for itm in items_to_insert:
                     cur.execute("""
-                        INSERT INTO sale_items (id, sale_id, product_id, product_name, product_sku,
+                        INSERT INTO order_items (id, order_id, product_id, product_name, product_sku,
                                                 quantity, unit_price, discount_amount, tax_amount,
                                                 total, created_at, updated_at, is_deleted)
                         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                    """, (itm[0], sale_id, itm[2], itm[3], itm[4],
+                    """, (itm[0], order_id, itm[2], itm[3], itm[4],
                           itm[5], itm[6], itm[7], itm[8], itm[9],
                           itm[10], itm[11], itm[12]))
                     item_count += 1
@@ -402,8 +423,8 @@ def seed():
                 conn.commit()
 
         conn.commit()
-        print(f"✅ Sales: {sale_count} created")
-        print(f"✅ SaleItems: {item_count} created")
+        print(f"[OK] Sales: {order_count} created")
+        print(f"[OK] SaleItems: {item_count} created")
 
         # ── 8. StockMovements ────────────────────────────────────────
         mv_count = 0
@@ -426,7 +447,7 @@ def seed():
                 mv_count += 1
 
         # b) Sale-linked movements (~200)
-        sampled = random.sample(sale_refs, min(200, len(sale_refs)))
+        sampled = random.sample(order_refs, min(200, len(order_refs)))
         for (s_id, s_sid, s_uid, s_dt, s_inv) in sampled:
             pid = random.choice(prod_ids)
             cur.execute("""
@@ -487,7 +508,7 @@ def seed():
             mv_count += 1
 
         conn.commit()
-        print(f"✅ StockMovements: {mv_count} created")
+        print(f"[OK] StockMovements: {mv_count} created")
 
         # ── 9. SyncLogs ──────────────────────────────────────────────
         action_types = ["create_sale", "update_product", "adjust_stock", "create_sale", "create_sale"]
@@ -519,27 +540,27 @@ def seed():
             sl_count += 1
 
         conn.commit()
-        print(f"✅ SyncLogs: {sl_count} created")
+        print(f"[OK] SyncLogs: {sl_count} created")
 
         # ── Summary ──────────────────────────────────────────────────
-        print(f"\n🎉 Seeding complete!")
+        print(f"\n[DONE] Seeding complete!")
         print(f"   Organization:    1")
         print(f"   Stores:          {len(store_ids)}")
         print(f"   Users:           {len(user_ids)} (1 admin + 5 managers + 15 cashiers)")
         print(f"   Categories:      {len(cat_ids)}")
         print(f"   Products:        {len(prod_ids)}")
         print(f"   Inventory rows:  {inv_count}")
-        print(f"   Sales:           {sale_count}")
+        print(f"   Sales:           {order_count}")
         print(f"   Sale items:      {item_count}")
         print(f"   Stock movements: {mv_count}")
         print(f"   Sync logs:       {sl_count}")
-        print(f"\n   🔑 Admin:    admin@dailygrocer.co.uk / {PASSWORD}")
-        print(f"   🔑 Managers: manager1@dailygrocer.co.uk … manager5@dailygrocer.co.uk / {PASSWORD}")
-        print(f"   🔑 Cashiers: cashier1@dailygrocer.co.uk … cashier15@dailygrocer.co.uk / {PASSWORD}")
+        print(f"\n   [KEY] Admin:    admin@dailygrocer.co.uk / {PASSWORD}")
+        print(f"   [KEY] Managers: manager1@dailygrocer.co.uk … manager5@dailygrocer.co.uk / {PASSWORD}")
+        print(f"   [KEY] Cashiers: cashier1@dailygrocer.co.uk … cashier15@dailygrocer.co.uk / {PASSWORD}")
 
     except Exception as e:
         conn.rollback()
-        print(f"\n❌ Seeding failed: {e}")
+        print(f"\n[ERROR] Seeding failed: {e}")
         raise
     finally:
         cur.close()
@@ -548,3 +569,4 @@ def seed():
 
 if __name__ == "__main__":
     seed()
+

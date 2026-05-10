@@ -46,6 +46,20 @@ class Product(TimestampMixin, Base):
     nutritional_info = Column(JSONB, nullable=True)
     weight_unit = Column(String(20), nullable=True)  # kg, g, pcs
     calories_per_100g = Column(Numeric(8, 2), nullable=True)
+    
+    # Extended Details (Snappy Shopper Style)
+    safety_statements = Column(Text, nullable=True)
+    allergy_advice = Column(Text, nullable=True)
+    product_marketing = Column(Text, nullable=True)
+    features = Column(JSONB, nullable=True)
+    storage_type = Column(String(100), nullable=True)
+    country_of_origin = Column(String(100), nullable=True)
+    alcohol_data = Column(JSONB, nullable=True)
+    company_name = Column(String(255), nullable=True)
+    company_address = Column(Text, nullable=True)
+    manufacturer_name = Column(String(255), nullable=True)
+    disclaimer = Column(Text, nullable=True)
+    
     search_vector = Column(TSVECTOR, nullable=True)
 
     # Relationships

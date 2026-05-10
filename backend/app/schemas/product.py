@@ -63,6 +63,19 @@ class ProductCreate(BaseModel):
     nutritional_info: Optional[dict] = None
     weight_unit: Optional[str] = None
     calories_per_100g: Optional[Decimal] = None
+    
+    # Extended Details
+    safety_statements: Optional[str] = None
+    allergy_advice: Optional[str] = None
+    product_marketing: Optional[str] = None
+    features: Optional[List[str]] = None
+    storage_type: Optional[str] = None
+    country_of_origin: Optional[str] = None
+    alcohol_data: Optional[dict] = None
+    company_name: Optional[str] = None
+    company_address: Optional[str] = None
+    manufacturer_name: Optional[str] = None
+    disclaimer: Optional[str] = None
 
 
 class ProductUpdate(BaseModel):
@@ -88,6 +101,19 @@ class ProductUpdate(BaseModel):
     nutritional_info: Optional[dict] = None
     weight_unit: Optional[str] = None
     calories_per_100g: Optional[Decimal] = None
+
+    # Extended Details
+    safety_statements: Optional[str] = None
+    allergy_advice: Optional[str] = None
+    product_marketing: Optional[str] = None
+    features: Optional[List[str]] = None
+    storage_type: Optional[str] = None
+    country_of_origin: Optional[str] = None
+    alcohol_data: Optional[dict] = None
+    company_name: Optional[str] = None
+    company_address: Optional[str] = None
+    manufacturer_name: Optional[str] = None
+    disclaimer: Optional[str] = None
 
 
 class ProductResponse(BaseModel):
@@ -119,6 +145,19 @@ class ProductResponse(BaseModel):
     nutritional_info: Optional[dict] = None
     weight_unit: Optional[str] = None
     calories_per_100g: Optional[Decimal] = None
+    
+    # Extended Details
+    safety_statements: Optional[str] = None
+    allergy_advice: Optional[str] = None
+    product_marketing: Optional[str] = None
+    features: Optional[List[str]] = None
+    storage_type: Optional[str] = None
+    country_of_origin: Optional[str] = None
+    alcohol_data: Optional[dict] = None
+    company_name: Optional[str] = None
+    company_address: Optional[str] = None
+    manufacturer_name: Optional[str] = None
+    disclaimer: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

@@ -6,7 +6,7 @@ import { catalogApi, reviewApi, getErrorMessage } from '../services/api';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Loader2, Star, ShoppingBasket, MessageSquare, ShieldCheck, Truck, Plus, Minus, AlertCircle, Leaf, Info } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import toast from 'react-hot-toast';
 
 export default function ProductDetails() {
@@ -162,80 +162,105 @@ export default function ProductDetails() {
 
           <div className="ss-separator mb-6"></div>
 
-          {/* Description */}
-          <div className="mb-8">
-            <h3 className="font-bold text-lg mb-2">Product Description</h3>
-            <p className="text-on-surface-variant leading-relaxed text-sm md:text-base">
-              {product.description || 'No detailed description available for this product.'}
-            </p>
-          </div>
-
-          {/* Allergen & Nutritional Info */}
-          {(product.allergens?.length > 0 || product.nutritional_info) && (
-            <div className="mb-8 space-y-6">
-              {product.allergens && product.allergens.length > 0 && (
-                <div>
-                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                    <AlertCircle className="text-error" size={20} />
-                    Allergen Information
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {product.allergens.map((allergen: string) => (
-                      <span key={allergen} className="px-3 py-1 bg-error/10 text-error text-xs font-bold rounded-full uppercase tracking-wider">
-                        {allergen}
-                      </span>
+          {/* Accordion Sections (Snappy Shopper Style) */}
+          <div className="divide-y divide-outline-variant/30 border-y border-outline-variant/30 mb-10">
+            <AccordionSection 
+              title="Safety Statements" 
+              content={product.safety_statements} 
+              icon={<ShieldCheck size={18} className="text-primary" />}
+            />
+            <AccordionSection 
+              title="Allergy Advice" 
+              content={product.allergy_advice} 
+              icon={<AlertCircle size={18} className="text-error" />}
+            />
+            <AccordionSection 
+              title="Product Marketing" 
+              content={product.product_marketing} 
+            />
+            <AccordionSection 
+              title="Description" 
+              content={product.description} 
+              defaultOpen
+            />
+            <AccordionSection 
+              title="Features" 
+              content={product.features ? (
+                <ul className="list-disc pl-5 space-y-1">
+                  {product.features.map((f: string, i: number) => <li key={i}>{f}</li>)}
+                </ul>
+              ) : null} 
+            />
+            <AccordionSection 
+              title="Storage Type" 
+              content={product.storage_type} 
+            />
+            <AccordionSection 
+              title="Country of Origin" 
+              content={product.country_of_origin} 
+            />
+            
+            {product.alcohol_data && (
+              <AccordionSection 
+                title="General Alcohol Data" 
+                content={
+                  <div className="space-y-2">
+                    {Object.entries(product.alcohol_data).map(([k, v]) => (
+                      <div key={k} className="flex justify-between border-b border-outline-variant/10 pb-1">
+                        <span className="capitalize text-on-surface-variant">{k.replace(/_/g, ' ')}</span>
+                        <span className="font-bold">{String(v)}</span>
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
+                } 
+              />
+            )}
 
-              {product.nutritional_info && (
-                <div>
-                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                    <Leaf className="text-primary" size={20} />
-                    Nutritional Facts
-                  </h3>
-                  <div className="bg-surface-container-low rounded-xl border border-outline-variant/30 overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-surface-container-high border-b border-outline-variant/30 text-on-surface-variant">
-                          <th className="px-4 py-2 text-left font-bold uppercase tracking-widest text-[10px]">Component</th>
-                          <th className="px-4 py-2 text-right font-bold uppercase tracking-widest text-[10px]">Per 100g/ml</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-outline-variant/20">
-                        {Object.entries(product.nutritional_info).map(([key, value]) => (
-                          <tr key={key}>
-                            <td className="px-4 py-2 text-on-surface-variant font-medium capitalize">{key.replace(/_/g, ' ')}</td>
-                            <td className="px-4 py-2 text-right font-bold text-on-surface">{String(value)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+            <AccordionSection 
+              title="Company Name" 
+              content={product.company_name} 
+            />
+            <AccordionSection 
+              title="Company Address" 
+              content={product.company_address} 
+            />
+            <AccordionSection 
+              title="Manufacturer" 
+              content={product.manufacturer_name} 
+            />
+            <AccordionSection 
+              title="Daily Grocer Disclaimer" 
+              content={product.disclaimer || "While we aim to provide accurate product information, it is provided by manufacturers and not verified by us. Always check the physical product label before consumption."} 
+            />
+          </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
-                <Info className="text-amber-600 shrink-0" size={20} />
-                <p className="text-xs text-amber-800 leading-relaxed italic">
-                  <strong>Disclaimer:</strong> While we aim to provide accurate product information, it is provided by manufacturers and not verified by us. <strong>Always check the physical product label</strong> for the most accurate allergen and nutritional information before consumption.
-                </p>
+          {/* Nutritional Info Table (Still useful to keep) */}
+          {product.nutritional_info && (
+            <div className="mb-10">
+              <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                <Leaf className="text-primary" size={20} />
+                Nutritional Facts
+              </h3>
+              <div className="bg-surface-container-low rounded-xl border border-outline-variant/30 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-surface-container-high border-b border-outline-variant/30 text-on-surface-variant">
+                      <th className="px-4 py-2 text-left font-bold uppercase tracking-widest text-[10px]">Component</th>
+                      <th className="px-4 py-2 text-right font-bold uppercase tracking-widest text-[10px]">Per 100g/ml</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/20">
+                    {Object.entries(product.nutritional_info).map(([key, value]) => (
+                      <tr key={key}>
+                        <td className="px-4 py-2 text-on-surface-variant font-medium capitalize">{key.replace(/_/g, ' ')}</td>
+                        <td className="px-4 py-2 text-right font-bold text-on-surface">{String(value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
-
-          {/* Trust Badges */}
-          <div className="flex flex-col gap-3 mb-10 bg-surface-container-low p-4 rounded-lg border border-outline-variant/30">
-            <div className="flex items-center gap-3 text-sm font-medium text-on-surface">
-              <Truck className="text-primary" size={20} />
-              Delivery available from local store
-            </div>
-            <div className="flex items-center gap-3 text-sm font-medium text-on-surface">
-              <ShieldCheck className="text-primary" size={20} />
-              Quality guaranteed
-            </div>
-          </div>
 
           <div className="ss-separator mb-8"></div>
 
@@ -329,5 +354,52 @@ export default function ProductDetails() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+// Sub-component for Accordion Sections
+function AccordionSection({ title, content, icon, defaultOpen = false }: { title: string, content: any, icon?: React.ReactNode, defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = React.useState(defaultOpen);
+
+  if (!content) return null;
+
+  return (
+    <div className="w-full">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between py-4 text-left group"
+      >
+        <div className="flex items-center gap-3">
+          {icon}
+          <span className={`font-bold transition-colors ${isOpen ? 'text-primary' : 'text-[#004a8e] group-hover:text-primary'}`}>
+            {title}
+          </span>
+        </div>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="text-outline-variant group-hover:text-primary"
+        >
+          <Plus size={20} className={isOpen ? 'hidden' : 'block'} />
+          <Minus size={20} className={isOpen ? 'block' : 'hidden'} />
+        </motion.div>
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="pb-6 text-sm text-on-surface-variant leading-relaxed font-medium">
+              {content}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
