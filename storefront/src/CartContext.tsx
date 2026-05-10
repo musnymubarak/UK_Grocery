@@ -19,6 +19,8 @@ export interface SelectedStore {
   postcode: string;
   openUntil: string;
   is_open: boolean;
+  min_order_value: number;
+  free_delivery_threshold: number;
   lat?: number;
   lng?: number;
 }

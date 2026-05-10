@@ -222,6 +222,12 @@ class OrderService:
                 quantity=int(item_data.quantity)
             )
 
+        # Validate Minimum Order Value
+        from app.models.store import Store
+        store = await self.db.get(Store, store_id)
+        if store and subtotal < store.min_order_value:
+            raise ValidationException(f"Order subtotal must be at least £{store.min_order_value:.2f}")
+
         # Apply Coupon
         if data.coupon_code:
             from app.services.coupon import CouponService

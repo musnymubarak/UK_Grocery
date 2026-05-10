@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import InnovativeLoader from '../components/InnovativeLoader';
+import DeliveryFeeModal from '../components/DeliveryFeeModal';
 import { ChevronLeft, ChevronRight, ArrowRight, Info, Bike } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
@@ -30,6 +31,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [banners, setBanners] = useState<any[]>([]);
   const [currentBanner, setCurrentBanner] = useState(0);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -173,17 +175,20 @@ export default function Home() {
 
           <div className="px-4 mt-4">
             {/* Pricing Information Block */}
-            <div className="mb-4 border border-dashed border-primary/30 rounded-xl p-3 flex items-center justify-between bg-white shadow-sm">
+            <div 
+              onClick={() => setIsPricingModalOpen(true)}
+              className="mb-4 border border-dashed border-primary/30 rounded-xl p-3 flex items-center justify-between bg-white shadow-sm cursor-pointer hover:bg-gray-50 transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="text-primary">
                   <Bike size={22} strokeWidth={1.5} />
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-on-surface-variant leading-tight">Pricing Information</p>
-                  <p className="text-[15px] font-black text-on-surface leading-tight mt-0.5">£0 - £3</p>
+                  <p className="text-[15px] font-black text-on-surface leading-tight mt-0.5">£1.99 - £5.99</p>
                 </div>
               </div>
-              <button className="text-primary">
+              <button className="text-primary pointer-events-none">
                 <Info size={20} strokeWidth={1.5} />
               </button>
             </div>
@@ -298,6 +303,12 @@ export default function Home() {
           </div>
         </div>
       </div>
+      
+      <DeliveryFeeModal 
+        isOpen={isPricingModalOpen} 
+        onClose={() => setIsPricingModalOpen(false)}
+        minOrder={selectedStore?.min_order_value || "10.00"}
+      />
     </Layout>
   );
 }
