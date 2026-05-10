@@ -19,10 +19,10 @@ export default function Checkout() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [isNewAddress, setIsNewAddress] = useState(false);
   
-  const [postcode, setPostcode] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
-  const [notes, setNotes] = useState('');
+  const [postcode, setPostcode] = useState(() => localStorage.getItem('dg_temp_postcode') || '');
+  const [address, setAddress] = useState(() => localStorage.getItem('dg_temp_address') || '');
+  const [phone, setPhone] = useState(() => localStorage.getItem('dg_temp_phone') || '');
+  const [notes, setNotes] = useState(() => localStorage.getItem('dg_temp_notes') || '');
   
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
   const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '' });
@@ -62,19 +62,30 @@ export default function Checkout() {
     }
   }, [isAuthenticated]);
 
+  // Persist temporary address fields
+  useEffect(() => {
+    localStorage.setItem('dg_temp_postcode', postcode);
+    localStorage.setItem('dg_temp_address', address);
+    localStorage.setItem('dg_temp_phone', phone);
+    localStorage.setItem('dg_temp_notes', notes);
+  }, [postcode, address, phone, notes]);
+
   // Handle distance-based fee calculation
   useEffect(() => {
-    let activePostcode = '';
+    let addressQuery = '';
     if (isNewAddress) {
-      if (postcode.length >= 5) activePostcode = postcode;
+      // Only calculate if both street address and postcode are provided
+      if (postcode.length >= 5 && address.length > 3) {
+        addressQuery = `${address}, ${postcode}`;
+      }
     } else {
       const selected = addresses.find(a => a.id === selectedAddressId);
-      if (selected) activePostcode = selected.postcode;
+      if (selected) addressQuery = `${selected.street}, ${selected.postcode}`;
     }
 
-    if (activePostcode && selectedStore) {
+    if (addressQuery && selectedStore) {
       setIsCalculatingFee(true);
-      catalogApi.calculateDistanceFee(selectedStore.id, activePostcode)
+      catalogApi.calculateDistanceFee(selectedStore.id, addressQuery)
         .then(res => {
           setDeliveryInfo({
             deliverable: res.data.deliverable,
@@ -96,9 +107,10 @@ export default function Checkout() {
     } else {
       setDeliveryInfo(null);
     }
-  }, [postcode, selectedAddressId, isNewAddress, addresses, selectedStore]);
+  }, [postcode, address, selectedAddressId, isNewAddress, addresses, selectedStore]);
 
   const deliveryFee = deliveryInfo?.fee ?? 0;
+  const isMinOrderMet = selectedStore ? totalPrice >= (selectedStore.min_order_value || 10) : true;
   const finalTotal = Math.max(0, totalPrice + deliveryFee - appliedDiscount);
 
   const handleValidatePromo = async () => {
@@ -192,6 +204,12 @@ export default function Checkout() {
         age_confirmed: hasAgeRestrictedItems ? isAgeConfirmed : undefined,
       });
       clearCart();
+      // Clear temporary address fields
+      localStorage.removeItem('dg_temp_postcode');
+      localStorage.removeItem('dg_temp_address');
+      localStorage.removeItem('dg_temp_phone');
+      localStorage.removeItem('dg_temp_notes');
+      
       const orderId = res.data.id;
       toast.success('Order placed successfully! Cheerio!');
       navigate(`/tracking/${orderId}`);
@@ -207,7 +225,7 @@ export default function Checkout() {
 
   return (
     <Layout title="Checkout" showBack>
-      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-6 pb-80 font-body">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-6 pb-20 font-body">
         <h2 className="text-2xl font-bold text-on-surface mb-6">Checkout</h2>
 
         <div className="space-y-6">
@@ -449,23 +467,41 @@ export default function Checkout() {
               </div>
             </div>
           </section>
+          
+          <div className="pt-4 space-y-3">
+            {(!isMinOrderMet && selectedStore) && (
+              <div className="bg-error/10 border border-error/20 rounded-xl p-4 mb-2">
+                <p className="text-error text-center font-bold text-sm">
+                  Add £{((selectedStore.min_order_value || 10) - totalPrice).toFixed(2)} more to meet the £{(selectedStore.min_order_value || 10).toFixed(2)} minimum order value
+                </p>
+              </div>
+            )}
+            
+            <button 
+              onClick={handlePlaceOrder}
+              disabled={submitting || !isMinOrderMet || (deliveryInfo && !deliveryInfo.deliverable)}
+              className="w-full bg-primary text-white py-4 rounded-xl font-black text-lg shadow-[0_12px_40px_rgba(30,64,175,0.25)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-primary-container disabled:bg-outline-variant disabled:shadow-none disabled:opacity-50 uppercase tracking-widest border border-white/20"
+            >
+              {submitting ? <Loader2 className="animate-spin" size={24} /> : (
+                <>{!isMinOrderMet ? 'Minimum Not Met' : 'Place Order'}</>
+              )}
+            </button>
+
+            <button 
+              onClick={() => navigate('/browse')}
+              className="w-full bg-surface-container-high text-on-surface py-4 rounded-xl font-black text-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-outline-variant/30 uppercase tracking-widest border border-outline-variant/10"
+            >
+              Continue Shopping
+            </button>
+
+            <p className="text-[10px] text-center text-on-surface-variant/60 uppercase tracking-widest mt-4 font-bold">
+              By placing this order you agree to our terms and conditions
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Sticky Bottom Button - Positioned higher to clear the curved bottom navigation bar */}
-      <div className="fixed bottom-[140px] left-0 w-full p-4 z-50">
-        <div className="max-w-2xl mx-auto">
-          <button 
-            onClick={handlePlaceOrder}
-            disabled={submitting}
-            className="w-full bg-primary text-white py-4 rounded-xl font-black text-lg shadow-[0_12px_40px_rgba(30,64,175,0.25)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-primary-container disabled:opacity-50 uppercase tracking-widest border border-white/20 backdrop-blur-md"
-          >
-            {submitting ? <Loader2 className="animate-spin" size={24} /> : (
-              <>Place Order</>
-            )}
-          </button>
-        </div>
-      </div>
+
     </Layout>
   );
 }

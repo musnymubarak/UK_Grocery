@@ -15,7 +15,7 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, title = 'Daily Grocer', subtitle, showBack = false }: LayoutProps) {
-  const { totalItems, selectedStore } = useCart();
+  const { totalItems, totalPrice, selectedStore } = useCart();
   const { isAuthenticated, customer } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -151,17 +151,17 @@ export default function Layout({ children, title = 'Daily Grocer', subtitle, sho
 
       {/* Bottom Navigation (Mobile Only) */}
       {!hideBottomNav && (
-        <nav className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-outline-variant/5 px-2 pb-6 pt-2 flex justify-around items-center z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] md:hidden">
+        <nav className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-outline-variant/5 px-2 pb-1 pt-1 flex justify-around items-center z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] md:hidden">
           <NavLink to="/stores" icon={<MapPin size={22} />} label="Stores" active={location.pathname === '/stores'} />
           <NavLink to="/browse" icon={<LayoutGrid size={22} />} label="Menu" active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')} />
           <NavLink to={isAuthenticated ? "/profile" : "/login"} icon={<CircleUser size={22} />} label="Account" active={location.pathname === '/profile' || location.pathname === '/login'} />
           
           <Link to="/cart" className="flex flex-col items-center justify-center px-3 py-1 transition-all active:scale-95">
-            <div className={`relative p-2 rounded-xl transition-all duration-300 ${totalItems > 0 ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-surface-container-high text-secondary'}`}>
-              <ShoppingBag size={20} />
+            <div className={`relative p-1 rounded-xl transition-all duration-300 ${totalItems > 0 ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-surface-container-high text-secondary'}`}>
+              <ShoppingBag size={22} />
               {totalItems > 0 && (
                 <div className="absolute -top-1.5 -right-1.5 bg-success text-white text-[8px] font-black px-1 py-0.5 rounded-full border border-white">
-                  £{(totalItems * 2.5).toFixed(2)}
+                  £{totalPrice.toFixed(2)}
                 </div>
               )}
             </div>
@@ -227,13 +227,13 @@ function NavLink({ to, icon, label, active }: { to: string; icon: React.ReactNod
   return (
     <Link 
       to={to} 
-      className={`flex flex-col items-center justify-center px-4 py-2 transition-all duration-300 active:scale-90 ${
+      className={`flex flex-col items-center justify-center px-4 py-1 transition-all duration-300 active:scale-90 ${
         active 
           ? 'text-primary' 
           : 'text-secondary hover:text-primary/70'
       }`}
     >
-      <div className={`p-2 rounded-xl transition-colors ${active ? 'bg-primary/10' : ''}`}>
+      <div className={`p-1 rounded-xl transition-colors ${active ? 'bg-primary/10' : ''}`}>
         {icon}
       </div>
       <span className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${active ? 'text-primary' : 'text-secondary/60'}`}>{label}</span>

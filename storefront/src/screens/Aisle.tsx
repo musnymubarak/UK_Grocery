@@ -74,18 +74,7 @@ export default function Aisle() {
   return (
     <Layout title={categoryName || 'Products'} showBack>
       <div className="max-w-7xl mx-auto px-6 pb-60">
-        {/* Filter Chips */}
-        <section className="py-6 overflow-x-auto no-scrollbar flex items-center gap-3">
-          <button className="flex-shrink-0 px-6 py-2 rounded-full bg-primary text-on-primary text-sm font-semibold transition-all">
-            All Produce
-          </button>
-          <button className="flex-shrink-0 px-6 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium hover:bg-surface-container-highest transition-colors">
-            Popular
-          </button>
-          <button className="flex-shrink-0 px-6 py-2 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium hover:bg-surface-container-highest transition-colors">
-            Price: Low to High
-          </button>
-        </section>
+
 
         {/* Product Grid */}
         <div className="flex flex-col mt-4">
@@ -111,28 +100,7 @@ export default function Aisle() {
           </div>
         )}
 
-        {/* Sticky Cart Bar - Stacked above nav on mobile */}
-        {totalItems > 0 && (
-          <motion.div 
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            className="fixed bottom-[112px] md:bottom-6 left-0 w-full px-6 z-40 pointer-events-none"
-          >
-            <Link 
-              to="/cart"
-              className="max-w-md mx-auto pointer-events-auto bg-primary rounded-full py-4 px-8 flex justify-between items-center shadow-2xl active:scale-[0.98] transition-transform duration-200"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-on-primary font-bold">View Cart</span>
-                <span className="w-1 h-1 bg-on-primary/40 rounded-full"></span>
-                <span className="text-on-primary/90 text-sm">{totalItems} items</span>
-              </div>
-              <div className="text-on-primary font-headline font-extrabold text-lg">
-                £{totalPrice.toFixed(2)}
-              </div>
-            </Link>
-          </motion.div>
-        )}
+
       </div>
     </Layout>
   );

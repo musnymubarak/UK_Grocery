@@ -20,7 +20,8 @@ interface StoreData {
   lat?: number;
   lng?: number;
   logo_url?: string;
-  min_order?: number;
+  min_order_value?: number;
+  free_delivery_threshold?: number;
   delivery_fee?: string;
   distance?: string;
   delivery_time?: string;
@@ -39,7 +40,8 @@ export default function StoreSelection() {
         // Mocking some extra data for the UI match
         const enhancedStores = res.data.map((s: any, idx: number) => ({
           ...s,
-          min_order: s.min_order || 10.00,
+          min_order_value: Number(s.min_order_value || 10.00),
+          free_delivery_threshold: Number(s.free_delivery_threshold || 40.00),
           delivery_fee: s.delivery_fee || (idx === 0 ? "£0 - £3" : "Free"),
           distance: s.distance || (0.5 + idx * 1.2).toFixed(2) + " miles",
           delivery_time: s.delivery_time || "25 to 40 mins"
@@ -81,6 +83,8 @@ export default function StoreSelection() {
       postcode: store.postcode || '',
       openUntil: '10 PM',
       is_open: currentlyOpen,
+      min_order_value: store.min_order_value || 10.00,
+      free_delivery_threshold: store.free_delivery_threshold || 40.00,
       lat: store.lat,
       lng: store.lng,
     });
@@ -220,7 +224,7 @@ function StoreCard({ store, isOpen, index, onSelect }: { store: StoreData, isOpe
           <div className="grid grid-cols-2 gap-y-2 gap-x-2">
             <StoreDetail icon={<Timer size={13} />} text={isOpen ? store.delivery_time : "We are closed."} highlight={!isOpen} color={!isOpen ? 'text-error' : ''} />
             <StoreDetail icon={<MapPin size={13} />} text={store.distance} />
-            <StoreDetail icon={<ReceiptText size={13} />} text={`Min £${store.min_order?.toFixed(2)}`} />
+            <StoreDetail icon={<ReceiptText size={13} />} text={`Min £${store.min_order_value?.toFixed(2)}`} />
             <StoreDetail icon={<Bike size={13} />} text={store.delivery_fee} />
           </div>
 
