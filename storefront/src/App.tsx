@@ -41,6 +41,7 @@ function AnimatedRoutes() {
         <Route path="/success" element={<OrderSuccess />} />
         <Route path="/tracking/:id" element={<OrderTracking />} />
         <Route path="/history" element={<OrderHistory />} />
+        <Route path="/orders" element={<OrderHistory />} />
         <Route path="/refunds" element={<RefundStatus />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/offers" element={<Offers />} />
