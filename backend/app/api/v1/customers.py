@@ -17,12 +17,15 @@ from app.models.customer import Customer, CustomerAddress
 from app.schemas.customer import (
     CustomerCreate, CustomerResponse, CustomerUpdate, 
     CustomerAddressCreate, CustomerAddressResponse,
-    CustomerLogin, Token
+    CustomerLogin, Token, GoogleLogin
 )
 from app.schemas.referral import ApplyReferralRequest, ReferralResponse, ReferralCodeResponse
 from app.schemas.auth import RefreshRequest
 from app.services.customer import CustomerService
 from app.services.token import TokenService
+from app.core.config import settings
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -78,6 +81,60 @@ async def login_customer(
         customer_id=customer.id,
         device_info=device_info
     )
+
+@router.post("/google", response_model=Token)
+async def google_login_customer(
+    request: Request,
+    data: GoogleLogin,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Authenticate customer via Google ID Token."""
+    try:
+        # Verify the token
+        id_info = id_token.verify_oauth2_token(
+            data.id_token, 
+            requests.Request(), 
+            settings.GOOGLE_CLIENT_ID
+        )
+        
+        email = id_info['email']
+        name = id_info.get('name', email.split('@')[0])
+        
+        # Check if customer exists
+        from app.services.customer import CustomerService
+        customer = await CustomerService.get_customer_by_email(db, email)
+        
+        if not customer:
+            # Create new customer
+            from app.models.organization import Organization
+            from sqlalchemy import select as sa_select
+            result = await db.execute(sa_select(Organization).limit(1))
+            org = result.scalar_one_or_none()
+            
+            from app.schemas.customer import CustomerCreate
+            import secrets
+            import string
+            
+            # Generate a secure random password for OAuth users (though they use Google to log in)
+            random_pw = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(20))
+            
+            new_customer_data = CustomerCreate(
+                email=email,
+                full_name=name,
+                password=random_pw
+            )
+            customer = await CustomerService.create_customer(db, org_id=org.id, data=new_customer_data)
+        
+        token_service = TokenService(db)
+        device_info = request.headers.get("user-agent")
+        return await token_service.issue_token_pair(
+            customer_id=customer.id,
+            device_info=device_info
+        )
+        
+    except ValueError:
+        # Invalid token
+        raise UnauthorizedException("Invalid Google token")
 
 
 @router.post("/refresh", summary="Rotate customer refresh token")

@@ -17,6 +17,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  googleLogin: (credential: string) => Promise<void>;
   register: (name: string, email: string, password: string, phone?: string, dob?: string) => Promise<void>;
   logout: () => void;
   error: string | null;
@@ -81,6 +82,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const googleLogin = useCallback(async (credential: string) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const res = await customerAuthApi.googleLogin({ id_token: credential });
+      const { access_token } = res.data;
+      localStorage.setItem('customer_token', access_token);
+
+      // Fetch profile
+      const profileRes = await customerAuthApi.getProfile();
+      const customerData: Customer = {
+        id: profileRes.data.id,
+        name: profileRes.data.full_name,
+        email: profileRes.data.email,
+        phone: profileRes.data.phone,
+      };
+      localStorage.setItem('customer_data', JSON.stringify(customerData));
+      setCustomer(customerData);
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Google login failed. Please try again.');
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const register = useCallback(async (name: string, email: string, password: string, phone?: string, dob?: string) => {
     setError(null);
     setIsLoading(true);
@@ -118,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         isLoading,
         login,
+        googleLogin,
         register,
         logout,
         error,
