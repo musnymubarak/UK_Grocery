@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-pos_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pos_password}
-      POSTGRES_DB: ${POSTGRES_DB:-pos_db}
+      POSTGRES_DB: ${POSTGRES_DB:-dailygrocer_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
