@@ -46,7 +46,8 @@ export default function Layout({ children, title = 'Daily Grocer', subtitle, sho
   const hideBottomNav = isAuthPage;
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
+    <div className="min-h-screen bg-gray-100 flex justify-center">
+    <div className="w-full max-w-[430px] min-h-screen bg-surface flex flex-col shadow-2xl">
       {/* Top App Bar */}
       <header className="sticky top-0 z-50 bg-white border-b border-outline-variant/5 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -151,7 +152,7 @@ export default function Layout({ children, title = 'Daily Grocer', subtitle, sho
 
       {/* Bottom Navigation (Mobile Only) */}
       {!hideBottomNav && (
-        <nav className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-outline-variant/5 px-2 pb-1 pt-1 flex justify-around items-center z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] md:hidden">
+        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white/90 backdrop-blur-xl border-t border-outline-variant/5 px-2 pb-1 pt-1 flex justify-around items-center z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
           <NavLink to="/stores" icon={<MapPin size={22} />} label="Stores" active={location.pathname === '/stores'} />
           <NavLink to="/browse" icon={<LayoutGrid size={22} />} label="Menu" active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')} />
           <NavLink to="/history" icon={<Package size={22} />} label="Orders" active={location.pathname === '/history'} />
@@ -201,6 +202,7 @@ export default function Layout({ children, title = 'Daily Grocer', subtitle, sho
           )}
         </div>
       </Modal>
+    </div>
     </div>
   );
 }

@@ -195,11 +195,11 @@ export default function Home() {
             <div className="flex flex-col gap-3 mb-8">
               {/* Rewards Banner */}
               <div className="relative rounded-xl overflow-hidden bg-blue-700 text-white p-5 shadow-sm">
-                <div className="relative z-10 w-[70%]">
+                <div className="relative z-10">
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className="font-extrabold text-sm tracking-tight">daily grocer rewards</span>
                   </div>
-                  <h3 className="text-2xl font-black leading-tight mb-4 tracking-tighter">Get Rewards in a Snap!</h3>
+                  <h3 className="text-xl font-black leading-tight mb-4 tracking-tighter whitespace-nowrap">Get Rewards in a Snap!</h3>
                   <button className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
                     Find out more
                   </button>
