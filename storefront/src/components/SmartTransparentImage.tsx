@@ -8,17 +8,29 @@ interface Props {
 
 const SmartTransparentImage: React.FC<Props> = ({ src, alt, className }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [transparentSrc, setTransparentSrc] = useState<string>(src);
+  const [transparentSrc, setTransparentSrc] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    setIsLoaded(false);
+    setTransparentSrc(null);
+
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = src;
     img.onload = () => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas) {
+        setTransparentSrc(src);
+        setIsLoaded(true);
+        return;
+      }
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) {
+        setTransparentSrc(src);
+        setIsLoaded(true);
+        return;
+      }
 
       canvas.width = img.width;
       canvas.height = img.height;
@@ -27,12 +39,10 @@ const SmartTransparentImage: React.FC<Props> = ({ src, alt, className }) => {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
 
-      // Identify the background color from the top-left corner
       const r_bg = data[0];
       const g_bg = data[1];
       const b_bg = data[2];
 
-      // If the corner is light (background), proceed with removal
       if ((r_bg + g_bg + b_bg) / 3 > 200) {
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
@@ -48,26 +58,36 @@ const SmartTransparentImage: React.FC<Props> = ({ src, alt, className }) => {
         }
         ctx.putImageData(imageData, 0, 0);
         setTransparentSrc(canvas.toDataURL());
+      } else {
+        setTransparentSrc(src);
       }
+      setIsLoaded(true);
     };
     img.onerror = () => {
-      console.error("Image load failed:", src);
-      setTransparentSrc(src); // Fallback to original
+      setTransparentSrc(src);
+      setIsLoaded(true);
     };
   }, [src]);
 
   return (
     <>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-      <img 
-        src={transparentSrc} 
-        alt={alt} 
-        className={className} 
-        onError={(e) => {
-          // Final safety fallback if even the dataURL or original src fails
-          (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(alt) + '&background=E2E8F0&color=64748B';
-        }}
-      />
+      {/* Skeleton placeholder while loading */}
+      {!isLoaded && (
+        <div className={`${className} animate-pulse bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 bg-[length:200%_100%] rounded-xl`} />
+      )}
+      {transparentSrc && (
+        <img 
+          src={transparentSrc} 
+          alt={alt} 
+          className={`${className} ${isLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(alt) + '&background=E2E8F0&color=64748B';
+          }}
+        />
+      )}
     </>
   );
 };

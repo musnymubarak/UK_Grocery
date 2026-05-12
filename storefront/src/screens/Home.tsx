@@ -8,15 +8,15 @@ import { ChevronLeft, ChevronRight, ArrowRight, Info, Bike } from 'lucide-react'
 import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
 import { useCart } from '../CartContext';
-import bakeryImg from '../../images/categories/bakery_clean.png';
-import beveragesImg from '../../images/categories/bevarages_clean.png';
-import dairyImg from '../../images/categories/dairy&eggs_clean.png';
-import foodImg from '../../images/categories/food_clean.png';
-import produceImg from '../../images/categories/freshproduce_clean.png';
-import frozenImg from '../../images/categories/frozenfood_clean.png';
-import householdImg from '../../images/categories/household_clean.png';
-import meatImg from '../../images/categories/meat&poultry_clean.png';
-import pantryImg from '../../images/categories/pantryessentials_clean.png';
+import bakeryImg from '../../images/categories/bakery_clean.webp';
+import beveragesImg from '../../images/categories/bevarages_clean.webp';
+import dairyImg from '../../images/categories/dairy&eggs_clean.webp';
+import foodImg from '../../images/categories/food_clean.webp';
+import produceImg from '../../images/categories/freshproduce_clean.webp';
+import frozenImg from '../../images/categories/frozenfood_clean.webp';
+import householdImg from '../../images/categories/household_clean.webp';
+import meatImg from '../../images/categories/meat&poultry_clean.webp';
+import pantryImg from '../../images/categories/pantryessentials_clean.webp';
 
 interface Category {
   id: string;

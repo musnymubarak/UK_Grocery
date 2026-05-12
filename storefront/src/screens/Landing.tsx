@@ -4,10 +4,10 @@ import { MapPin, Search, ShoppingBasket, Truck, ShieldCheck, Clock, Menu, X, Che
 import React, { useState } from 'react';
 
 // Use categories images for floating elements
-import bakeryImg from "../../images/categories/bakery_clean.png";
-import freshproduceImg from "../../images/categories/freshproduce_clean.png";
-import beveragesImg from "../../images/categories/bevarages_clean.png";
-import meatImg from "../../images/categories/meat&poultry_clean.png";
+import bakeryImg from "../../images/categories/bakery_clean.webp";
+import freshproduceImg from "../../images/categories/freshproduce_clean.webp";
+import beveragesImg from "../../images/categories/bevarages_clean.webp";
+import meatImg from "../../images/categories/meat&poultry_clean.webp";
 
 export default function Landing() {
   const navigate = useNavigate();
