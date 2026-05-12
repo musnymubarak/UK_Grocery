@@ -90,6 +90,10 @@ export const customerAuthApi = {
     password: string;
   }) => api.post('/customers/login', data),
 
+  googleLogin: (data: {
+    id_token: string;
+  }) => api.post('/customers/google', data),
+
   logout: () => api.post('/customers/logout'),
 
   getProfile: () => api.get('/customers/me'),

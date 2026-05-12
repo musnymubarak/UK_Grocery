@@ -114,9 +114,8 @@ export default function Home() {
               {selectedStore?.name || "Daily Grocer Local"}
             </h2>
           </div>
-          <button className="text-primary">
-            <Info size={22} strokeWidth={1.5} />
-          </button>
+          {/* Space for layout balance if needed, otherwise empty */}
+          <div className="w-[22px]"></div>
         </div>
 
         <div className="max-w-4xl mx-auto pb-32">
@@ -188,9 +187,7 @@ export default function Home() {
                   <p className="text-[15px] font-black text-on-surface leading-tight mt-0.5">£1.99 - £5.99</p>
                 </div>
               </div>
-              <button className="text-primary pointer-events-none">
-                <Info size={20} strokeWidth={1.5} />
-              </button>
+              {/* Icon removed */}
             </div>
 
             {/* Static Promotional Banners Stack */}

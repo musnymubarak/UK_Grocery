@@ -22,4 +22,5 @@ export const APP_CONFIG = {
   currency: '£',
   deliveryFee: 3.99,
   freeDeliveryThreshold: 50,
+  googleClientId: '831513497012-88u2bqs01njl5fv2f88t3q37n6e5t1fh.apps.googleusercontent.com',
 };

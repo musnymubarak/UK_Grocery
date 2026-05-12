@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     GOOGLE_MAPS_API_KEY: str = "YOUR_GOOGLE_MAPS_API_KEY_HERE"
+    GOOGLE_CLIENT_ID: str = "831513497012-88u2bqs01njl5fv2f88t3q37n6e5t1fh.apps.googleusercontent.com"
 
     # JWT
     JWT_SECRET_KEY: str = "change-this-secret-key"
