@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
+import SmartTransparentImage from '../components/SmartTransparentImage';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import InnovativeLoader from '../components/InnovativeLoader';
@@ -7,21 +8,22 @@ import { ChevronLeft, ChevronRight, ArrowRight, Info, Bike } from 'lucide-react'
 import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
 import { useCart } from '../CartContext';
-import bakeryImg from '../../images/categories/bakery.png';
-import beveragesImg from '../../images/categories/bevarages.png';
-import dairyImg from '../../images/categories/dairy&eggs.png';
-import foodImg from '../../images/categories/food.png';
-import produceImg from '../../images/categories/freshproduce.png';
-import frozenImg from '../../images/categories/frozenfood.png';
-import householdImg from '../../images/categories/household.png';
-import meatImg from '../../images/categories/meat&poultry.png';
-import pantryImg from '../../images/categories/pantryessentials.png';
+import bakeryImg from '../../images/categories/bakery_clean.png';
+import beveragesImg from '../../images/categories/bevarages_clean.png';
+import dairyImg from '../../images/categories/dairy&eggs_clean.png';
+import foodImg from '../../images/categories/food_clean.png';
+import produceImg from '../../images/categories/freshproduce_clean.png';
+import frozenImg from '../../images/categories/frozenfood_clean.png';
+import householdImg from '../../images/categories/household_clean.png';
+import meatImg from '../../images/categories/meat&poultry_clean.png';
+import pantryImg from '../../images/categories/pantryessentials_clean.png';
 
 interface Category {
   id: string;
   name: string;
   description?: string;
   image_url?: string;
+  parent_id?: string | null;
 }
 
 export default function Home() {
@@ -59,20 +61,19 @@ export default function Home() {
 
   // Local custom images for categories
   const categoryImages: Record<string, string> = {
-    'fruits': produceImg,
     'produce': produceImg,
     'dairy': dairyImg,
     'egg': dairyImg,
     'bakery': bakeryImg,
-    'poultry': meatImg,
     'meat': meatImg,
-    'snacks': foodImg,
-    'pantry': pantryImg,
+    'poultry': meatImg,
     'frozen': frozenImg,
     'household': householdImg,
     'beverage': beveragesImg,
-    // Put 'food' at the end so 'frozen food' matches 'frozen' first
-    'food': foodImg,
+    'grocery': foodImg,
+    'confectionery': foodImg,
+    'baby': produceImg,
+    'snacks': foodImg,
   };
 
   const getCategoryImage = (cat: Category) => {
@@ -229,7 +230,7 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            {categories.map((category, index) => {
+            {categories.filter(c => !c.parent_id).map((category, index) => {
               // Dynamic gradients based on category keywords
               const categoryGradients: Record<string, string> = {
                 'alcohol': 'from-amber-700 via-red-800 to-rose-950',
@@ -242,6 +243,8 @@ export default function Home() {
                 'meat': 'from-rose-700 via-red-800 to-stone-950',
                 'household': 'from-violet-500 via-purple-700 to-fuchsia-800',
                 'health': 'from-teal-400 via-emerald-600 to-cyan-700',
+                'grocery': 'from-orange-600 via-red-700 to-amber-800',
+                'confectionery': 'from-pink-500 via-rose-600 to-red-800',
                 'food': 'from-orange-600 via-red-700 to-amber-800',
               };
 
@@ -261,21 +264,20 @@ export default function Home() {
                 <Link to={`/aisle/${category.id}`} className="group block h-full">
                   <div className="relative h-36 sm:h-44 overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] transition-all duration-300 active:scale-[0.98] border border-outline-variant/30">
                     
-                    {/* Right side image container (60% ratio) */}
-                    <div className="absolute right-0 top-0 bottom-0 w-[60%] p-5 sm:p-8 flex items-center justify-center">
-                      <img 
+                    {/* Right side image container (50% ratio) - Smart Transparency */}
+                    <div className="absolute right-0 top-0 bottom-0 w-[50%] z-0 flex items-center justify-center p-4">
+                      <SmartTransparentImage 
                         src={getCategoryImage(category)} 
                         alt={category.name}
-                        className="w-[85%] h-[85%] object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-[1.15] group-hover:-rotate-2"
-                        referrerPolicy="no-referrer"
+                        className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-[1.1]"
                       />
                     </div>
-
+                    
                     {/* Left colored block with sharp diamond edge */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-[55%] z-10 flex items-center px-6 sm:px-8 shadow-2xl bg-gradient-to-br ${gradientClass} overflow-hidden`} style={{ clipPath: 'polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%)' }}>
+                    <div className={`absolute left-0 top-0 bottom-0 w-[60%] z-10 flex items-center px-6 sm:px-10 shadow-2xl bg-gradient-to-br ${gradientClass} overflow-hidden`} style={{ clipPath: 'polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%)' }}>
                       {/* Subtle gradient overlay to enhance the colored effect */}
                       <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent mix-blend-overlay"></div>
-                      <h3 className={`relative text-2xl sm:text-3xl lg:text-4xl pr-4 font-black leading-[1.1] drop-shadow-md z-20 ${isLight ? 'text-primary' : 'text-white'}`}>
+                      <h3 className={`relative text-3xl sm:text-4xl pr-4 font-black leading-[1] drop-shadow-md z-20 ${isLight ? 'text-primary' : 'text-white'}`}>
                         {category.name}
                       </h3>
                     </div>
