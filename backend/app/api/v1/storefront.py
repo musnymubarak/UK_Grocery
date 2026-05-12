@@ -65,7 +65,14 @@ async def list_products(
         )
 
     if category_id:
-        query = query.where(Product.category_id == category_id)
+        # Check if category has children. If so, include all subcategory products.
+        child_res = await db.execute(select(Category.id).where(Category.parent_id == category_id))
+        child_ids = [r for (r,) in child_res.all()]
+        
+        if child_ids:
+            query = query.where(Product.category_id.in_([category_id] + child_ids))
+        else:
+            query = query.where(Product.category_id == category_id)
 
     if search:
         # Use full-text search if search_vector is populated, fallback to ILIKE
@@ -226,6 +233,7 @@ async def list_categories(
             "name": c.name,
             "description": getattr(c, 'description', None),
             "image_url": getattr(c, 'image_url', None),
+            "parent_id": str(c.parent_id) if c.parent_id else None,
         }
         for c in categories
     ]

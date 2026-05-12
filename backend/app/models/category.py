@@ -25,6 +25,7 @@ class Category(TimestampMixin, Base):
         nullable=True,
     )
     sort_order = Column(Integer, default=0, nullable=False)
+    image_url = Column(String(500), nullable=True)
 
     # Relationships
     organization = relationship("Organization", back_populates="categories")
