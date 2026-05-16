@@ -87,7 +87,7 @@ export default function Search() {
               </div>
             )}
 
-            <div className="flex flex-col gap-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {results.map((product) => (
                 <ProductCard 
                   key={product.id} 
