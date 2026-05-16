@@ -22,6 +22,7 @@ postgres_data/
 # IDE
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 
@@ -37,3 +38,6 @@ start-local.ps1
 uploads/
 LOCAL_DEVELOPMENT.md
 shop.md
+
+/mobile
+/storefront_reference

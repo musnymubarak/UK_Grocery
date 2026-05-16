@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import Layout from '../components/Layout';
 import InnovativeLoader from '../components/InnovativeLoader';
-import { Search, MapPin, Clock, Navigation, Bike, ChevronRight, Timer, ReceiptText, Star, Tag } from 'lucide-react';
+import { Search, MapPin, Clock, Truck, ReceiptText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../CartContext';
 import { catalogApi } from '../services/api';
@@ -37,14 +37,13 @@ export default function StoreSelection() {
   useEffect(() => {
     catalogApi.getStores()
       .then(res => {
-        // Mocking some extra data for the UI match
         const enhancedStores = res.data.map((s: any, idx: number) => ({
           ...s,
           min_order_value: Number(s.min_order_value || 10.00),
           free_delivery_threshold: Number(s.free_delivery_threshold || 40.00),
-          delivery_fee: s.delivery_fee || (idx === 0 ? "£0 - £3" : "Free"),
-          distance: s.distance || (0.5 + idx * 1.2).toFixed(2) + " miles",
-          delivery_time: s.delivery_time || "25 to 40 mins"
+          delivery_fee: s.delivery_fee || (idx === 0 ? '£0 - £3' : 'Free'),
+          distance: s.distance || (0.5 + idx * 1.2).toFixed(2) + ' miles',
+          delivery_time: s.delivery_time || '25 to 40 mins',
         }));
         setStores(enhancedStores);
         setLoading(false);
@@ -55,21 +54,16 @@ export default function StoreSelection() {
   const isStoreCurrentlyOpen = (store: StoreData) => {
     if (store.is_open === false) return false;
     if (!store.opening_hours) return true;
-
     const now = new Date();
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const dayName = days[now.getDay()];
     const hours = store.opening_hours[dayName];
-
     if (!hours || !hours.open || !hours.close) return true;
-
     const currentTime = now.getHours() * 100 + now.getMinutes();
     const [openH, openM] = hours.open.split(':').map(Number);
     const [closeH, closeM] = hours.close.split(':').map(Number);
-    
     const openTime = openH * 100 + openM;
     const closeTime = closeH * 100 + closeM;
-
     return currentTime >= openTime && currentTime < closeTime;
   };
 
@@ -93,8 +87,8 @@ export default function StoreSelection() {
 
   if (loading) {
     return (
-      <Layout title="Stores">
-        <div className="flex items-center justify-center min-h-[80vh]">
+      <Layout title="Daily Grocer">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <InnovativeLoader />
         </div>
       </Layout>
@@ -105,169 +99,153 @@ export default function StoreSelection() {
   const closedStores = stores.filter(s => !isStoreCurrentlyOpen(s));
 
   return (
-    <Layout title="Stores">
-      <div className="bg-surface-container-lowest min-h-screen">
+    <Layout title="Daily Grocer">
+      <div className="bg-background min-h-screen">
         {/* Postcode Search Bar */}
-        <div className="bg-white border-b border-outline-variant/10 px-4 py-6">
-          <div className="max-w-md mx-auto relative group">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-secondary/40 group-focus-within:text-primary transition-colors">
-              <Search size={20} strokeWidth={1.5} />
-            </div>
-            <input 
-              type="text" 
+        <div className="bg-surface-container-lowest border-b border-outline-variant px-4 py-4">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center text-outline">
+              <Search size={18} />
+            </span>
+            <input
+              type="text"
               value={postcode}
               onChange={(e) => setPostcode(e.target.value)}
-              className="w-full bg-white border border-outline-variant/40 rounded-xl py-3.5 pl-12 pr-4 text-[17px] text-on-surface outline-none focus:border-primary/50 placeholder:text-secondary/40 transition-all shadow-sm"
-              placeholder="Search Store"
+              placeholder="Enter your postcode"
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-md py-3 pl-10 pr-3 text-[15px] text-text-main outline-none focus:border-action-blue focus:ring-1 focus:ring-action-blue placeholder:text-outline transition-colors"
             />
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-6 pb-32">
-          
-          {/* Section: Convenience Stores */}
+        <main className="px-4 py-4 pb-32">
+          {/* Heading */}
+          <div className="mb-5 mt-2">
+            <h2 className="text-headline-lg-mobile text-text-main mb-1">Available Stores</h2>
+            <p className="text-on-surface-variant text-body-md">Stores delivering to your area.</p>
+          </div>
+
+          {/* Open stores */}
           {openStores.length > 0 && (
-            <section className="mb-10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="bg-primary/10 p-2 rounded-lg text-primary">
-                  <Bike size={24} />
-                </div>
-                <h2 className="text-2xl font-black text-primary tracking-tight">
-                  Convenience Stores <span className="font-medium text-on-surface">for delivery</span>
-                </h2>
-              </div>
-              
-              <div className="grid grid-cols-1 gap-5">
-                {openStores.map((store, index) => (
-                  <StoreCard 
-                    key={store.id} 
-                    store={store} 
-                    isOpen={true} 
-                    index={index} 
-                    onSelect={() => handleSelectStore(store)} 
-                  />
-                ))}
-              </div>
-            </section>
+            <div className="grid grid-cols-1 gap-4 mb-6">
+              {openStores.map((store, index) => (
+                <StoreCard
+                  key={store.id}
+                  store={store}
+                  isOpen={true}
+                  index={index}
+                  onSelect={() => handleSelectStore(store)}
+                />
+              ))}
+            </div>
           )}
 
-          {/* Section: Closed Stores */}
+          {/* Closed stores */}
           {closedStores.length > 0 && (
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="bg-error/10 p-2 rounded-lg text-error">
-                  <Clock size={24} />
-                </div>
-                <h2 className="text-2xl font-black text-error tracking-tight">Closed Stores</h2>
-              </div>
-              
-              <div className="grid grid-cols-1 gap-5">
+            <>
+              <h3 className="text-base font-bold text-on-surface-variant mt-4 mb-3">Currently Closed</h3>
+              <div className="grid grid-cols-1 gap-4">
                 {closedStores.map((store, index) => (
-                  <StoreCard 
-                    key={store.id} 
-                    store={store} 
-                    isOpen={false} 
-                    index={index} 
-                    onSelect={() => handleSelectStore(store)} 
+                  <StoreCard
+                    key={store.id}
+                    store={store}
+                    isOpen={false}
+                    index={index}
+                    onSelect={() => handleSelectStore(store)}
                   />
                 ))}
               </div>
-            </section>
+            </>
           )}
 
           {stores.length === 0 && (
-            <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-outline-variant/30">
-              <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-4 text-on-surface-variant/30">
-                <MapPin size={40} />
+            <div className="text-center py-16 ref-card-xl">
+              <div className="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-4 text-on-surface-variant">
+                <MapPin size={32} />
               </div>
-              <h3 className="text-xl font-bold text-on-surface mb-2">No Stores Found</h3>
-              <p className="text-on-surface-variant">We couldn't find any stores near your location yet.</p>
+              <h3 className="text-headline-lg-mobile text-text-main mb-2">No Stores Found</h3>
+              <p className="text-on-surface-variant text-sm">We couldn't find any stores near your location yet.</p>
             </div>
           )}
-        </div>
+        </main>
       </div>
     </Layout>
   );
 }
 
-function StoreCard({ store, isOpen, index, onSelect }: { store: StoreData, isOpen: boolean, index: number, onSelect: () => void, key?: React.Key }) {
+function StoreCard({
+  store,
+  isOpen,
+  index,
+  onSelect,
+}: {
+  store: StoreData;
+  isOpen: boolean;
+  index: number;
+  onSelect: () => void;
+  key?: React.Key;
+}) {
+  // Highlight first open store as "FAST"
+  const isFast = isOpen && index === 0;
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 15 }}
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
-      className={`bg-white rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-outline-variant/5 overflow-hidden ${!isOpen ? 'opacity-90' : ''}`}
+      transition={{ delay: index * 0.06 }}
+      className={`ref-card p-4 flex flex-col gap-4 relative overflow-hidden ${!isOpen ? 'opacity-80' : ''}`}
     >
-      <div className="p-4 flex gap-4">
-        {/* Logo Container */}
-        <div className="shrink-0">
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center overflow-hidden border-2 ${isOpen ? 'border-primary/5' : 'border-outline-variant/10 grayscale'}`}>
-            {store.logo_url ? (
-              <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-surface-container flex items-center justify-center font-headline font-black text-2xl text-primary/10">
-                {store.name.charAt(0)}
-              </div>
-            )}
-          </div>
-          {!isOpen && (
-            <div className="mt-2 text-center">
-              <span className="text-[9px] font-black uppercase tracking-widest text-error bg-error/10 px-2 py-0.5 rounded-full">Closed</span>
+      {isFast && <div className="absolute top-0 left-0 w-1 h-full bg-price-green" />}
+
+      <div className="flex items-start gap-4">
+        <div className={`w-16 h-16 rounded-full bg-surface-container-low overflow-hidden flex-shrink-0 border border-outline-variant ${!isOpen ? 'grayscale' : ''}`}>
+          {store.logo_url ? (
+            <img src={store.logo_url} alt={store.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-primary/5 flex items-center justify-center font-headline font-extrabold text-2xl text-primary">
+              {store.name.charAt(0)}
             </div>
           )}
         </div>
 
-        {/* Info Area */}
-        <div className="flex-1 min-w-0">
-          <h3 className="text-[17px] font-bold text-on-surface leading-tight mb-2.5 truncate">{store.name}</h3>
-          
-          <div className="grid grid-cols-2 gap-y-2 gap-x-2">
-            <StoreDetail icon={<Timer size={13} />} text={isOpen ? store.delivery_time : "We are closed."} highlight={!isOpen} color={!isOpen ? 'text-error' : ''} />
-            <StoreDetail icon={<MapPin size={13} />} text={store.distance} />
-            <StoreDetail icon={<ReceiptText size={13} />} text={`Min £${store.min_order_value?.toFixed(2)}`} />
-            <StoreDetail icon={<Bike size={13} />} text={store.delivery_fee} />
-          </div>
-
-          <div className="mt-5 flex flex-col gap-2">
-            <button 
-              onClick={onSelect}
-              className={`w-full py-2.5 rounded-xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
-                isOpen 
-                  ? 'bg-primary text-white shadow-lg shadow-primary/15 hover:bg-primary-hover' 
-                  : 'bg-on-surface text-white hover:bg-on-surface/90'
-              }`}
-            >
-              {isOpen ? (
-                <>
-                  <Bike size={16} />
-                  <span>Deliver to me</span>
-                </>
-              ) : (
-                <span>View Store</span>
-              )}
-            </button>
-
-            {isOpen && (
-              <button className="w-full py-2 rounded-xl border border-success/30 text-success font-bold text-[10px] flex items-center justify-center gap-2 bg-success/5 hover:bg-success/10 transition-colors">
-                <Tag size={13} />
-                <span>Get £11 off with Rewards</span>
-              </button>
+        <div className="flex-grow min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h3 className="text-label-bold text-on-surface truncate">{store.name}</h3>
+            {isFast && (
+              <span className="bg-price-green/10 text-price-green text-[10px] font-bold px-2 py-0.5 rounded">FAST</span>
             )}
+          </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-on-surface-variant">
+            <span className="flex items-center gap-1">
+              <Clock size={14} />
+              {isOpen ? store.delivery_time : 'Currently closed'}
+            </span>
+            <span className="flex items-center gap-1">
+              <MapPin size={14} />
+              {store.distance}
+            </span>
+            <span className="flex items-center gap-1">
+              <ReceiptText size={14} />
+              Min £{store.min_order_value?.toFixed(2)}
+            </span>
+            <span className="flex items-center gap-1">
+              <Truck size={14} />
+              {store.delivery_fee}
+            </span>
           </div>
         </div>
       </div>
-    </motion.div>
+
+      <button
+        onClick={onSelect}
+        disabled={!isOpen}
+        className={`w-full text-label-bold font-semibold py-3 rounded-md text-center transition-colors ${
+          isOpen
+            ? 'bg-action-red text-on-primary hover:bg-secondary'
+            : 'border-2 border-outline-variant text-on-surface-variant cursor-not-allowed'
+        }`}
+      >
+        {isOpen ? 'Deliver to me' : 'Currently Closed'}
+      </button>
+    </motion.article>
   );
 }
-
-function StoreDetail({ icon, text, highlight = false, color = '' }: { icon: React.ReactNode, text: any, highlight?: boolean, color?: string, key?: React.Key }) {
-  return (
-    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-on-surface-variant">
-      <div className={`shrink-0 ${color || 'text-primary'}`}>{icon}</div>
-      <span className={`truncate ${highlight ? 'font-black' : ''} ${color}`}>{text}</span>
-    </div>
-  );
-}
-
-
-

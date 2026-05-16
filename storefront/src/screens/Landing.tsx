@@ -1,322 +1,143 @@
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Search, ShoppingBasket, Truck, ShieldCheck, Clock, Menu, X, ChevronDown, UserCircle, ChevronUp } from 'lucide-react';
+import { Zap, Store, Tag, MapPin } from 'lucide-react';
 import React, { useState } from 'react';
-
-// Use categories images for floating elements
-import bakeryImg from "../../images/categories/bakery_clean.webp";
-import freshproduceImg from "../../images/categories/freshproduce_clean.webp";
-import beveragesImg from "../../images/categories/bevarages_clean.webp";
-import meatImg from "../../images/categories/meat&poultry_clean.webp";
+import Layout from '../components/Layout';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
-
-  const toggleSection = (section: string) => {
-    setExpandedSection(expandedSection === section ? null : section);
-  };
-
-  const menuItems = {
-    about: [
-      { name: 'Shop Now', path: '/stores' },
-      { name: 'What we do', path: '#' },
-      { name: 'FAQs', path: '#' },
-      { name: 'Contact', path: '#' },
-      { name: 'Retailers', path: '#' },
-      { name: 'Careers', path: '#' },
-      { name: 'Terms & Conditions', path: '/terms' },
-      { name: 'Privacy Policy', path: '/privacy' },
-    ],
-    delivery: [
-      { name: 'Sweets Delivery', path: '#' },
-      { name: 'Alcohol Delivery', path: '#' },
-      { name: 'Fruit & Veg Delivery', path: '#' },
-      { name: 'Grocery Delivery', path: '#' },
-      { name: 'Frozen Food Delivery', path: '#' },
-      { name: 'Breakfast Delivery', path: '#' },
-      { name: 'Magazine & Newspaper Delivery', path: '#' },
-      { name: 'Milkshake Delivery', path: '#' },
-      { name: 'Beer Delivery', path: '#' },
-      { name: 'Wine Delivery', path: '#' },
-    ]
-  };
+  const [postcode, setPostcode] = useState('');
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col relative overflow-hidden font-body">
-      {/* Header */}
-      <header className="px-6 py-5 flex items-center justify-between relative z-20 bg-white/80 backdrop-blur-md border-b border-outline-variant/10 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-            <ShoppingBasket size={24} />
-          </div>
-          <span className="font-headline font-black text-2xl text-on-surface tracking-tighter">
-            Daily<span className="text-primary">Grocer</span>
-          </span>
-        </div>
-        
-        {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-6">
-            <button onClick={() => navigate('/stores')} className="text-sm font-bold text-on-surface-variant hover:text-primary transition-colors">Our Stores</button>
-            <button className="text-sm font-bold text-on-surface-variant hover:text-primary transition-colors">Support</button>
-            <button 
-                onClick={() => navigate('/login')}
-                className="bg-primary/10 text-primary px-5 py-2 rounded-full font-bold text-sm hover:bg-primary/20 transition-all"
-            >
-                Sign In
-            </button>
-        </div>
+    <Layout fullWidth>
+      <main className="flex-grow flex flex-col">
+        {/* Hero Section */}
+        <section className="bg-[#005eb8] text-white relative w-full overflow-hidden flex justify-center">
+          {/* Desktop Left Darker Block Decor */}
+          <div className="hidden md:block absolute top-0 left-0 w-[15%] h-[30%] bg-[#004b9c] rounded-br-3xl pointer-events-none z-0"></div>
+          {/* Desktop Right Darker Block Decor */}
+          <div className="hidden md:block absolute bottom-0 right-0 w-[40%] h-[100%] bg-[#365b98] mix-blend-multiply opacity-50 pointer-events-none z-0"></div>
 
-        {/* Hamburger Button (All screens, matches Snappy Shopper) */}
-        <button 
-          onClick={() => setIsMenuOpen(true)}
-          className="p-2 text-on-surface hover:bg-on-surface/5 rounded-lg transition-colors"
-        >
-          <Menu size={28} />
-        </button>
-      </header>
-
-      {/* Hamburger Menu Overlay */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div 
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 bg-white z-[100] flex flex-col overflow-y-auto"
-          >
-            {/* Menu Header */}
-            <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/20">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-                  <ShoppingBasket size={20} />
-                </div>
-                <span className="font-headline font-black text-xl text-on-surface tracking-tighter">
-                  Daily<span className="text-primary">Grocer</span>
-                </span>
-              </div>
-              <button 
-                onClick={() => setIsMenuOpen(false)}
-                className="p-2 text-on-surface hover:bg-on-surface/5 rounded-lg transition-colors"
-              >
-                <X size={28} />
-              </button>
-            </div>
-
-            {/* Menu Content */}
-            <div className="flex flex-col">
-              {/* Login Item */}
-              <button 
-                onClick={() => { setIsMenuOpen(false); navigate('/login'); }}
-                className="px-6 py-5 flex items-center justify-between border-b border-outline-variant/10 hover:bg-on-surface/5 transition-colors"
-              >
-                <span className="text-lg font-bold text-primary">Login</span>
-                <UserCircle size={24} className="text-primary" />
-              </button>
-
-              {/* About Us Section */}
-              <div className="border-b border-outline-variant/10">
-                <button 
-                  onClick={() => toggleSection('about')}
-                  className="w-full px-6 py-5 flex items-center justify-between hover:bg-on-surface/5 transition-colors"
-                >
-                  <span className="text-lg font-bold text-on-surface">About Us</span>
-                  {expandedSection === 'about' ? <ChevronUp size={24} className="text-primary" /> : <ChevronDown size={24} className="text-primary" />}
-                </button>
-                <AnimatePresence>
-                  {expandedSection === 'about' && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden bg-surface-container-low"
-                    >
-                      {menuItems.about.map((item) => (
-                        <button 
-                          key={item.name}
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            if (item.path !== '#') navigate(item.path);
-                          }}
-                          className="w-full px-10 py-3.5 text-left text-sm font-medium text-on-surface-variant hover:text-primary transition-colors border-b border-outline-variant/5 last:border-0"
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Food & Alcohol Delivery Section */}
-              <div className="border-b border-outline-variant/10">
-                <button 
-                  onClick={() => toggleSection('delivery')}
-                  className="w-full px-6 py-5 flex items-center justify-between hover:bg-on-surface/5 transition-colors"
-                >
-                  <span className="text-lg font-bold text-on-surface">Food & Alcohol Delivery</span>
-                  {expandedSection === 'delivery' ? <ChevronUp size={24} className="text-primary" /> : <ChevronDown size={24} className="text-primary" />}
-                </button>
-                <AnimatePresence>
-                  {expandedSection === 'delivery' && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden bg-surface-container-low"
-                    >
-                      {menuItems.delivery.map((item) => (
-                        <button 
-                          key={item.name}
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            // Navigate to browse with category filter if implemented
-                            navigate('/browse');
-                          }}
-                          className="w-full px-10 py-3.5 text-left text-sm font-medium text-on-surface-variant hover:text-primary transition-colors border-b border-outline-variant/5 last:border-0"
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Main Content */}
-      <main className="flex-grow flex flex-col relative z-10 bg-surface">
-        {/* Hero Section with Professional Gradient */}
-        <div className="relative bg-gradient-to-br from-primary to-primary-container pt-20 pb-36 px-4 md:px-6 overflow-hidden rounded-b-[4rem] md:rounded-b-[12rem] shadow-2xl">
-          <div className="max-w-4xl mx-auto w-full relative z-20 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full text-white text-xs font-bold uppercase tracking-widest mb-8">
-                <Truck size={14} className="animate-pulse" />
-                Delivery from 30 minutes
-              </div>
-              
-              <h1 className="text-5xl md:text-7xl font-headline font-black text-white tracking-tight leading-[1.1] mb-6">
-                Fresh Groceries,<br /> 
-                <span className="text-white/80">Delivered Simply.</span>
+          <div className="w-full max-w-7xl flex flex-col md:flex-row items-center justify-between gap-8 py-8 md:py-16 px-4 relative z-10">
+            {/* Left Column (Text & Search) */}
+            <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left w-full px-0">
+              <h1 className="font-headline font-extrabold text-[36px] md:text-[56px] leading-[1.1] tracking-tight mb-2 md:mb-4">
+                Local store to door
               </h1>
-              
-              <p className="text-white/90 text-lg md:text-2xl mb-12 font-medium max-w-2xl mx-auto leading-relaxed">
-                Shop from your favorite local stores and get your essentials delivered to your doorstep in minutes.
+              <p className="font-headline font-bold text-[18px] md:text-[24px] text-blue-200 mb-6 md:mb-8">
+                From as little as 30 minutes
               </p>
 
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="mt-10"
-              >
-                <button 
+              <div className="w-full max-w-lg bg-white rounded-md p-1.5 flex flex-col md:flex-row gap-2 shadow-lg">
+                <div className="relative flex-1">
+                  <span className="absolute inset-y-0 left-3 flex items-center text-outline">
+                    <MapPin size={20} />
+                  </span>
+                  <input
+                    type="text"
+                    value={postcode}
+                    onChange={(e) => setPostcode(e.target.value)}
+                    placeholder="Enter your postcode"
+                    className="w-full pl-10 pr-3 py-3 rounded-md focus:outline-none text-text-main text-[16px] placeholder:text-outline"
+                  />
+                </div>
+                <button
                   onClick={() => navigate('/stores')}
-                  className="bg-white text-primary px-12 py-5 rounded-2xl font-black text-xl hover:bg-surface transition-all shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 flex items-center gap-3 mx-auto"
+                  className="bg-[#e6203a] hover:bg-[#cc1d33] text-white font-bold text-[16px] py-3.5 px-6 rounded-md transition-colors shadow-sm whitespace-nowrap"
                 >
-                  <ShoppingBasket size={28} />
-                  View Available Stores
+                  Search Local Stores
                 </button>
-              </motion.div>
-              
-              <div className="mt-8 flex items-center justify-center gap-8 text-white/70 font-bold text-sm">
-                  <div className="flex items-center gap-2">
-                      <ShieldCheck size={18} />
-                      Secure Payments
-                  </div>
-                  <div className="flex items-center gap-2">
-                      <Clock size={18} />
-                      Real-time Tracking
-                  </div>
               </div>
-            </motion.div>
-          </div>
-
-          {/* Floating Images (Refined placement) */}
-          <motion.img 
-            initial={{ opacity: 0, x: -50, rotate: -10 }}
-            animate={{ opacity: 1, x: 0, rotate: 0 }}
-            transition={{ duration: 1.2, delay: 0.2 }}
-            src={freshproduceImg} 
-            className="absolute top-12 left-[-2%] md:left-[2%] w-40 md:w-64 opacity-90 z-10 drop-shadow-[0_35px_35px_rgba(0,0,0,0.4)] object-contain hidden md:block" 
-            alt="Produce" 
-          />
-          <motion.img 
-            initial={{ opacity: 0, x: 50, rotate: 10 }}
-            animate={{ opacity: 1, x: 0, rotate: 0 }}
-            transition={{ duration: 1.2, delay: 0.3 }}
-            src={bakeryImg} 
-            className="absolute bottom-10 right-[-2%] md:right-[2%] w-44 md:w-72 opacity-90 z-10 drop-shadow-[0_35px_35px_rgba(0,0,0,0.4)] object-contain hidden md:block" 
-            alt="Bakery" 
-          />
-          <motion.img 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 0.8, scale: 1 }}
-            transition={{ duration: 1, delay: 0.4 }}
-            src={beveragesImg} 
-            className="absolute top-10 right-[8%] md:right-[12%] w-32 md:w-48 z-10 drop-shadow-2xl object-contain hidden lg:block" 
-            alt="Beverages" 
-          />
-        </div>
-        
-        {/* Value Propositions Section */}
-        <div className="py-24 px-6 relative overflow-hidden">
-            <div className="max-w-6xl mx-auto">
-                <div className="text-center mb-16">
-                    <h2 className="text-sm font-black text-primary uppercase tracking-[0.2em] mb-4">How it works</h2>
-                    <h3 className="text-4xl md:text-5xl font-black text-on-surface tracking-tight">Your grocery journey</h3>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {[
-                        { icon: <MapPin size={36} />, title: "1. Find Stores", desc: "Browse a curated list of local grocers in your area by entering your postcode." },
-                        { icon: <Search size={36} />, title: "2. Fill Your Basket", desc: "Select from fresh produce, dairy, bakery items, and household essentials." },
-                        { icon: <Truck size={36} />, title: "3. Fast Delivery", desc: "Relax as our delivery partners bring your groceries to your door in as little as 30 mins." }
-                    ].map((step, idx) => (
-                        <div key={idx} className="bg-white p-10 rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group">
-                            <div className="w-20 h-20 bg-primary/5 rounded-2xl flex items-center justify-center text-primary mb-8 group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                                {step.icon}
-                            </div>
-                            <h4 className="font-black text-2xl mb-4 text-on-surface">{step.title}</h4>
-                            <p className="text-on-surface-variant font-medium leading-relaxed">{step.desc}</p>
-                        </div>
-                    ))}
-                </div>
             </div>
-        </div>
-      </main>
-      
-      {/* Professional Footer */}
-      <footer className="bg-on-surface text-white py-12 px-6">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-                    <ShoppingBasket size={18} />
-                </div>
-                <span className="font-headline font-black text-xl tracking-tighter">
-                    Daily<span className="text-primary">Grocer</span>
-                </span>
+
+            {/* Right Column (Image Card) */}
+            <div className="w-[90%] max-w-[400px] md:w-[480px] md:max-w-none aspect-[1/1] bg-black rounded-xl border-[3px] border-white relative overflow-hidden flex items-center justify-center mx-auto mt-4 md:mt-0 shadow-2xl z-10 shrink-0">
+              {/* Meaningful Related Images */}
+              <div className="absolute top-4 left-4 md:top-8 md:left-8 w-32 md:w-48 aspect-square rounded-full overflow-hidden border-2 border-blue-500/30 z-0 shadow-inner">
+                <img src="/produce.png" alt="Fresh Produce" className="w-full h-full object-cover" />
               </div>
-              <div className="flex gap-8 text-sm font-bold text-white/60">
-                  <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
-                  <span className="hover:text-white cursor-pointer transition-colors">Terms of Service</span>
-                  <span className="hover:text-white cursor-pointer transition-colors">Cookie Policy</span>
+              
+              <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 w-32 md:w-48 aspect-square rounded-full overflow-hidden border-2 border-red-500/30 z-0 shadow-inner">
+                <img src="/dairy.png" alt="Dairy Essentials" className="w-full h-full object-cover" />
               </div>
-              <div className="text-sm font-medium text-white/40">
-                  © 2026 Daily Grocer. All rights reserved.
+
+              <div className="absolute top-[20%] left-[30%] w-2 h-2 rounded-full bg-blue-500"></div>
+              <div className="absolute bottom-[30%] left-[20%] w-1.5 h-1.5 rounded-full bg-red-500"></div>
+
+              {/* Person Image */}
+              <div className="relative w-48 md:w-64 aspect-square rounded-full bg-white overflow-hidden z-10 flex items-center justify-center shadow-xl border-4 border-white">
+                <img 
+                  src="/delivery.png" 
+                  alt="Delivery Person" 
+                  className="w-full h-full object-cover" 
+                />
               </div>
+            </div>
           </div>
-      </footer>
-    </div>
+        </section>
+
+        {/* Feature Trio */}
+        <section className="py-8 md:py-12 px-4 bg-background w-full max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+            <FeatureCard 
+              icon={<Zap size={24} strokeWidth={2.5} />}
+              title="Fast Delivery"
+              desc="Groceries delivered from your local shop in under an hour."
+              bg="bg-[#dce8ff]"
+              text="text-[#0056b3]"
+              delay={0}
+            />
+            <FeatureCard 
+              icon={<Store size={24} strokeWidth={2.5} />}
+              title="Support Local"
+              desc="Shop directly from independent convenience stores in your area."
+              bg="bg-[#ffdad6]"
+              text="text-[#e6203a]"
+              delay={0.08}
+            />
+            <FeatureCard 
+              icon={<Tag size={24} strokeWidth={2.5} />}
+              title="In-Store Prices"
+              desc="Pay exactly what you would in-store, with fair delivery fees."
+              bg="bg-[#dce8ff]"
+              text="text-[#0056b3]"
+              delay={0.16}
+            />
+          </div>
+        </section>
+
+        {/* Additional Bottom Section */}
+        <section className="py-4 px-4 pb-8 md:pb-12 w-full max-w-7xl mx-auto">
+          <div className="flex justify-between items-end mb-4">
+            <h2 className="font-headline font-bold text-[22px] md:text-[28px] text-text-main">Shop Everyday Essentials</h2>
+            <button className="text-[#0056b3] font-semibold text-sm flex items-center gap-1 hover:underline mb-1">
+              View all <span aria-hidden="true">&rarr;</span>
+            </button>
+          </div>
+        </section>
+
+      </main>
+    </Layout>
+  );
+}
+
+function FeatureCard({ icon, title, desc, bg, text, delay }: any) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay }}
+      className="bg-white border border-outline-variant rounded-xl p-6 md:p-8 flex flex-col items-center text-center gap-4 flex-1 shadow-sm"
+    >
+      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${bg} ${text}`}>
+        {icon}
+      </div>
+      <div>
+        <h3 className="font-headline font-bold text-[18px] leading-6 text-text-main mb-2">{title}</h3>
+        <p className="text-on-surface-variant text-[15px] leading-snug max-w-[280px] mx-auto">{desc}</p>
+      </div>
+    </motion.div>
   );
 }
 
