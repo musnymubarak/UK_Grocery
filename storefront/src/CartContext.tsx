@@ -21,6 +21,7 @@ export interface SelectedStore {
   is_open: boolean;
   min_order_value: number;
   free_delivery_threshold: number;
+  delivery_fee: number;
   lat?: number;
   lng?: number;
 }

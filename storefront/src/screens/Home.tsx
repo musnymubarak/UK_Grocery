@@ -107,7 +107,7 @@ export default function Home() {
     <Layout>
       <div className="bg-background min-h-screen">
         {/* Store header strip */}
-        <div className="flex items-center justify-center py-3 px-4 bg-surface-container-lowest border-b border-outline-variant">
+        <div className="flex md:hidden items-center justify-center py-3 px-4 bg-surface-container-lowest border-b border-outline-variant">
           <h2 className="text-base font-bold tracking-tight text-text-main truncate">
             {selectedStore?.name || 'Daily Grocer Local'}
           </h2>
