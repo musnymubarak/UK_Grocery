@@ -23,6 +23,7 @@ import PrivacyPolicy from './screens/PrivacyPolicy';
 import TermsOfService from './screens/TermsOfService';
 import CookiePolicy from './screens/CookiePolicy';
 import CookieBanner from './components/CookieBanner';
+import ScrollToTop from './components/ScrollToTop';
 import { AnimatePresence } from 'motion/react';
 
 function AnimatedRoutes() {
@@ -60,6 +61,7 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
         <Router>
+          <ScrollToTop />
           <AnimatedRoutes />
           <CookieBanner />
         </Router>

@@ -117,9 +117,9 @@ export default function Aisle() {
               >
                 <Link
                   to={`/aisle/${sub.id}`}
-                  className="group ref-card-xl overflow-hidden aspect-square flex flex-col items-center justify-center p-3 hover:border-action-blue transition-colors"
+                  className="group ref-card-xl overflow-hidden flex flex-col items-center justify-center p-3 hover:border-action-blue transition-colors h-full min-h-[150px] sm:min-h-[180px]"
                 >
-                  <div className="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center overflow-hidden mb-2 p-2">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-surface-container-low flex items-center justify-center overflow-hidden mb-2 p-2">
                     <SmartTransparentImage
                       src={getSubCategoryImage(sub)}
                       alt={sub.name}

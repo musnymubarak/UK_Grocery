@@ -170,8 +170,10 @@ export default function Home() {
             // Reference-style default promotional hero
             <section>
               <div className="relative bg-action-blue rounded-xl overflow-hidden min-h-[160px] flex flex-col justify-center p-5 text-on-primary">
-                <div className="relative z-10 w-2/3">
-                  <h2 className="text-headline-lg-mobile text-on-primary mb-1.5">Free Delivery Today!</h2>
+                <div className="relative z-10 w-full xs:w-[90%] md:w-2/3 pr-4 md:pr-0">
+                  <h2 className="text-[20px] xs:text-2xl md:text-headline-lg-mobile font-extrabold text-on-primary mb-1.5 whitespace-nowrap overflow-hidden text-ellipsis">
+                    Free Delivery Today!
+                  </h2>
                   <p className="text-body-md opacity-90 mb-3">On all orders over £30. Stock up now.</p>
                   <button className="bg-action-red text-on-primary text-label-bold font-semibold px-4 py-2 rounded-md hover:bg-secondary-container transition-colors">
                     Shop Now
@@ -212,7 +214,7 @@ export default function Home() {
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <span className="text-label-bold font-semibold tracking-tight uppercase">daily grocer rewards</span>
                 </div>
-                <h3 className="text-headline-lg-mobile mb-3 tracking-tight whitespace-nowrap">
+                <h3 className="text-[20px] xs:text-2xl md:text-headline-lg-mobile font-extrabold mb-3 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
                   Get Rewards in a Snap!
                 </h3>
                 <button className="bg-action-red text-on-primary text-xs font-semibold px-4 py-2 rounded-md hover:bg-secondary transition-colors w-fit">
@@ -231,7 +233,7 @@ export default function Home() {
                 </h3>
               </div>
               <div className="flex-1 z-10">
-                <h3 className="text-lg lg:text-xl font-extrabold leading-tight tracking-tight uppercase text-right">
+                <h3 className="text-base xs:text-lg lg:text-xl font-extrabold leading-tight tracking-tight uppercase text-right whitespace-nowrap overflow-hidden text-ellipsis">
                   ON ALL ORDERS OVER £40
                 </h3>
               </div>
@@ -257,9 +259,9 @@ export default function Home() {
                   >
                     <Link
                       to={`/aisle/${category.id}`}
-                      className="group ref-card-xl overflow-hidden aspect-square flex flex-col items-center justify-center p-3 hover:border-action-blue transition-colors"
+                      className="group ref-card-xl overflow-hidden flex flex-col items-center justify-center p-3 hover:border-action-blue transition-colors h-full min-h-[150px] sm:min-h-[180px]"
                     >
-                      <div className="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center overflow-hidden mb-2 p-2">
+                      <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-surface-container-low flex items-center justify-center overflow-hidden mb-2 p-2">
                         <SmartTransparentImage
                           src={getCategoryImage(category)}
                           alt={category.name}

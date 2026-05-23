@@ -11,18 +11,19 @@ interface LegalSectionProps {
 
 const LegalSection = ({ title, icon, children }: LegalSectionProps) => (
   <motion.div 
-    initial={{ opacity: 0, y: 20 }}
+    initial={{ opacity: 0, y: 15 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
-    className="mb-12"
+    transition={{ duration: 0.4 }}
+    className="mb-12 border-b border-outline-variant/20 pb-12 last:border-0 last:pb-0"
   >
-    <div className="flex items-center gap-3 mb-6">
-      <div className="p-3 bg-primary/10 text-primary rounded-2xl">
+    <div className="flex items-center gap-4 mb-6">
+      <div className="p-3 bg-primary/5 text-primary border border-primary/10 rounded-2xl shrink-0 shadow-sm">
         {icon}
       </div>
-      <h2 className="text-2xl font-black tracking-tight text-on-surface">{title}</h2>
+      <h2 className="text-xl md:text-2xl font-bold tracking-tight text-primary">{title}</h2>
     </div>
-    <div className="prose prose-sm md:prose-base prose-slate max-w-none text-on-surface-variant leading-relaxed space-y-4">
+    <div className="text-on-surface-variant text-[15px] md:text-[16px] leading-[1.6] space-y-4 font-medium">
       {children}
     </div>
   </motion.div>
@@ -31,27 +32,27 @@ const LegalSection = ({ title, icon, children }: LegalSectionProps) => (
 export default function PrivacyPolicy() {
   return (
     <Layout title="Privacy Policy" showBack>
-      <div className="max-w-4xl mx-auto px-6 py-16 pb-32">
-        <header className="mb-16 text-center">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16 pb-32">
+        <header className="mb-12 md:mb-16 text-center">
           <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-success/10 text-success rounded-full text-xs font-black uppercase tracking-widest mb-6"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-success/5 text-success border border-success/15 rounded-full text-xs font-bold uppercase tracking-wider mb-6 shadow-sm"
           >
-            <Shield size={14} /> UK GDPR Compliant
+            <Shield size={14} className="stroke-[2.5]" /> UK GDPR Compliant
           </motion.div>
-          <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-on-surface mb-6">
-            Privacy <span className="text-primary">Policy</span>
+          <h1 className="font-headline font-extrabold text-[36px] md:text-[56px] leading-[1.1] tracking-tight text-primary mb-4">
+            Privacy <span className="text-[#005eb8]">Policy</span>
           </h1>
-          <p className="text-on-surface-variant text-lg font-medium max-w-2xl mx-auto">
+          <p className="text-on-surface-variant text-base md:text-lg font-medium max-w-2xl mx-auto leading-relaxed">
             Last updated: May 2026. This policy explains how Daily Grocer collects, uses, and protects your personal data in accordance with UK laws.
           </p>
         </header>
 
-        <div className="bg-surface-container-low border border-outline-variant/30 rounded-3xl p-8 md:p-12 shadow-sm">
-          <LegalSection title="Data Collection" icon={<FileText size={24} />}>
+        <div className="bg-white border border-outline-variant/30 rounded-[2rem] p-6 md:p-12 shadow-sm">
+          <LegalSection title="Data Collection" icon={<FileText size={24} className="stroke-[2.2]" />}>
             <p>We collect personal information that you provide directly to us when you create an account, place an order, or contact our support team. This includes:</p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-3 text-on-surface-variant/90">
               <li><strong>Contact Information:</strong> Name, email address, phone number, and delivery addresses.</li>
               <li><strong>Verification Data:</strong> Date of birth (required for age-restricted items and legal compliance).</li>
               <li><strong>Transaction Data:</strong> Details about payments to and from you and other details of products you have purchased from us.</li>
@@ -59,9 +60,9 @@ export default function PrivacyPolicy() {
             </ul>
           </LegalSection>
 
-          <LegalSection title="How We Use Your Data" icon={<Globe size={24} />}>
+          <LegalSection title="How We Use Your Data" icon={<Globe size={24} className="stroke-[2.2]" />}>
             <p>Your data is used primarily to fulfill your grocery orders and provide a personalized shopping experience. Specifically:</p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-3 text-on-surface-variant/90">
               <li>To register you as a new customer and manage your account.</li>
               <li>To process and deliver your orders, including managing payments, fees, and charges.</li>
               <li>To verify your age for restricted items (e.g., alcohol, tobacco) at the point of purchase and delivery.</li>
@@ -70,18 +71,18 @@ export default function PrivacyPolicy() {
             </ul>
           </LegalSection>
 
-          <LegalSection title="Data Sharing" icon={<Lock size={24} />}>
+          <LegalSection title="Data Sharing" icon={<Lock size={24} className="stroke-[2.2]" />}>
             <p>We do not sell your personal data. We share your information only with trusted third parties necessary for our operations:</p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-3 text-on-surface-variant/90">
               <li><strong>Service Providers:</strong> Delivery partners, payment processors (e.g., Stripe), and cloud hosting providers.</li>
               <li><strong>Store Partners:</strong> Individual local stores to prepare and fulfill your orders.</li>
               <li><strong>Legal Authorities:</strong> When required by law or to protect our rights.</li>
             </ul>
           </LegalSection>
 
-          <LegalSection title="Your Rights" icon={<Shield size={24} />}>
+          <LegalSection title="Your Rights" icon={<Shield size={24} className="stroke-[2.2]" />}>
             <p>Under the UK GDPR, you have significant rights regarding your personal data:</p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-3 text-on-surface-variant/90">
               <li><strong>Access:</strong> Request a copy of the personal data we hold about you.</li>
               <li><strong>Correction:</strong> Request that we correct any incomplete or inaccurate data.</li>
               <li><strong>Erasure:</strong> Request that we delete your personal data (the "Right to be Forgotten").</li>
@@ -90,14 +91,17 @@ export default function PrivacyPolicy() {
             <p className="mt-4">You can exercise these rights directly through your <strong>Profile</strong> page or by contacting our Data Protection Officer.</p>
           </LegalSection>
 
-          <div className="mt-16 pt-12 border-t border-outline-variant/30 text-center">
-            <h3 className="font-bold text-lg mb-4">Contact Our Privacy Team</h3>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <a href="mailto:privacy@dailygrocer.co.uk" className="flex items-center gap-2 text-primary font-bold hover:underline">
-                <Mail size={18} /> privacy@dailygrocer.co.uk
-              </a>
-              <div className="flex items-center gap-2 text-on-surface-variant font-medium">
-                <Phone size={18} /> +44 20 7946 0000
+          <div className="mt-12 pt-10 border-t border-outline-variant/30 text-center">
+            <div className="bg-[#F8FAFC] border border-outline-variant/20 rounded-[1.5rem] p-6 md:p-8 max-w-xl mx-auto shadow-inner">
+              <h3 className="font-headline font-bold text-lg text-primary mb-2">Contact Our Privacy Team</h3>
+              <p className="text-sm text-on-surface-variant mb-6 font-medium">Have questions or concerns about how we handle your data? We're here to help.</p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <a href="mailto:privacy@dailygrocer.co.uk" className="flex items-center gap-2 text-[#005eb8] font-bold hover:text-[#004b9c] hover:underline transition-colors text-sm">
+                  <Mail size={18} className="stroke-[2.5]" /> privacy@dailygrocer.co.uk
+                </a>
+                <div className="flex items-center gap-2 text-on-surface-variant font-bold text-sm">
+                  <Phone size={18} className="stroke-[2.5]" /> +44 20 7946 0000
+                </div>
               </div>
             </div>
           </div>
