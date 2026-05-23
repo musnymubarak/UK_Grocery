@@ -23,7 +23,9 @@ interface StoreData {
   min_order_value?: number;
   free_delivery_threshold?: number;
   delivery_fee?: string;
+  delivery_fee_num?: number;
   distance?: string;
+  distanceVal?: number;
   delivery_time?: string;
   is_deliverable?: boolean;
 }
@@ -200,20 +202,27 @@ export default function StoreSelection() {
 
       // Calculate dynamic delivery fee based on backend delivery tiers
       let deliveryFeeVal = '£1.99';
+      let deliveryFeeNum = 1.99;
       let deliverable = true;
 
       if (distanceMiles <= 1.0) {
         deliveryFeeVal = '£1.99';
+        deliveryFeeNum = 1.99;
       } else if (distanceMiles <= 2.0) {
         deliveryFeeVal = '£2.99';
+        deliveryFeeNum = 2.99;
       } else if (distanceMiles <= 3.0) {
         deliveryFeeVal = '£3.99';
+        deliveryFeeNum = 3.99;
       } else if (distanceMiles <= 4.0) {
         deliveryFeeVal = '£4.99';
+        deliveryFeeNum = 4.99;
       } else if (distanceMiles <= 5.0) {
         deliveryFeeVal = '£5.99';
+        deliveryFeeNum = 5.99;
       } else {
         deliveryFeeVal = 'Delivery Not Available';
+        deliveryFeeNum = 0.00;
         deliverable = false;
       }
 
@@ -222,6 +231,7 @@ export default function StoreSelection() {
         min_order_value: Number(s.min_order_value || 10.00),
         free_delivery_threshold: Number(s.free_delivery_threshold || 40.00),
         delivery_fee: deliveryFeeVal,
+        delivery_fee_num: deliveryFeeNum,
         distance: distanceStr,
         distanceVal: distanceMiles,
         is_deliverable: deliverable,
@@ -265,6 +275,7 @@ export default function StoreSelection() {
       is_open: currentlyOpen,
       min_order_value: store.min_order_value || 10.00,
       free_delivery_threshold: store.free_delivery_threshold || 40.00,
+      delivery_fee: store.delivery_fee_num || 3.00,
       lat: store.lat,
       lng: store.lng,
     });
@@ -364,7 +375,7 @@ export default function StoreSelection() {
           )}
         </div>
 
-        <main className="px-4 py-4 pb-32 md:max-w-7xl md:mx-auto md:py-8">
+        <main className="px-4 py-4 pb-32 md:max-w-[90rem] md:mx-auto md:py-8">
           {/* Section 1: Stores for Delivery (Open & Deliverable) */}
           {openStores.length > 0 && (
             <div className="mb-10">

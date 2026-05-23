@@ -18,7 +18,7 @@ export default function Landing() {
           {/* Desktop Right Darker Block Decor */}
           <div className="hidden md:block absolute bottom-0 right-0 w-[40%] h-[100%] bg-[#365b98] mix-blend-multiply opacity-50 pointer-events-none z-0"></div>
 
-          <div className="w-full max-w-7xl flex flex-col md:flex-row items-center justify-between gap-8 py-8 md:py-16 px-4 relative z-10">
+          <div className="w-full max-w-[90rem] flex flex-col md:flex-row items-center justify-between gap-8 py-8 md:py-16 px-4 relative z-10">
             {/* Left Column (Text & Search) */}
             <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left w-full px-0">
               <h1 className="font-headline font-extrabold text-[36px] md:text-[56px] leading-[1.1] tracking-tight mb-2 md:mb-4">
@@ -77,7 +77,7 @@ export default function Landing() {
         </section>
 
         {/* Feature Trio */}
-        <section className="py-8 md:py-12 px-4 bg-background w-full max-w-7xl mx-auto">
+        <section className="py-8 md:py-12 px-4 bg-background w-full max-w-[90rem] mx-auto">
           <div className="flex flex-col md:flex-row gap-4 md:gap-6">
             <FeatureCard 
               icon={<Zap size={24} strokeWidth={2.5} />}
@@ -107,7 +107,7 @@ export default function Landing() {
         </section>
 
         {/* Additional Bottom Section */}
-        <section className="py-4 px-4 pb-8 md:pb-12 w-full max-w-7xl mx-auto">
+        <section className="py-4 px-4 pb-8 md:pb-12 w-full max-w-[90rem] mx-auto">
           <div className="flex justify-between items-end mb-4">
             <h2 className="font-headline font-bold text-[22px] md:text-[28px] text-text-main">Shop Everyday Essentials</h2>
             <button className="text-[#0056b3] font-semibold text-sm flex items-center gap-1 hover:underline mb-1">

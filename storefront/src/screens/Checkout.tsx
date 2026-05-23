@@ -467,7 +467,7 @@ export default function Checkout() {
       </div>
 
       {/* Sticky Place Order CTA */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-3xl lg:max-w-5xl xl:max-w-7xl bg-surface-container-lowest border-t border-outline-variant p-4 z-40 mb-14">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-3xl lg:max-w-5xl xl:max-w-[90rem] bg-surface-container-lowest border-t border-outline-variant p-4 z-40 mb-14">
         <div className="md:max-w-2xl md:mx-auto">
           <button
             onClick={handlePlaceOrder}

@@ -45,7 +45,7 @@ export default function Search() {
 
   return (
     <Layout title={query ? `Search: ${query}` : 'Search'} showBack>
-      <div className="max-w-7xl mx-auto px-6 pb-40">
+      <div className="max-w-[90rem] mx-auto px-6 pb-40">
         {/* Mobile Search Input */}
         <div className="md:hidden py-4 sticky top-0 z-10 bg-surface/80 backdrop-blur-md">
           <form onSubmit={handleSearch} className="relative group">

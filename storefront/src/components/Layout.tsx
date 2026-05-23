@@ -54,8 +54,8 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
       <div className="w-full bg-background flex flex-col">
         {/* Top App Bar — Desktop & Mobile */}
         <header className="sticky top-0 z-50 bg-white border-b border-outline-variant w-full h-16 md:h-20 flex justify-center">
-          <div className="w-full max-w-7xl flex justify-between items-center px-4">
-            <div className="flex items-center gap-3">
+          <div className="w-full max-w-[90rem] flex justify-between items-center px-4">
+            <div className="flex items-center gap-3 md:gap-6">
               {showBack && (
                 <button
                   onClick={() => navigate(-1)}
@@ -65,9 +65,47 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
                   <ArrowLeft size={22} strokeWidth={2.5} />
                 </button>
               )}
-              <Link to={selectedStore ? '/browse' : '/'} className="flex items-center cursor-pointer">
-                <img src="/logo_playful.png" alt="Daily Grocer" className="h-12 md:h-16 w-auto object-contain" />
+              <Link to={selectedStore ? '/browse' : '/'} className="flex items-center cursor-pointer shrink-0">
+                <img src="/logo_playful.png" alt="Daily Grocer" className="h-10 md:h-14 w-auto object-contain" />
               </Link>
+
+              {/* Store Details Selector Block (Snappy Shopper Style) */}
+              {selectedStore && !['/checkout', '/success', '/login', '/register'].some(path => location.pathname.startsWith(path)) && !location.pathname.startsWith('/tracking') && (
+                <div className="hidden md:flex items-center gap-3 border-l border-outline-variant/60 pl-6">
+                  {/* Store logo or icon */}
+                  <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-primary border border-outline-variant/60 overflow-hidden shrink-0 shadow-sm">
+                    <img 
+                      src={
+                        selectedStore.name.toLowerCase().includes('family shopper') ? '/images/stores/family_shopper.webp' :
+                        selectedStore.name.toLowerCase().includes('go local') ? '/images/stores/golocal.png' :
+                        selectedStore.name.toLowerCase().includes('premier') ? '/images/stores/premier.png' :
+                        selectedStore.name.toLowerCase().includes('stocksfield') ? '/images/stores/Stocksfield.png' :
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedStore.name)}&background=005eb8&color=fff`
+                      } 
+                      alt={selectedStore.name} 
+                      className="w-full h-full object-contain p-1"
+                    />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold text-text-main leading-tight truncate max-w-[180px]">
+                      {selectedStore.name}
+                    </span>
+                    <button 
+                      onClick={() => navigate('/stores')} 
+                      className="text-[11px] font-semibold text-on-surface-variant hover:text-action-blue transition-colors flex items-center gap-0.5 leading-none mt-0.5"
+                    >
+                      <span>Delivery in 25 to 40 Mins</span>
+                      <span className="text-[9px] font-bold">&gt;</span>
+                    </button>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/stores')} 
+                    className="ml-2 border border-outline-variant hover:border-action-blue hover:text-action-blue text-text-main font-bold text-[11px] px-2.5 py-1 rounded transition-all bg-white"
+                  >
+                    Change
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-1 md:gap-2">
@@ -94,9 +132,8 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-grow flex justify-center pb-24 md:pb-24">
-          <div className={`w-full ${fullWidth ? '' : 'max-w-7xl px-4'}`}>
+          <div className={`w-full ${fullWidth ? '' : 'max-w-[90rem] px-4'}`}>
             {children}
           </div>
         </main>
