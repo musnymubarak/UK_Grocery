@@ -42,7 +42,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
   }, [isAuthenticated, location.pathname]);
 
   const isAuthPage = location.pathname === '/login';
-  const hideBottomNav = isAuthPage;
+  const hideBottomNav = false; // Always keep bottom nav visible to avoid trapping users on mobile
 
   // Header tone
   const headerBg = dark ? 'bg-surface-dark' : 'bg-surface-container-lowest';
@@ -102,7 +102,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
         </main>
 
           {/* UK Compliance Footer */}
-          <footer className="mt-16 border-t border-outline-variant px-6 py-8 bg-surface-container-lowest text-center">
+          <footer className="hidden md:block mt-16 border-t border-outline-variant px-6 py-8 bg-surface-container-lowest text-center">
             <div className="flex flex-col items-center gap-3">
               <div className="font-headline font-bold text-sm text-primary tracking-tight">
                 DAILY GROCER

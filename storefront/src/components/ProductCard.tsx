@@ -37,7 +37,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       animate={{ opacity: 1, y: 0 }}
       className={`ref-card-xl overflow-hidden flex flex-col ${isOutOfStock ? 'opacity-60 grayscale' : ''}`}
     >
-      <Link to={`/product/${product.id}`} className="block relative h-28 bg-surface-container-low w-full overflow-hidden">
+      <Link to={`/product/${product.id}`} className="block relative h-44 sm:h-52 bg-surface-container-low w-full overflow-hidden">
         {product.badge && (
           <div
             className={`absolute top-2 left-2 text-on-primary font-label-bold font-semibold text-[10px] px-2 py-0.5 rounded-sm z-10 ${

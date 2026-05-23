@@ -163,31 +163,31 @@ export default function OrderTracking() {
 
   return (
     <Layout title="Tracking" showBack>
-      <div className="max-w-2xl mx-auto bg-surface-container-lowest min-h-screen pb-32 font-body">
+      <div className="max-w-2xl mx-auto bg-background min-h-screen pb-32 font-body">
         
         {/* Status Header */}
         <div className="px-4 pt-8 pb-6">
           <div className="flex items-center gap-3 mb-3">
-             <span className="bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
+             <span className="bg-action-blue/10 text-action-blue text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full">
                Order #{order.id.slice(0, 8).toUpperCase()}
              </span>
              {order.status === 'delivered' && (
-                <span className="bg-success/10 text-success text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1">
-                  <Check size={12} /> Delivered
+                <span className="bg-success/10 text-success text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1">
+                   <Check size={12} /> Delivered
                 </span>
              )}
           </div>
-          <h2 className="text-3xl md:text-4xl font-black text-on-surface tracking-tighter mb-2 leading-tight">{currentTitle}</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-on-surface tracking-tight mb-2 leading-tight">{currentTitle}</h2>
           <p className="text-on-surface-variant font-medium text-sm leading-relaxed">{getStatusText()}</p>
         </div>
 
         {/* Premium Visual Timeline */}
         <div className="px-4 mb-8">
-          <div className="bg-white rounded-3xl border border-outline-variant/10 p-6 shadow-sm">
+          <div className="bg-white ref-card-xl p-5">
             <div className="relative flex justify-between">
               <div className="absolute top-5 left-8 right-8 h-1 bg-surface-container-high -z-0">
                 <div 
-                  className="h-full bg-primary transition-all duration-1000"
+                  className="h-full bg-action-blue transition-all duration-1000"
                   style={{ width: `${Math.max(0, currentStatusIdx) * 33.33}%` }}
                 ></div>
               </div>
@@ -201,30 +201,30 @@ export default function OrderTracking() {
 
         <div className="px-4 space-y-6">
           {/* Support Banner */}
-          <div className="bg-primary text-white rounded-2xl p-5 flex items-center justify-between group cursor-pointer shadow-lg shadow-primary/20">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                <MessageSquare size={24} />
+          <div className="bg-action-blue text-on-primary rounded-xl p-4 flex items-center justify-between group cursor-pointer transition-all active:scale-[0.98]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-md bg-white/20 flex items-center justify-center">
+                <MessageSquare size={20} />
               </div>
               <div>
-                <p className="font-black text-sm uppercase tracking-widest">Need help?</p>
-                <p className="text-white/80 text-xs font-bold">Our support team is here to help.</p>
+                <p className="font-semibold text-sm uppercase tracking-wide">Need help?</p>
+                <p className="text-white/80 text-xs">Our support team is here to help.</p>
               </div>
             </div>
-            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </div>
 
           {/* Refund Status Alert */}
           {order.refund_status && (
-            <div className={`p-4 rounded-2xl flex gap-3 ${
+            <div className={`p-4 rounded-lg flex gap-3 ${
               order.refund_status === 'pending' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
               order.refund_status === 'approved' ? 'bg-success/10 text-success border border-success/20' :
               'bg-error/10 text-error border border-error/20'
             }`}>
               <Undo2 size={20} className="shrink-0" />
               <div>
-                <p className="font-black text-[10px] uppercase tracking-widest mb-1">Refund {order.refund_status}</p>
-                <p className="text-xs font-bold leading-relaxed opacity-90">
+                <p className="font-semibold text-[10px] uppercase tracking-widest mb-1">Refund {order.refund_status}</p>
+                <p className="text-xs font-semibold leading-relaxed opacity-90">
                   {order.refund_status === 'pending' ? "We're reviewing your request. This usually takes 3-5 days." :
                    order.refund_status === 'approved' ? "Great news! Your refund has been approved and credited to your wallet." :
                    "Your refund request was not approved. Please contact support for details."}
@@ -239,34 +239,34 @@ export default function OrderTracking() {
               <button 
                 onClick={() => setShowCancelModal(true)}
                 disabled={isCancelling}
-                className="col-span-2 bg-error/5 text-error border border-error/20 py-3.5 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 active:scale-95 transition-all"
+                className="col-span-2 bg-error/5 text-error border border-error/20 py-2.5 rounded-md text-label-bold font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
               >
-                <XCircle size={18} /> Cancel Order
+                <XCircle size={16} /> Cancel Order
               </button>
             )}
             {order.status === 'delivered' && !['pending', 'approved'].includes(order.refund_status) && (
               <button 
                 onClick={() => setShowRefundModal(true)}
-                className="col-span-2 bg-primary/5 text-primary border border-primary/20 py-3.5 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 active:scale-95 transition-all"
+                className="col-span-2 bg-action-blue/5 text-action-blue border border-action-blue/20 py-2.5 rounded-md text-label-bold font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
               >
-                <Undo2 size={18} /> Request Refund
+                <Undo2 size={16} /> Request Refund
               </button>
             )}
           </div>
 
           {/* Order Recap Card */}
-          <div className="bg-white rounded-3xl border border-outline-variant/10 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-outline-variant/5 flex justify-between items-center">
+          <div className="bg-white ref-card-xl overflow-hidden">
+            <div className="p-5 border-b border-outline-variant flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-black text-on-surface">Order Recap</h3>
-                <p className="text-xs text-on-surface-variant font-bold uppercase tracking-widest">#{order.order_number}</p>
+                <h3 className="text-base font-semibold text-on-surface">Order Recap</h3>
+                <p className="text-xs text-on-surface-variant font-medium uppercase tracking-widest">#{order.order_number}</p>
               </div>
-              <div className="p-2 bg-surface-container rounded-lg text-primary">
-                <ReceiptText size={20} />
+              <div className="p-2 bg-surface-container-low rounded-md text-action-blue">
+                <ReceiptText size={18} />
               </div>
             </div>
             
-            <div className="p-5 space-y-5">
+            <div className="p-5 space-y-4">
               {order.items?.map((item: any) => (
                 <RecapItem 
                   key={item.id}
@@ -279,42 +279,41 @@ export default function OrderTracking() {
               ))}
             </div>
 
-            <div className="bg-surface-container/30 p-5 space-y-3">
-              <div className="flex justify-between items-center text-sm font-bold text-on-surface-variant">
+            <div className="bg-surface-container-low p-5 space-y-3 border-t border-outline-variant">
+              <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
                 <span>Subtotal</span>
-                <span className="text-on-surface font-black">£{(order.items?.reduce((acc: number, item: any) => acc + Number(item.total), 0) || 0).toFixed(2)}</span>
+                <span className="text-on-surface font-bold">£{(order.items?.reduce((acc: number, item: any) => acc + Number(item.total), 0) || 0).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center text-sm font-bold text-on-surface-variant">
+              <div className="flex justify-between items-center text-sm font-semibold text-on-surface-variant">
                 <div className="flex items-center gap-1.5">
-                   <MapPin size={14} className="text-primary/40" />
+                   <MapPin size={14} className="text-outline" />
                    <span>Delivery Fee</span>
                 </div>
-                <span className="text-on-surface font-black">£{Number(order.delivery_fee || 0).toFixed(2)}</span>
+                <span className="text-on-surface font-bold">£{Number(order.delivery_fee || 0).toFixed(2)}</span>
               </div>
               {Number(order.discount || 0) > 0 && (
-                <div className="flex justify-between items-center text-sm font-bold text-success">
+                <div className="flex justify-between items-center text-sm font-semibold text-success">
                   <span>Discount Applied</span>
-                  <span className="font-black">-£{Number(order.discount).toFixed(2)}</span>
+                  <span className="font-bold">-£{Number(order.discount).toFixed(2)}</span>
                 </div>
               )}
-              <div className="pt-3 border-t border-outline-variant/10 flex justify-between items-end">
-                <span className="text-xl font-black text-on-surface tracking-tight">Total Paid</span>
-                <span className="text-2xl font-black text-primary tracking-tight">£{Number(order.total).toFixed(2)}</span>
+              <div className="pt-3 border-t border-outline-variant flex justify-between items-end">
+                <span className="text-base font-bold text-on-surface tracking-tight">Total Paid</span>
+                <span className="text-xl font-bold text-action-blue tracking-tight">£{Number(order.total).toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Logistics & Payment Card */}
-          <div className="bg-primary text-white rounded-3xl p-6 shadow-lg shadow-primary/10 space-y-8 relative overflow-hidden">
-             <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
-             <div className="space-y-6 relative z-10">
+          <div className="bg-white ref-card-xl p-5 space-y-6 relative overflow-hidden">
+             <div className="space-y-4 relative z-10">
                 <DetailBlock label="Payment Method" value={order.payment_method?.toUpperCase() || 'CARD'} />
                 <DetailBlock label="Delivery Status" value={order.status.replace('_', ' ').toUpperCase()} />
                 {order.notes && <DetailBlock label="Delivery Instructions" value={order.notes} italic />}
              </div>
              {['placed', 'confirmed', 'picking'].includes(order.status) && (
-                <button className="w-full py-4 bg-white/20 hover:bg-white/30 text-white rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all">
-                  <Edit2 size={16} /> Update Instructions
+                <button className="w-full py-2 bg-action-blue/5 hover:bg-action-blue/10 text-action-blue border border-action-blue/20 rounded-md text-label-bold font-semibold flex items-center justify-center gap-2 transition-all">
+                  <Edit2 size={14} /> Update Instructions
                 </button>
              )}
           </div>
@@ -332,9 +331,9 @@ export default function OrderTracking() {
             form="refund-form" 
             type="submit" 
             disabled={isRefunding || Object.keys(selectedItems).length === 0}
-            className="w-full bg-primary text-white py-4 rounded-xl font-black uppercase tracking-widest text-sm disabled:opacity-50 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+            className="w-full bg-action-blue text-on-primary py-2.5 rounded-md text-label-bold font-semibold disabled:opacity-50 transition-all active:scale-[0.98] hover:bg-action-blue/95 flex items-center justify-center gap-2"
           >
-            {isRefunding ? <Loader2 className="animate-spin" size={20} /> : <Undo2 size={20} className="mr-2 inline" />}
+            {isRefunding ? <Loader2 className="animate-spin" size={20} /> : <Undo2 size={16} />}
             Confirm Refund Request
           </button>
         }
@@ -349,24 +348,24 @@ export default function OrderTracking() {
               if (availableQty <= 0) return null;
               const isSelected = !!selectedItems[item.id];
               return (
-                <div key={item.id} className={`p-4 rounded-2xl border-2 transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-outline-variant/10'}`}>
+                <div key={item.id} className={`p-4 rounded-lg border transition-all ${isSelected ? 'border-action-blue bg-action-blue/5' : 'border-outline-variant'}`}>
                   <div className="flex items-start gap-3">
-                    <button type="button" onClick={() => handleToggleItem(item.id, availableQty)} className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary text-white' : 'border-outline-variant/30 text-transparent'}`}>
+                    <button type="button" onClick={() => handleToggleItem(item.id, availableQty)} className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-action-blue border-action-blue text-white' : 'border-outline-variant text-transparent'}`}>
                       <Check size={12} strokeWidth={4} />
                     </button>
                     <div className="flex-1">
-                      <p className="font-bold text-on-surface text-sm leading-tight mb-1">{item.product_name}</p>
+                      <p className="font-semibold text-on-surface text-sm leading-tight mb-1">{item.product_name}</p>
                       {isSelected && (
-                        <div className="mt-3 pt-3 border-t border-primary/10 space-y-3">
+                        <div className="mt-3 pt-3 border-t border-outline-variant space-y-3">
                           <div className="flex items-center justify-between">
-                             <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">Qty</span>
-                             <div className="flex items-center gap-4 bg-white border border-outline-variant/10 px-2 py-1 rounded-lg">
-                               <button type="button" onClick={() => handleUpdateItem(item.id, 'quantity', Math.max(1, selectedItems[item.id].quantity - 1))} className="text-primary font-black">-</button>
+                             <span className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant">Qty</span>
+                             <div className="flex items-center gap-4 bg-white border border-outline-variant px-2 py-1 rounded-md">
+                               <button type="button" onClick={() => handleUpdateItem(item.id, 'quantity', Math.max(1, selectedItems[item.id].quantity - 1))} className="text-action-blue font-bold">-</button>
                                <span className="font-bold text-sm">{selectedItems[item.id].quantity}</span>
-                               <button type="button" onClick={() => handleUpdateItem(item.id, 'quantity', Math.min(availableQty, selectedItems[item.id].quantity + 1))} className="text-primary font-black">+</button>
+                               <button type="button" onClick={() => handleUpdateItem(item.id, 'quantity', Math.min(availableQty, selectedItems[item.id].quantity + 1))} className="text-action-blue font-bold">+</button>
                              </div>
                           </div>
-                          <select value={selectedItems[item.id].reason} onChange={e => handleUpdateItem(item.id, 'reason', e.target.value)} className="w-full bg-white border border-outline-variant/10 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-primary/50">
+                          <select value={selectedItems[item.id].reason} onChange={e => handleUpdateItem(item.id, 'reason', e.target.value)} className="w-full bg-white border border-outline-variant rounded-md px-3 py-1.5 text-xs font-semibold outline-none focus:border-action-blue">
                             <option value="damaged_item">Damaged Item</option>
                             <option value="missing_item">Missing Item</option>
                             <option value="quality_issue">Poor Quality</option>
@@ -385,14 +384,14 @@ export default function OrderTracking() {
 
       <Modal isOpen={showCancelModal} onClose={() => setShowCancelModal(false)} title="Cancel Order">
         <div className="flex flex-col items-center text-center p-4">
-          <div className="w-16 h-16 bg-error/10 text-error rounded-full flex items-center justify-center mb-4">
-            <XCircle size={32} />
+          <div className="w-12 h-12 bg-error/10 text-error rounded-full flex items-center justify-center mb-4">
+            <XCircle size={24} />
           </div>
-          <h3 className="text-xl font-bold text-on-surface mb-2">Are you sure?</h3>
+          <h3 className="text-lg font-bold text-on-surface mb-2">Are you sure?</h3>
           <p className="text-on-surface-variant text-sm font-medium mb-8">This action cannot be undone. Order #{order.order_number} will be cancelled immediately.</p>
           <div className="flex gap-3 w-full">
-            <button onClick={() => setShowCancelModal(false)} className="flex-1 py-3.5 bg-surface-container-high text-on-surface font-black rounded-xl uppercase tracking-widest text-xs">No, Keep it</button>
-            <button onClick={confirmOrderCancellation} disabled={isCancelling} className="flex-1 py-3.5 bg-error text-white font-black rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+            <button onClick={() => setShowCancelModal(false)} className="flex-1 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold rounded-md text-sm transition-colors">No, Keep it</button>
+            <button onClick={confirmOrderCancellation} disabled={isCancelling} className="flex-1 py-2 bg-error hover:bg-error/95 text-white font-semibold rounded-md text-sm flex items-center justify-center gap-2 transition-colors">
               {isCancelling ? <Loader2 className="animate-spin" size={16} /> : <XCircle size={16} />} Yes, Cancel
             </button>
           </div>
@@ -406,13 +405,13 @@ function TimelineStep({ label, active, completed, current, icon }: { label: stri
   return (
     <div className="flex flex-col items-center gap-3 relative z-10">
       <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-        completed ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 
-        current ? 'bg-white border-4 border-primary text-primary scale-110' : 
+        completed ? 'bg-action-blue text-white shadow-lg shadow-action-blue/20 scale-110' : 
+        current ? 'bg-white border-4 border-action-blue text-action-blue scale-110' : 
         'bg-surface-container-high text-on-surface-variant/40 border-2 border-surface-container-highest'
       }`}>
         {completed ? <Check size={18} strokeWidth={4} /> : (icon || <div className="w-2 h-2 rounded-full bg-current" />)}
       </div>
-      <span className={`text-[10px] font-black uppercase tracking-widest ${active ? 'text-primary' : 'text-on-surface-variant/40'}`}>{label}</span>
+      <span className={`text-[10px] font-semibold uppercase tracking-widest ${active ? 'text-action-blue' : 'text-on-surface-variant/40'}`}>{label}</span>
     </div>
   );
 }
@@ -421,8 +420,8 @@ function RecapItem({ name, desc, price, img, refundedQty }: { name: string; desc
   const hasRefund = (refundedQty || 0) > 0;
   return (
     <div className="flex items-center gap-4 group">
-      <div className="relative">
-        <div className="w-14 h-14 rounded-xl bg-surface-container overflow-hidden group-hover:scale-105 transition-transform">
+      <div className="relative shrink-0">
+        <div className="w-20 h-20 rounded-md bg-surface-container overflow-hidden group-hover:scale-105 transition-transform">
           <img src={img} alt={name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
         </div>
         {hasRefund && (
@@ -451,8 +450,8 @@ function RecapItem({ name, desc, price, img, refundedQty }: { name: string; desc
 function DetailBlock({ label, value, italic }: { label: string; value: string; italic?: boolean }) {
   return (
     <div className="space-y-1">
-      <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{label}</p>
-      <p className={`text-base font-black ${italic ? 'text-xs leading-relaxed italic opacity-80 font-medium' : ''}`}>{value}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant">{label}</p>
+      <p className={`text-base font-bold text-text-main ${italic ? 'text-xs leading-relaxed italic font-medium opacity-80' : ''}`}>{value}</p>
     </div>
   );
 }
