@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingBasket, Zap, Store, Tag, Menu, ReceiptText, User, ShoppingCart, Info, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, ShoppingBasket, Zap, Store, Tag, Menu, ReceiptText, User, ShoppingCart, Info, LayoutGrid, Search } from 'lucide-react';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
 import { notificationApi } from '../services/api';
@@ -33,6 +33,45 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
+  // Navbar search state
+  const [navSearchInput, setNavSearchInput] = useState('');
+  const showNavSearch = ['/browse', '/aisle', '/search', '/offers'].some(
+    p => location.pathname === p || location.pathname.startsWith(p + '/')
+  );
+
+  // Pre-fill search input when on /search?q=
+  useEffect(() => {
+    if (location.pathname === '/search') {
+      const params = new URLSearchParams(location.search);
+      const q = params.get('q') || '';
+      if (q !== navSearchInput) {
+        setNavSearchInput(q);
+      }
+    } else {
+      setNavSearchInput('');
+    }
+  }, [location.pathname, location.search]);
+
+  const handleNavSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setNavSearchInput(val);
+    if (location.pathname !== '/search') {
+      navigate(`/search?q=${encodeURIComponent(val)}`);
+    } else {
+      navigate(`/search?q=${encodeURIComponent(val)}`, { replace: true });
+    }
+  };
+
+  const handleNavSearchFocus = () => {
+    if (location.pathname !== '/search') {
+      navigate('/search');
+    }
+  };
+
+  const handleNavSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       notificationApi.getCount()
@@ -54,8 +93,8 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
       <div className="w-full bg-background flex flex-col">
         {/* Top App Bar — Desktop & Mobile */}
         <header className="sticky top-0 z-50 bg-white border-b border-outline-variant w-full h-16 md:h-20 flex justify-center">
-          <div className="w-full max-w-[90rem] flex justify-between items-center px-4">
-            <div className="flex items-center gap-3 md:gap-6">
+          <div className="w-full max-w-[90rem] flex justify-between items-center px-4 gap-4">
+            <div className="flex items-center gap-3 md:gap-6 shrink-0">
               {showBack && (
                 <button
                   onClick={() => navigate(-1)}
@@ -108,7 +147,28 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
               )}
             </div>
 
-            <div className="flex items-center gap-1 md:gap-2">
+            {/* Desktop Navbar Search Bar */}
+            {showNavSearch && (
+              <form
+                onSubmit={handleNavSearchSubmit}
+                className="flex flex-1 max-w-lg items-center relative"
+              >
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-outline">
+                  <Search size={18} strokeWidth={2} />
+                </div>
+                <input
+                  type="text"
+                  value={navSearchInput}
+                  onChange={handleNavSearchChange}
+                  onFocus={handleNavSearchFocus}
+                  autoFocus={location.pathname === '/search'}
+                  placeholder="Search for products..."
+                  className="w-full bg-[#f5f6fa] border border-outline-variant/50 rounded-full py-2.5 pl-10 pr-4 text-sm text-text-main outline-none focus:border-action-blue focus:ring-1 focus:ring-action-blue/30 placeholder:text-outline transition-all"
+                />
+              </form>
+            )}
+
+            <div className="hidden md:flex items-center gap-2 shrink-0">
               <button
                 onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
                 aria-label="Account"

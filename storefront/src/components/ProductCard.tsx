@@ -35,87 +35,188 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`ref-card-xl overflow-hidden flex flex-col ${isOutOfStock ? 'opacity-60 grayscale' : ''}`}
+      className={`w-full ${isOutOfStock ? 'opacity-60 grayscale' : ''}`}
     >
-      <Link to={`/product/${product.id}`} className="block relative h-44 sm:h-52 bg-surface-container-low w-full overflow-hidden">
-        {product.badge && (
-          <div
-            className={`absolute top-2 left-2 text-on-primary font-label-bold font-semibold text-[10px] px-2 py-0.5 rounded-sm z-10 ${
-              product.badge === 'NEW' ? 'bg-price-green' : 'bg-secondary'
-            }`}
-          >
-            {product.badge}
-          </div>
-        )}
-        <img
-          src={productImage}
-          alt={product.name}
-          className="w-full h-full object-contain p-2"
-          referrerPolicy="no-referrer"
-        />
-      </Link>
-
-      <div className="p-3 flex flex-col flex-grow">
-        <div className="text-price-display text-text-main mb-1">£{product.price.toFixed(2)}</div>
-        <Link to={`/product/${product.id}`} className="block flex-grow">
-          <h4 className="text-label-bold text-on-surface-variant line-clamp-2 mb-2">{product.name}</h4>
-        </Link>
-        {product.unit && (
-          <p className="text-[11px] text-on-surface-variant -mt-1 mb-2">{product.unit}</p>
-        )}
-
-        {!isOutOfStock &&
-          (cartItem ? (
-            <div className="flex items-center justify-between bg-surface-container border border-outline-variant rounded-md p-1">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateQuantity(product.id, -1);
-                }}
-                className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-surface-dim transition-colors text-text-main"
-              >
-                <Minus size={14} />
-              </button>
-              <span className="text-label-bold font-semibold text-text-main">{cartItem.quantity}</span>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateQuantity(product.id, 1);
-                }}
-                className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-surface-dim transition-colors text-text-main"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addToCart({
-                  id: product.id,
-                  name: product.name,
-                  price: product.price,
-                  image: productImage,
-                  description: product.description || '',
-                  unit: product.unit || 'each',
-                  quantity: 1,
-                  is_age_restricted: product.is_age_restricted,
-                });
-              }}
-              className="w-full bg-action-red text-on-primary text-label-bold font-semibold py-2 rounded-md hover:bg-secondary-container transition-colors flex justify-center items-center gap-1"
+      {/* Mobile Horizontal Layout */}
+      <div className="flex md:hidden flex-row items-center gap-3 w-full bg-white border border-outline-variant/60 rounded-xl p-3 relative shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+        {/* Left Side: Product Image */}
+        <Link to={`/product/${product.id}`} className="block relative w-24 h-24 bg-white rounded-lg overflow-hidden shrink-0 border border-outline-variant/30">
+          {product.badge && (
+            <div
+              className={`absolute top-1 left-1 text-on-primary font-label-bold font-semibold text-[8px] px-1.5 py-0.5 rounded-sm z-10 ${
+                product.badge === 'NEW' ? 'bg-price-green' : 'bg-secondary'
+              }`}
             >
-              <Plus size={14} /> Add
-            </button>
-          ))}
+              {product.badge}
+            </div>
+          )}
+          <img
+            src={productImage}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        </Link>
 
-        {isOutOfStock && (
-          <span className="text-[10px] font-bold text-error uppercase tracking-widest bg-error-container px-2 py-1 rounded text-center">
-            Sold Out
-          </span>
-        )}
+        {/* Right Side: Product Details & CTA */}
+        <div className="flex flex-col flex-grow min-w-0 h-24 justify-between">
+          <div className="flex flex-col text-left">
+            <Link to={`/product/${product.id}`} className="block">
+              <h4 className="text-sm font-semibold text-text-main line-clamp-2 leading-snug">
+                {product.name}
+              </h4>
+            </Link>
+            {product.unit && (
+              <span className="text-[11px] text-on-surface-variant font-medium mt-0.5">
+                {product.unit}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mt-auto">
+            {/* Price */}
+            <div className="text-lg font-bold text-text-main">
+              £{product.price.toFixed(2)}
+            </div>
+
+            {/* Action Button / Quantity Controls */}
+            <div className="w-28 shrink-0 flex justify-end">
+              {isOutOfStock ? (
+                <span className="text-[9px] font-bold text-error uppercase tracking-widest bg-error-container px-2.5 py-1.5 rounded text-center leading-none">
+                  Sold Out
+                </span>
+              ) : cartItem ? (
+                <div className="flex items-center justify-between w-full bg-surface-container border border-outline-variant rounded-md p-0.5 h-8">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      updateQuantity(product.id, -1);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-surface-dim transition-colors text-text-main"
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <span className="text-xs font-semibold text-text-main leading-none">{cartItem.quantity}</span>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      updateQuantity(product.id, 1);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-surface-dim transition-colors text-text-main"
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    addToCart({
+                      id: product.id,
+                      name: product.name,
+                      price: product.price,
+                      image: productImage,
+                      description: product.description || '',
+                      unit: product.unit || 'each',
+                      quantity: 1,
+                      is_age_restricted: product.is_age_restricted,
+                    });
+                  }}
+                  className="w-20 bg-action-red hover:bg-secondary-container text-white text-xs font-bold py-1.5 rounded-md transition-colors flex justify-center items-center gap-1 h-8 shadow-sm"
+                >
+                  <Plus size={12} /> Add
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Vertical Layout */}
+      <div className="hidden md:flex flex-col ref-card-xl overflow-hidden w-full h-full">
+        <Link to={`/product/${product.id}`} className="block relative h-44 sm:h-52 bg-surface-container-low w-full overflow-hidden">
+          {product.badge && (
+            <div
+              className={`absolute top-2 left-2 text-on-primary font-label-bold font-semibold text-[10px] px-2 py-0.5 rounded-sm z-10 ${
+                product.badge === 'NEW' ? 'bg-price-green' : 'bg-secondary'
+              }`}
+            >
+              {product.badge}
+            </div>
+          )}
+          <img
+            src={productImage}
+            alt={product.name}
+            className="w-full h-full object-contain p-2"
+            referrerPolicy="no-referrer"
+          />
+        </Link>
+
+        <div className="p-3 flex flex-col flex-grow">
+          <div className="text-price-display text-text-main mb-1">£{product.price.toFixed(2)}</div>
+          <Link to={`/product/${product.id}`} className="block flex-grow">
+            <h4 className="text-label-bold text-on-surface-variant line-clamp-2 mb-2">{product.name}</h4>
+          </Link>
+          {product.unit && (
+            <p className="text-[11px] text-on-surface-variant -mt-1 mb-2">{product.unit}</p>
+          )}
+
+          {!isOutOfStock &&
+            (cartItem ? (
+              <div className="flex items-center justify-between bg-surface-container border border-outline-variant rounded-md p-1">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product.id, -1);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-surface-dim transition-colors text-text-main"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="text-label-bold font-semibold text-text-main">{cartItem.quantity}</span>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    updateQuantity(product.id, 1);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-surface-dim transition-colors text-text-main"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addToCart({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    image: productImage,
+                    description: product.description || '',
+                    unit: product.unit || 'each',
+                    quantity: 1,
+                    is_age_restricted: product.is_age_restricted,
+                  });
+                }}
+                className="w-full bg-action-red text-on-primary text-label-bold font-semibold py-2 rounded-md hover:bg-secondary-container transition-colors flex justify-center items-center gap-1"
+              >
+                <Plus size={14} /> Add
+              </button>
+            ))}
+
+          {isOutOfStock && (
+            <span className="text-[10px] font-bold text-error uppercase tracking-widest bg-error-container px-2 py-1 rounded text-center">
+              Sold Out
+            </span>
+          )}
+        </div>
       </div>
     </motion.div>
   );
