@@ -2,9 +2,9 @@
 Customer router - routes for B2C registration, auth, and profile management.
 Also contains routes for admin to manage customers.
 """
-from typing import List
+from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, status, Request
+from fastapi import APIRouter, Depends, status, Request, Body
 from app.core.rate_limiter import limiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,7 +20,7 @@ from app.schemas.customer import (
     CustomerLogin, Token, GoogleLogin
 )
 from app.schemas.referral import ApplyReferralRequest, ReferralResponse, ReferralCodeResponse
-from app.schemas.auth import RefreshRequest
+from app.schemas.auth import RefreshRequest, LogoutRequest
 from app.services.customer import CustomerService
 from app.services.token import TokenService
 from app.core.config import settings
@@ -146,11 +146,15 @@ async def refresh_customer_token(data: RefreshRequest, request: Request, db: Asy
 
 
 @router.post("/logout", summary="Revoke customer refresh token")
-async def logout_customer(data: RefreshRequest, db: AsyncSession = Depends(get_async_session)):
-    """Revoke the given customer refresh token."""
-    service = TokenService(db)
-    await service.revoke_token(data.refresh_token)
-    await db.commit()
+async def logout_customer(
+    data: Optional[LogoutRequest] = Body(default=None),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Revoke the given customer refresh token if supplied; otherwise no-op success."""
+    if data and data.refresh_token:
+        service = TokenService(db)
+        await service.revoke_token(data.refresh_token)
+        await db.commit()
     return {"status": "ok"}
 
 @router.get("/me", response_model=CustomerResponse)

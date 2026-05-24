@@ -46,6 +46,16 @@ class CustomerService:
         return list(result.scalars().all())
 
     @staticmethod
+    async def get_customer_by_email(db: AsyncSession, email: str) -> Optional[Customer]:
+        stmt = (
+            select(Customer)
+            .where(Customer.email == email)
+            .options(selectinload(Customer.addresses))
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    @staticmethod
     async def authenticate_customer(db: AsyncSession, email: str, password: str) -> Optional[Customer]:
         stmt = select(Customer).where(Customer.email == email)
         result = await db.execute(stmt)

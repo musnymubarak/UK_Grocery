@@ -137,7 +137,7 @@ export default function Aisle() {
 
         {/* Product grid */}
         {subCategories.length === 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
             {products.map((product) => (
               <ProductCard
                 key={product.id}

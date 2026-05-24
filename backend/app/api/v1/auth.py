@@ -12,6 +12,7 @@ from app.core.dependencies import get_db, get_current_user, require_role, get_or
 from app.services.auth import AuthService
 from app.services.audit import AuditService
 from app.constants.audit_actions import AuditAction
+from fastapi import Body
 from app.schemas.auth import (
     LoginRequest,
     TokenResponse,
@@ -21,6 +22,7 @@ from app.schemas.auth import (
     OrganizationCreate,
     OrganizationResponse,
     RefreshRequest,
+    LogoutRequest,
 )
 from app.models.user import User
 from app.models.organization import Organization
@@ -87,12 +89,16 @@ async def refresh_token(data: RefreshRequest, request: Request, db: AsyncSession
 
 
 @router.post("/logout", summary="Revoke refresh token")
-async def logout(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
-    """Revoke the given refresh token."""
-    from app.services.token import TokenService
-    service = TokenService(db)
-    await service.revoke_token(data.refresh_token)
-    await db.commit()
+async def logout(
+    data: Optional[LogoutRequest] = Body(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke the given refresh token if supplied; otherwise no-op success."""
+    if data and data.refresh_token:
+        from app.services.token import TokenService
+        service = TokenService(db)
+        await service.revoke_token(data.refresh_token)
+        await db.commit()
     return {"status": "ok"}
 
 

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /var/www/UK_Grocery/.claude && ls -la /var/www/UK_Grocery/.claude)"
+    ],
+    "additionalDirectories": [
+      "/var/www/UK_Grocery"
+    ]
+  }
+}

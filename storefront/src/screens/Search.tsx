@@ -15,52 +15,35 @@ export default function Search() {
   
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchInput, setSearchInput] = useState(query);
 
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    catalogApi.getProducts({ 
-      search: query, 
-      store_id: selectedStore?.id,
-      limit: 50 
-    })
-      .then(res => {
-        setResults(res.data.items || []);
-        setLoading(false);
+    const delayDebounce = setTimeout(() => {
+      catalogApi.getProducts({ 
+        search: query, 
+        store_id: selectedStore?.id,
+        limit: 50 
       })
-      .catch(() => setLoading(false));
-  }, [query, selectedStore?.id]);
+        .then(res => {
+          setResults(res.data.items || []);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }, 250);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchInput.trim()) {
-      setSearchParams({ q: searchInput });
-    }
-  };
+    return () => clearTimeout(delayDebounce);
+  }, [query, selectedStore?.id]);
 
   return (
     <Layout title={query ? `Search: ${query}` : 'Search'} showBack>
       <div className="max-w-[90rem] mx-auto px-6 pb-40">
-        {/* Mobile Search Input */}
-        <div className="md:hidden py-4 sticky top-0 z-10 bg-surface/80 backdrop-blur-md">
-          <form onSubmit={handleSearch} className="relative group">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-secondary/40 group-focus-within:text-primary transition-colors">
-              <SearchIcon size={18} strokeWidth={1.5} />
-            </div>
-            <input 
-              type="text" 
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search for products..."
-              className="w-full bg-white border border-outline-variant/40 rounded-xl py-3.5 pl-11 pr-4 text-on-surface outline-none focus:border-primary/50 placeholder:text-secondary/40 transition-all shadow-sm"
-            />
-          </form>
-        </div>
+
 
         {loading ? (
           <div className="flex items-center justify-center min-h-[50vh]">
@@ -87,7 +70,7 @@ export default function Search() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
               {results.map((product) => (
                 <ProductCard 
                   key={product.id} 
@@ -110,7 +93,7 @@ export default function Search() {
               <div className="text-center py-20 bg-surface-container-low rounded-3xl border-2 border-dashed border-outline-variant/30">
                 <p className="text-on-surface-variant font-medium">We couldn't find any products matching your search.</p>
                 <button 
-                  onClick={() => setSearchInput('')}
+                  onClick={() => setSearchParams({})}
                   className="mt-4 text-primary font-bold"
                 >
                   Clear search

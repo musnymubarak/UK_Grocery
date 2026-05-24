@@ -58,7 +58,7 @@ class CustomerAddress(TimestampMixin, Base):
     label = Column(String(50), default="home")  # home, work, other
     street = Column(Text, nullable=False)
     city = Column(String(100), nullable=False)
-    state = Column(String(100), nullable=False)
+    state = Column(String(100), nullable=True)
     postcode = Column(String(20), nullable=False, index=True)
     country = Column(String(100), nullable=False, default="United Kingdom")
     lat = Column(Numeric(10, 7), nullable=True)
