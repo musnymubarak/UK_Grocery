@@ -70,21 +70,9 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
                     child: Container(
                       height: 140,
                       width: 140,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [AppColors.blue500, AppColors.blue800],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.blue500.withValues(alpha: 0.4),
-                            blurRadius: 60,
-                            spreadRadius: -8,
-                            offset: const Offset(0, 28),
-                          ),
-                        ],
+                        color: AppColors.blue900,
                       ),
                       child: const Icon(Icons.check_rounded, color: Colors.white, size: 72),
                     ),

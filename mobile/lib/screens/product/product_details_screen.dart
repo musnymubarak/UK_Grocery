@@ -208,11 +208,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     children: [
                       DecoratedBox(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [p.colorA, p.colorB],
-                          ),
+                          color: p.colorA,
                         ),
                       ),
                       Positioned(

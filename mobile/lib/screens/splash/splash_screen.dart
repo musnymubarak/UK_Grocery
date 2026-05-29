@@ -63,43 +63,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAdvance());
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.royalGradient),
+        decoration: const BoxDecoration(color: AppColors.blue900),
         child: Stack(
           children: [
-            Positioned(
-              right: -120,
-              top: -80,
-              child: Container(
-                height: 320,
-                width: 320,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppColors.red500.withValues(alpha: 0.35),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: -90,
-              bottom: -60,
-              child: Container(
-                height: 260,
-                width: 260,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppColors.blue400.withValues(alpha: 0.45),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            const SizedBox.shrink(),
+            const SizedBox.shrink(),
             Center(
               child: FadeTransition(
                 opacity: _fade,
@@ -111,20 +79,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       Container(
                         height: 96,
                         width: 96,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Colors.white, Color(0xFFDDE4FF)],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.35),
-                              blurRadius: 50,
-                              spreadRadius: 4,
-                            ),
-                          ],
+                          color: Colors.white,
                         ),
                         child: ShaderMask(
                           shaderCallback: (rect) => const LinearGradient(

@@ -120,34 +120,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          Positioned(
-            top: -80,
-            left: -80,
-            child: Container(
-              height: 280,
-              width: 280,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [AppColors.blue500.withValues(alpha: 0.35), Colors.transparent],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 100,
-            right: -120,
-            child: Container(
-              height: 260,
-              width: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [AppColors.red500.withValues(alpha: 0.25), Colors.transparent],
-                ),
-              ),
-            ),
-          ),
+          const SizedBox.shrink(),
+          const SizedBox.shrink(),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -174,19 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 64,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppColors.blue500, AppColors.blue800],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.blue600.withValues(alpha: 0.35),
-                          blurRadius: 30,
-                          spreadRadius: -4,
-                          offset: const Offset(0, 16),
-                        ),
-                      ],
+                      color: AppColors.blue900,
                     ),
                     child: const Icon(Icons.shopping_basket_rounded, color: Colors.white, size: 30),
                   ),
@@ -388,15 +350,6 @@ class _ModeTab extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? t.colorScheme.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: t.colorScheme.primary.withValues(alpha: 0.10),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : null,
         ),
         child: Text(
           label,

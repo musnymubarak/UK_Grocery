@@ -348,8 +348,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           caption: 'Arrives in ~30 min',
                           icon: Icons.bolt_rounded,
                           selected: _slot.startsWith('In 30'),
-                          colorA: AppColors.red500,
-                          colorB: AppColors.red700,
+                          fill: AppColors.red600,
                           onTap: () => setState(() => _slot = 'In 30 min · Express'),
                         ),
                       ),
@@ -360,8 +359,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           caption: 'Evening · 6–7 PM',
                           icon: Icons.event_available_rounded,
                           selected: _slot.startsWith('6–7'),
-                          colorA: AppColors.blue500,
-                          colorB: AppColors.blue800,
+                          fill: AppColors.blue900,
                           onTap: () => setState(() => _slot = '6–7 PM · Standard'),
                         ),
                       ),
@@ -522,13 +520,8 @@ class _SignInBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.blue600, AppColors.blue900],
-        ),
+        color: AppColors.blue900,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        boxShadow: AppShadows.glowBlue(),
       ),
       child: Row(
         children: [
@@ -612,16 +605,7 @@ class _SelectableCard extends StatelessWidget {
             color: selected ? t.colorScheme.primary : t.colorScheme.outlineVariant,
             width: selected ? 1.5 : 1,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: t.colorScheme.primary.withValues(alpha: 0.18),
-                    blurRadius: 24,
-                    spreadRadius: -6,
-                    offset: const Offset(0, 12),
-                  ),
-                ]
-              : AppShadows.soft(context),
+          boxShadow: AppShadows.soft(context),
         ),
         child: Row(
           children: [
@@ -671,11 +655,7 @@ class _SquareIcon extends StatelessWidget {
       height: 40,
       width: 40,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.blue500, AppColors.blue800],
-        ),
+        color: AppColors.blue900,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Icon(icon, color: Colors.white, size: 20),
@@ -707,16 +687,14 @@ class _SlotChip extends StatelessWidget {
     required this.caption,
     required this.icon,
     required this.selected,
-    required this.colorA,
-    required this.colorB,
+    required this.fill,
     required this.onTap,
   });
   final String label;
   final String caption;
   final IconData icon;
   final bool selected;
-  final Color colorA;
-  final Color colorB;
+  final Color fill;
   final VoidCallback onTap;
 
   @override
@@ -728,24 +706,11 @@ class _SlotChip extends StatelessWidget {
         duration: const Duration(milliseconds: 220),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          gradient: selected
-              ? LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [colorA, colorB])
-              : null,
-          color: selected ? null : t.colorScheme.surface,
+          color: selected ? fill : t.colorScheme.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           border: Border.all(
             color: selected ? Colors.transparent : t.colorScheme.outlineVariant,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: colorA.withValues(alpha: 0.35),
-                    blurRadius: 28,
-                    spreadRadius: -6,
-                    offset: const Offset(0, 14),
-                  ),
-                ]
-              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
