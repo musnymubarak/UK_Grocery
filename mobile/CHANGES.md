@@ -107,3 +107,9 @@ Reviewed all list screens against backend capability:
   `redirect=/checkout`, so users resume checkout after authenticating.
 - **Needs device verification:** the 401 → refresh → retry path only runs on token expiry.
 
+### Auth — inline real-time form validation
+- `PremiumTextField` gained an `errorText` (error-coloured border + message below the field).
+- Login/register validate as you type: email format and, on sign-up, an 8-char minimum password.
+  The submit button stays disabled until the form is valid (and the terms box is ticked on sign-up),
+  replacing the previous submit-time-only snackbar checks.
+

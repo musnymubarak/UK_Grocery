@@ -88,6 +88,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  bool _isValidEmail(String v) =>
+      RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(v);
+
   @override
   void dispose() {
     _firstName.dispose();
@@ -102,6 +105,18 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final emailVal = _email.text.trim();
+    final pwVal = _password.text;
+    final emailError =
+        emailVal.isEmpty || _isValidEmail(emailVal) ? null : 'Enter a valid email address';
+    final pwError = pwVal.isEmpty || !_signup || pwVal.length >= 8
+        ? null
+        : 'Use at least 8 characters';
+    final canSubmit = emailVal.isNotEmpty &&
+        pwVal.isNotEmpty &&
+        emailError == null &&
+        pwError == null &&
+        (!_signup || _agree);
     return Scaffold(
       body: Stack(
         children: [
@@ -241,6 +256,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
+                    onChanged: (_) => setState(() {}),
+                    errorText: emailError,
                   ),
                   const SizedBox(height: AppSpacing.base),
                   PremiumTextField(
@@ -250,6 +267,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _password,
                     obscure: true,
                     textInputAction: TextInputAction.done,
+                    onChanged: (_) => setState(() {}),
+                    errorText: pwError,
                   ),
                   if (_signup) ...[
                     const SizedBox(height: AppSpacing.md),
@@ -301,7 +320,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: _signup ? 'Create account' : 'Sign in',
                     expand: true,
                     loading: _loading,
-                    onPressed: _loading ? null : _submit,
+                    onPressed: (_loading || !canSubmit) ? null : _submit,
                     trailingIcon: Icons.arrow_forward_rounded,
                   ),
                   const SizedBox(height: AppSpacing.lg),
