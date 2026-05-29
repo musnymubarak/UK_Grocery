@@ -1,33 +1,19 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
-
-/// Resolve the backend base URL.
+/// Resolves the backend base URL.
 ///
 /// Priority:
-///   1. `--dart-define=API_BASE_URL=...` (most flexible, works everywhere)
-///   2. Platform default:
-///      - Android emulator → 10.0.2.2 (loopback to host)
-///      - Otherwise → localhost:8000 (Windows/macOS/iOS-sim/web)
-///
-/// For a physical device on the same Wi-Fi, pass `--dart-define`:
-///   flutter run --dart-define=API_BASE_URL=http://192.168.1.42:8000
+///   1. `--dart-define=API_BASE_URL=...` — override for local dev or staging, e.g.
+///      `--dart-define=API_BASE_URL=http://10.0.2.2:8000` (Android emulator) or
+///      `http://localhost:8000` (desktop / iOS simulator).
+///   2. Production: https://api.dailygrocer.co.uk
 class ApiConfig {
   ApiConfig._();
 
   static const _explicit = String.fromEnvironment('API_BASE_URL');
-
-  /// Production backend. Release builds (App Store / Play Store) hit this by
-  /// default; debug/profile builds talk to a local backend. An explicit
-  /// `--dart-define=API_BASE_URL` overrides everything.
   static const _prod = 'https://api.dailygrocer.co.uk';
 
-  static String get baseUrl {
-    if (_explicit.isNotEmpty) return _explicit;
-    if (kReleaseMode) return _prod;
-    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000';
-    return 'http://localhost:8000';
-  }
+  /// Production by default; pass `--dart-define=API_BASE_URL` to point at a local
+  /// backend during development.
+  static String get baseUrl => _explicit.isNotEmpty ? _explicit : _prod;
 
   static String get apiBase => '$baseUrl/api/v1';
 
