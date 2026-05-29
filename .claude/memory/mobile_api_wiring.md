@@ -13,7 +13,7 @@ The mobile app is wired to the backend via `mobile/lib/data/api/` services that 
 2. Android emulator → `http://10.0.2.2:8000` (host loopback).
 3. Otherwise → `http://localhost:8000`.
 
-**Auth/401 flow**: [mobile/lib/core/network/api_client.dart](../../mobile/lib/core/network/api_client.dart) is a singleton wrapping Dio. Its request interceptor attaches the `Bearer` token, the response interceptor converts 4xx into typed `ApiException`, and 401 triggers `tokens.clear()` + an `onAuthExpired` broadcast. `AuthProvider` listens and clears in-memory user.
+**Auth/401 flow**: [mobile/lib/core/network/api_client.dart](../../mobile/lib/core/network/api_client.dart) is a singleton wrapping Dio. Its request interceptor attaches the `Bearer` token, the response interceptor converts 4xx into typed `ApiException`. On 401 it now **transparently refreshes**: a single-flight call to `/customers/refresh` via an interceptor-free Dio (loop-guarded by a `__retried` flag), then retries the original request once; only if refresh fails does it `tokens.clear()` + broadcast `onAuthExpired` (which `AuthProvider` listens to). The refresh token is persisted alongside the access token (`customer_refresh_token`). The customer `Token` response carries **no profile**, so `login`/`register`/`googleLogin` persist tokens and `AuthProvider` then loads the customer via `auth.me()`.
 
 **Why**: The user explicitly asked for backend wiring after the mobile UI was complete. Mock data was removed; every screen now loads from the API with skeleton-loading + error-with-retry states. Stores load via `StoreProvider.refresh()` on construction.
 
