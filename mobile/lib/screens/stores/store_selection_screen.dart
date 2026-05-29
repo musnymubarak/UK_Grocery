@@ -105,6 +105,7 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
     final scheme = theme.colorScheme;
     final provider = context.watch<StoreProvider>();
     final isFirstSelection = !provider.hasStore;
+    final canGoBack = Navigator.of(context).canPop();
     final stores = _applyFilter(provider.all);
 
     final allCount = provider.all.length;
@@ -112,13 +113,13 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
     final freeCount = provider.all.where((s) => s.defaultDeliveryFee == 0).length;
 
     return PopScope(
-      canPop: !isFirstSelection,
+      canPop: canGoBack,
       child: Scaffold(
         body: SafeArea(
           child: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              if (!isFirstSelection)
+              if (canGoBack)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(AppSpacing.base, 8, AppSpacing.base, 0),
@@ -343,7 +344,7 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
                     }
                     provider.select(s);
                     if (isFirstSelection) {
-                      navigator.pushReplacementNamed(AppRouter.shell);
+                      navigator.pushNamedAndRemoveUntil(AppRouter.shell, (_) => false);
                     } else {
                       navigator.pop();
                     }

@@ -63,8 +63,16 @@ class _ShellScreenState extends State<ShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
+    return PopScope(
+      canPop: _index == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        // Hardware back on a sub-tab returns to Home instead of leaving the app.
+        if (!didPop && _index != 0) {
+          setState(() => _index = 0);
+        }
+      },
+      child: Scaffold(
+        extendBody: true,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 320),
         switchInCurve: Curves.easeOutCubic,
@@ -95,6 +103,7 @@ class _ShellScreenState extends State<ShellScreen> {
           setState(() => _index = i);
         },
         items: _items,
+      ),
       ),
     );
   }

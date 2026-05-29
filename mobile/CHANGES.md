@@ -193,3 +193,12 @@ owner can supply:
   cart badge). Bundled the storefront hero assets (`produce/dairy/delivery/logo_playful.png`) into
   `mobile/assets/`.
 
+### Fix — back navigation
+- `store_selection` no longer **traps** the user: back was hard-disabled (`PopScope(canPop:false)`)
+  with no back affordance during first selection, so reaching it from Landing's "Search Local
+  Stores"/"Stores" left no way back. Back is now enabled whenever there's a screen to return to, and
+  a back chip is shown. Picking a store makes the **shell the navigation root** (clears Landing/
+  stores from the stack) so in-app back behaves correctly afterwards.
+- `shell` now handles **hardware back**: back on a sub-tab returns to the Home tab; back on Home
+  exits the app (instead of doing nothing / dropping to the marketing Landing).
+
