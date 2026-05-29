@@ -178,7 +178,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final store = context.read<StoreProvider>().selected;
 
     if (!auth.isAuthenticated) {
-      Navigator.of(context).pushNamed(AppRouter.login);
+      Navigator.of(context).pushNamed(
+        AppRouter.login,
+        arguments: {'redirect': AppRouter.checkout},
+      );
       return;
     }
     if (store == null) {
@@ -539,7 +542,10 @@ class _SignInBanner extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           AnimatedPress(
-            onTap: () => Navigator.of(context).pushNamed(AppRouter.login),
+            onTap: () => Navigator.of(context).pushNamed(
+              AppRouter.login,
+              arguments: {'redirect': AppRouter.checkout},
+            ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
