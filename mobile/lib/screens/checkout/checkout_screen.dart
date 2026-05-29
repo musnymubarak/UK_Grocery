@@ -28,11 +28,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   DeliveryAddress? _address;
   String _slot = 'In 30 min · Express';
   String _payment = 'cod';
-  double _tip = 1.50;
   bool _processing = false;
   String _notes = '';
   String? _adHocAddress;
   String? _adHocPostcode;
+
+  // Authoritative delivery fee, resolved from the backend per postcode.
+  double? _serverFee;
+  bool _feeLoading = false;
+  bool _deliverable = true;
+  String? _feeMessage;
 
   @override
   void initState() {
@@ -40,6 +45,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final addresses = context.read<AuthProvider>().customer?.addresses ?? const <DeliveryAddress>[];
     if (addresses.isNotEmpty) {
       _address = addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _recalcFee());
+  }
+
+  /// Resolve the authoritative delivery fee for the chosen postcode (mirrors the
+  /// storefront). Falls back to the store's default fee when no postcode is known
+  /// yet or the lookup fails, so the screen never blocks on the network.
+  Future<void> _recalcFee() async {
+    final store = context.read<StoreProvider>().selected;
+    final postcode = _adHocPostcode ?? _address?.postcode;
+    if (store == null || postcode == null || postcode.trim().isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _serverFee = null;
+        _deliverable = true;
+        _feeMessage = null;
+      });
+      return;
+    }
+    setState(() => _feeLoading = true);
+    try {
+      final res = await Api.instance.catalog.calculateDistanceFee(
+        storeId: store.id,
+        postcode: postcode.trim(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _serverFee = res.deliverable ? res.fee : null;
+        _deliverable = res.deliverable;
+        _feeMessage = res.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _serverFee = null;
+        _deliverable = true;
+        _feeMessage = null;
+      });
+    } finally {
+      if (mounted) setState(() => _feeLoading = false);
     }
   }
 
@@ -105,11 +150,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cart = context.watch<CartProvider>();
     final auth = context.watch<AuthProvider>();
     final store = context.watch<StoreProvider>().selected;
-    final freeThreshold = store?.freeDeliveryThreshold ?? 40;
     final defaultFee = store?.defaultDeliveryFee ?? 2.99;
-    final delivery = cart.subtotal >= freeThreshold ? 0.0 : defaultFee;
-    final total = cart.subtotal + delivery + _tip;
+    final delivery = _serverFee ?? defaultFee;
+    final total = cart.subtotal + delivery;
     final addresses = auth.customer?.addresses ?? const <DeliveryAddress>[];
+    final minOrder = store?.minOrderValue ?? 0;
+    final belowMin = minOrder > 0 && cart.subtotal < minOrder;
+    final storeClosed = store != null && !store.isOpen;
+    final gated = belowMin || storeClosed || !_deliverable || cart.items.isEmpty;
+    final blockOrder = _processing || (auth.isAuthenticated && gated);
 
     return Scaffold(
       body: SafeArea(
@@ -157,7 +206,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       (a) => Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: AnimatedPress(
-                          onTap: () => setState(() => _address = a),
+                          onTap: () {
+                            setState(() => _address = a);
+                            _recalcFee();
+                          },
                           child: _SelectableCard(
                             selected: a.id == _address?.id,
                             leading: _SquareIcon(icon: a.label == 'Home' ? Icons.home_rounded : Icons.work_rounded),
@@ -176,7 +228,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Expanded(
                         child: _SlotChip(
                           label: 'Express',
-                          caption: 'In 30 min · ${formatGBP(defaultFee)}',
+                          caption: 'Arrives in ~30 min',
                           icon: Icons.bolt_rounded,
                           selected: _slot.startsWith('In 30'),
                           colorA: AppColors.red500,
@@ -188,7 +240,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Expanded(
                         child: _SlotChip(
                           label: 'Standard',
-                          caption: '6–7 PM · Free',
+                          caption: 'Evening · 6–7 PM',
                           icon: Icons.event_available_rounded,
                           selected: _slot.startsWith('6–7'),
                           colorA: AppColors.blue500,
@@ -225,50 +277,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     onTap: () => setState(() => _payment = 'cod'),
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  const _SectionTitle(label: 'Tip your shopper', icon: Icons.favorite_rounded),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      for (final t in const [0.0, 1.5, 3.0, 5.0]) ...[
-                        Expanded(
-                          child: AnimatedPress(
-                            onTap: () => setState(() => _tip = t),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 220),
-                              height: 56,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: _tip == t
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.surface,
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                                border: Border.all(
-                                  color: _tip == t
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.outlineVariant,
-                                ),
-                              ),
-                              child: Text(
-                                t == 0 ? 'No tip' : formatGBP(t),
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: _tip == t ? Colors.white : theme.colorScheme.onSurface,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (t != 5.0) const SizedBox(width: 8),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
                   _Summary(
                     subtotal: cart.subtotal,
                     delivery: delivery,
-                    tip: _tip,
+                    feeLoading: _feeLoading,
                     savings: cart.savings,
                     total: total,
                   ),
+                  if (!_deliverable && (_feeMessage?.isNotEmpty ?? false)) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    _NoticeBanner(message: _feeMessage!),
+                  ],
+                  if (belowMin) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    _NoticeBanner(
+                      message:
+                          'Add ${formatGBP(minOrder - cart.subtotal)} more to reach the ${formatGBP(minOrder)} minimum order.',
+                    ),
+                  ],
+                  if (storeClosed) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    const _NoticeBanner(
+                      message: 'This store is currently closed and not accepting orders.',
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -304,11 +336,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               PremiumButton(
                 label: _processing
                     ? 'Placing order…'
-                    : (auth.isAuthenticated ? 'Place order' : 'Sign in to order'),
+                    : !auth.isAuthenticated
+                        ? 'Sign in to order'
+                        : belowMin
+                            ? 'Minimum not met'
+                            : storeClosed
+                                ? 'Store closed'
+                                : !_deliverable
+                                    ? 'Not deliverable'
+                                    : 'Place order',
                 variant: PremiumButtonVariant.accent,
                 icon: auth.isAuthenticated ? Icons.lock_outline_rounded : Icons.login_rounded,
                 loading: _processing,
-                onPressed: _processing ? null : _placeOrder,
+                onPressed: blockOrder ? null : _placeOrder,
               ),
             ],
           ),
@@ -572,17 +612,47 @@ class _SlotChip extends StatelessWidget {
   }
 }
 
+class _NoticeBanner extends StatelessWidget {
+  const _NoticeBanner({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: t.colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: t.colorScheme.error.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, size: 18, color: t.colorScheme.error),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onErrorContainer),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Summary extends StatelessWidget {
   const _Summary({
     required this.subtotal,
     required this.delivery,
-    required this.tip,
+    required this.feeLoading,
     required this.savings,
     required this.total,
   });
   final double subtotal;
   final double delivery;
-  final double tip;
+  final bool feeLoading;
   final double savings;
   final double total;
 
@@ -600,9 +670,7 @@ class _Summary extends StatelessWidget {
         children: [
           _row('Subtotal', formatGBP(subtotal)),
           const SizedBox(height: 8),
-          _row('Delivery', delivery == 0 ? 'Free' : formatGBP(delivery)),
-          const SizedBox(height: 8),
-          _row('Tip', formatGBP(tip)),
+          _row('Delivery', feeLoading ? 'Calculating…' : (delivery == 0 ? 'Free' : formatGBP(delivery))),
           if (savings > 0) ...[
             const SizedBox(height: 8),
             _row('You save', '−${formatGBP(savings)}', color: AppColors.success),
