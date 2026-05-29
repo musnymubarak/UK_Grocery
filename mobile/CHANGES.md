@@ -113,3 +113,17 @@ Reviewed all list screens against backend capability:
   The submit button stays disabled until the form is valid (and the terms box is ticked on sign-up),
   replacing the previous submit-time-only snackbar checks.
 
+### Google sign-in — flagged, blocked on OAuth config (not implemented)
+The mobile plumbing already exists: `CustomerAuthApi.googleLogin(idToken)` →
+`POST /customers/google`, surfaced via `AuthProvider.googleSignIn(idToken)`. The login button
+still shows "coming soon" because acquiring the Google `idToken` needs config that only the project
+owner can supply:
+1. Add the `google_sign_in` package.
+2. A **Web** OAuth client ID (`serverClientId`) that matches the backend's `GOOGLE_CLIENT_ID`
+   (the backend validates the idToken against it).
+3. Android: register the app's SHA-1 and add `google-services.json` (or pass the serverClientId);
+   iOS: add the reversed-client-ID URL scheme to `Info.plist`.
+4. Replace `_showSoon('Google')` in `login_screen.dart` with the real flow calling
+   `context.read<AuthProvider>().googleSignIn(idToken)`.
+"Sign in with Apple" is in the same state (needs an Apple Developer Services ID + capability).
+
