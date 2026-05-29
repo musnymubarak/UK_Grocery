@@ -98,19 +98,25 @@ class CatalogApi {
         .toList();
   }
 
-  Future<({double fee, bool free})> calculateDeliveryFee({
+  /// Authoritative distance-based delivery fee for a postcode. Mirrors the
+  /// storefront's checkout call: `POST /delivery/calculate-distance-fee` with
+  /// `store_id` + `postcode` as query params.
+  Future<({bool deliverable, double fee, double distanceMiles, String? message})>
+      calculateDistanceFee({
     required String storeId,
     required String postcode,
   }) async {
     final data = await _client.request<Map<String, dynamic>>(
       () => _client.raw.post(
-        '/delivery/calculate-fee',
-        data: {'store_id': storeId, 'postcode': postcode},
+        '/delivery/calculate-distance-fee',
+        queryParameters: {'store_id': storeId, 'postcode': postcode},
       ),
     );
     return (
-      fee: (data['fee'] as num?)?.toDouble() ?? 0,
-      free: data['free_delivery'] as bool? ?? false,
+      deliverable: data['deliverable'] as bool? ?? true,
+      fee: (data['delivery_fee'] as num?)?.toDouble() ?? 0,
+      distanceMiles: (data['distance_miles'] as num?)?.toDouble() ?? 0,
+      message: data['message'] as String?,
     );
   }
 }
