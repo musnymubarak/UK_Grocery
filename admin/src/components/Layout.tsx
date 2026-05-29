@@ -21,6 +21,8 @@ import {
     Users2,
     Truck,
     Ticket,
+    Tag,
+    Megaphone,
     Settings,
     Star,
     Webhook,
@@ -36,9 +38,12 @@ const navItems = [
     { label: 'Dashboard', section: 'Main', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'cashier'] },
     { label: 'Orders', section: 'Main', path: '/orders', icon: ShoppingBag, roles: ['admin', 'manager', 'cashier'] },
     { label: 'Customers', section: 'Main', path: '/customers', icon: Users2, roles: ['admin', 'manager'] },
+    { label: 'Notifications', section: 'Main', path: '/notifications', icon: Megaphone, roles: ['admin', 'manager'] },
     { label: 'My Deliveries', section: 'Delivery', path: '/dashboard', icon: Truck, roles: ['delivery_boy'] }, // We route delivery boys to dashboard for now
+    { label: 'Drivers', section: 'Operations', path: '/drivers', icon: Truck, roles: ['admin', 'manager'] },
     { label: 'Delivery Zones', section: 'Operations', path: '/delivery-zones', icon: MapPin, roles: ['admin', 'manager'] },
     { label: 'Coupons', section: 'Operations', path: '/coupons', icon: Ticket, roles: ['admin', 'manager'] },
+    { label: 'Promotions', section: 'Operations', path: '/promotions', icon: Tag, roles: ['admin', 'manager'] },
     { label: 'Rewards', section: 'Operations', path: '/rewards', icon: Star, roles: ['admin', 'manager'] },
     { label: 'Products', section: 'Catalog', path: '/products', icon: Package, roles: ['admin', 'manager'] },
     { label: 'Categories', section: 'Catalog', path: '/categories', icon: Tags, roles: ['admin', 'manager'] },
@@ -68,9 +73,17 @@ export default function Layout() {
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Fetch stores for admin dropdown
+    const [storesError, setStoresError] = useState<string | null>(null);
     useEffect(() => {
         if (isAdmin) {
-            storeApi.list().then(res => setStores(res.data)).catch(console.error);
+            storeApi.list().then(res => {
+                const data = res.data;
+                const list = Array.isArray(data) ? data : (data?.items ?? []);
+                setStores(list);
+                if (list.length === 0) setStoresError('No stores in your organization');
+            }).catch(err => {
+                setStoresError(err?.response?.status ? `HTTP ${err.response.status}` : (err?.message ?? 'fetch failed'));
+            });
         }
     }, [isAdmin]);
 
@@ -143,33 +156,44 @@ export default function Layout() {
                                     left: 0,
                                     right: 0,
                                     marginTop: 4,
-                                    background: 'var(--bg-card)',
+                                    background: 'var(--bg-card, #fff)',
                                     border: '1px solid var(--border)',
                                     borderRadius: 'var(--radius-md)',
                                     boxShadow: 'var(--shadow-lg)',
-                                    zIndex: 100,
-                                    maxHeight: '200px',
+                                    zIndex: 1000,
+                                    maxHeight: '240px',
                                     overflowY: 'auto'
                                 }}>
-                                    {stores.map(store => (
-                                        <button
-                                            key={store.id}
-                                            onClick={() => handleStoreChange(store)}
-                                            style={{
-                                                display: 'block',
-                                                width: '100%',
-                                                textAlign: 'left',
-                                                padding: '10px 12px',
-                                                border: 'none',
-                                                background: selectedStore?.id === store.id ? 'var(--primary-50)' : 'transparent',
-                                                color: selectedStore?.id === store.id ? 'var(--primary)' : 'var(--text-primary)',
-                                                cursor: 'pointer',
-                                                fontSize: '0.85rem'
-                                            }}
-                                        >
-                                            {store.name}
-                                        </button>
-                                    ))}
+                                    {stores.length === 0 ? (
+                                        <div style={{
+                                            padding: '12px',
+                                            fontSize: '0.8rem',
+                                            color: 'var(--text-secondary, #6b7280)',
+                                            textAlign: 'center'
+                                        }}>
+                                            {storesError ? `No stores: ${storesError}` : 'Loading…'}
+                                        </div>
+                                    ) : (
+                                        stores.map(store => (
+                                            <button
+                                                key={store.id}
+                                                onClick={() => handleStoreChange(store)}
+                                                style={{
+                                                    display: 'block',
+                                                    width: '100%',
+                                                    textAlign: 'left',
+                                                    padding: '10px 12px',
+                                                    border: 'none',
+                                                    background: selectedStore?.id === store.id ? 'var(--primary-50)' : 'transparent',
+                                                    color: selectedStore?.id === store.id ? 'var(--primary)' : 'var(--text-primary)',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.85rem'
+                                                }}
+                                            >
+                                                {store.name}
+                                            </button>
+                                        ))
+                                    )}
                                 </div>
                             )}
                         </div>

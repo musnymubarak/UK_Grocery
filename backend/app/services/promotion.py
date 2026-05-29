@@ -1,18 +1,75 @@
 """
-Promotion service — evaluate cart items against active promotions.
+Promotion service — evaluate cart items against active promotions + admin CRUD.
 """
 from uuid import UUID
 from datetime import datetime, timezone
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from decimal import Decimal
 
 from app.models.promotion import Promotion
+from app.core.exceptions import NotFoundException
 
 class PromotionService:
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    # --- Admin CRUD ---
+
+    async def list_all(self, org_id: UUID, store_id: Optional[UUID] = None) -> List[Promotion]:
+        """List ALL promotions (active and inactive) for admin."""
+        query = select(Promotion).where(
+            Promotion.organization_id == org_id,
+            Promotion.is_deleted == False,
+        )
+        if store_id is not None:
+            # admin filter: just this store OR org-wide promos (store_id IS NULL)
+            query = query.where(or_(Promotion.store_id == store_id, Promotion.store_id == None))
+        query = query.order_by(Promotion.is_active.desc(), Promotion.created_at.desc())
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
+    async def get_by_id(self, org_id: UUID, promotion_id: UUID) -> Promotion:
+        promo = await self.db.get(Promotion, promotion_id)
+        if not promo or promo.organization_id != org_id or promo.is_deleted:
+            raise NotFoundException("Promotion not found")
+        return promo
+
+    async def create(self, org_id: UUID, data: Dict[str, Any]) -> Promotion:
+        promo = Promotion(
+            organization_id=org_id,
+            store_id=data.get("store_id"),
+            name=data["name"],
+            description=data.get("description"),
+            promotion_type=data["promotion_type"],
+            config=data["config"],
+            starts_at=data.get("starts_at"),
+            ends_at=data.get("ends_at"),
+            is_active=data.get("is_active", True),
+        )
+        self.db.add(promo)
+        await self.db.flush()
+        await self.db.refresh(promo)
+        return promo
+
+    async def update(self, org_id: UUID, promotion_id: UUID, data: Dict[str, Any]) -> Promotion:
+        promo = await self.get_by_id(org_id, promotion_id)
+        for field in ("name", "description", "promotion_type", "config",
+                      "starts_at", "ends_at", "is_active", "store_id"):
+            if field in data and data[field] is not None:
+                setattr(promo, field, data[field])
+        await self.db.flush()
+        await self.db.refresh(promo)
+        return promo
+
+    async def delete(self, org_id: UUID, promotion_id: UUID) -> None:
+        promo = await self.get_by_id(org_id, promotion_id)
+        promo.is_deleted = True
+        promo.is_active = False
+        await self.db.flush()
+
+    # --- Engine (used by checkout) ---
 
     async def get_active_promotions(self, org_id: UUID, store_id: Optional[UUID] = None) -> List[Promotion]:
         """List currently active promotions for a store."""
@@ -20,6 +77,7 @@ class PromotionService:
         query = select(Promotion).where(
             and_(
                 Promotion.organization_id == org_id,
+                Promotion.is_deleted == False,
                 or_(Promotion.store_id == None, Promotion.store_id == store_id),
                 Promotion.is_active == True,
                 or_(Promotion.starts_at == None, Promotion.starts_at <= now),

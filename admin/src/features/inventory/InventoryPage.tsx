@@ -182,8 +182,8 @@ export default function InventoryPage() {
                                                         borderRadius: 4
                                                     }} />
                                                 </div>
-                                                <div style={{ fontSize: '0.8rem', fontWeight: 600, width: 60 }}>
-                                                    {item.quantity} lbs
+                                                <div style={{ fontSize: '0.8rem', fontWeight: 600, width: 80 }}>
+                                                    {item.quantity} {item.product_unit || 'units'}
                                                 </div>
                                             </div>
                                             {isLow && <div style={{ fontSize: '0.7rem', color: 'var(--danger)', marginTop: 4, fontWeight: 600 }}>Low Stock Warning</div>}

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_async_session
 from app.core.dependencies import get_current_user, require_role, get_org_context, get_current_customer
 from app.core.security import create_access_token
-from app.core.exceptions import UnauthorizedException
+from app.core.exceptions import UnauthorizedException, NotFoundException
 from app.models.user import User
 from app.models.customer import Customer, CustomerAddress
 from app.schemas.customer import (
@@ -229,3 +229,20 @@ async def apply_referral_code(
     service = ReferralService(db)
     result = await service.apply_referral(current_customer.id, data.referral_code)
     return ReferralResponse(**result)
+
+
+# ====================
+# ADMIN: single customer (must come AFTER all /me literals so FastAPI matches them first)
+# ====================
+@router.get("/{customer_id}", response_model=CustomerResponse)
+async def get_customer_by_id(
+    customer_id: UUID,
+    org_id: UUID = Depends(get_org_context),
+    current_user: User = Depends(require_role(["admin", "manager"])),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Get a single customer's profile + addresses + wallet balance (admin only)."""
+    customer = await CustomerService.get_customer(db, customer_id)
+    if customer.organization_id != org_id:
+        raise NotFoundException("Customer not found")
+    return customer

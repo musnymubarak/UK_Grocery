@@ -68,7 +68,7 @@ class OrderService:
             raise NotFoundException("Order not found")
         return order
 
-    async def get_orders(self, org_id: UUID, store_id: Optional[UUID] = None, skip: int = 0, limit: int = 100) -> List[Order]:
+    async def get_orders(self, org_id: UUID, store_id: Optional[UUID] = None, customer_id: Optional[UUID] = None, skip: int = 0, limit: int = 100) -> List[Order]:
         from sqlalchemy.orm import selectinload
         query = select(Order).options(
             selectinload(Order.items).selectinload(OrderItem.product),
@@ -76,6 +76,8 @@ class OrderService:
         ).where(Order.organization_id == org_id)
         if store_id:
             query = query.where(Order.store_id == store_id)
+        if customer_id:
+            query = query.where(Order.customer_id == customer_id)
         query = query.order_by(Order.created_at.desc()).offset(skip).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())

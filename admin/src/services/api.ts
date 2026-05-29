@@ -141,13 +141,21 @@ export const orderApi = {
 // --- Customers API ---
 export const customerApi = {
     list: (params?: any) => api.get('/customers', { params }),
-    // Additional B2C routes exist, but admin primarily lists
+    get: (id: string) => api.get(`/customers/${id}`),
 };
 
 // --- Delivery Zones API ---
 export const deliveryZoneApi = {
     list: (storeId: string) => api.get(`/delivery-zones`, { params: { store_id: storeId } }),
     create: (storeId: string, data: any) => api.post(`/delivery-zones`, data, { params: { store_id: storeId } }),
+};
+
+// --- Promotions API ---
+export const promotionApi = {
+    list: (storeId?: string) => api.get('/promotions', { params: { store_id: storeId } }),
+    create: (data: any) => api.post('/promotions', data),
+    update: (id: string, data: any) => api.put(`/promotions/${id}`, data),
+    delete: (id: string) => api.delete(`/promotions/${id}`),
 };
 
 // --- Coupons API ---
@@ -177,10 +185,20 @@ export const rewardsApi = {
     updateTier: (id: string, data: any) => api.put(`/rewards/tiers/${id}`, data),
     deleteTier: (id: string) => api.delete(`/rewards/tiers/${id}`)
 };
+// --- Notifications Admin API (separate from customer-self endpoints) ---
+export const notificationAdminApi = {
+    send: (data: { customer_id: string; title: string; body: string; notification_type?: string; reference_id?: string }) =>
+        api.post('/notifications/send', data),
+    broadcast: (data: { title: string; body: string; notification_type?: string; active_only?: boolean }) =>
+        api.post('/notifications/broadcast', data),
+    recent: (limit = 50) => api.get('/notifications/recent', { params: { limit } }),
+};
+
 // --- Analytics API ---
 export const analyticsApi = {
-    dashboard: () => api.get('/analytics/dashboard'),
+    dashboard: (params?: any) => api.get('/analytics/dashboard', { params }),
     revenueChart: (params?: any) => api.get('/analytics/revenue-chart', { params }),
+    alerts: (params?: any) => api.get('/analytics/alerts', { params }),
 };
 
 // --- Webhooks API ---
@@ -199,8 +217,8 @@ export const gdprApi = {
 // --- System Health API ---
 export const healthApi = {
     check: () => api.get('/system/health'),
-    ready: () => api.get('/system/ready'),
-    metrics: () => api.get('/system/metrics'),
+    ready: () => api.get('/system/health/ready'),
+    metrics: () => api.get('/system/health/metrics'),
 };
 
 // --- Banners API ---
@@ -228,6 +246,15 @@ export const refundApi = {
 
 // --- Drivers API Expansion ---
 export const driverApi = {
+    list: (storeId?: string) => api.get('/drivers', { params: { store_id: storeId } }),
+    create: (data: {
+        email: string;
+        password: string;
+        full_name: string;
+        phone?: string;
+        store_id?: string;
+        vehicle_type?: string;
+    }) => api.post('/drivers', data),
     available: (storeId?: string) => api.get('/drivers/available', { params: { store_id: storeId } }),
     updateAvailability: (data: { is_available: boolean }) => api.post('/drivers/me/availability', data),
 };

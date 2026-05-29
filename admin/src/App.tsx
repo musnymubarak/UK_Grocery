@@ -20,6 +20,10 @@ import UsersPage from './features/users/UsersPage';
 import AuditLogPage from './features/audit/AuditLogPage';
 import OrdersPage from './features/orders/OrdersPage';
 import CustomersPage from './features/customers/CustomersPage';
+import CustomerDetailPage from './features/customers/CustomerDetailPage';
+import DriversPage from './features/drivers/DriversPage';
+import PromotionsPage from './features/promotions/PromotionsPage';
+import NotificationsAdminPage from './features/notifications/NotificationsAdminPage';
 import DeliveryZonesPage from './features/delivery/DeliveryZonesPage';
 import DeliveryBoyDashboard from './features/delivery/DeliveryBoyDashboard';
 import CouponsPage from './features/coupons/CouponsPage';
@@ -64,6 +68,10 @@ function AppRoutes() {
                 <Route path="/dashboard" element={user?.role === 'delivery_boy' ? <DeliveryBoyDashboard /> : <DashboardPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
+                <Route path="/customers/:id" element={<CustomerDetailPage />} />
+                <Route path="/drivers" element={<DriversPage />} />
+                <Route path="/promotions" element={<PromotionsPage />} />
+                <Route path="/notifications" element={<NotificationsAdminPage />} />
                 <Route path="/delivery-zones" element={<DeliveryZonesPage />} />
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/categories" element={<CategoriesPage />} />
