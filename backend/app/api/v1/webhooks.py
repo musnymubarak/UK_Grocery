@@ -4,13 +4,14 @@ Webhooks API — register and manage outbound event subscriptions.
 import secrets
 from typing import List, Optional, Any
 from uuid import UUID
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 
 from app.core.database import get_async_session
 from app.core.dependencies import get_org_context, require_role
+from app.core.exceptions import NotFoundException
 from app.models.webhook import WebhookEndpoint, WebhookDelivery
 from app.models.user import User
 
@@ -75,6 +76,22 @@ async def list_webhooks(
             "description": e.description
         } for e in result.scalars().all()
     ]
+
+@router.delete("/{webhook_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_webhook(
+    webhook_id: UUID,
+    org_id: UUID = Depends(get_org_context),
+    current_user: User = Depends(require_role(["admin"])),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Disable a webhook endpoint. Sets is_active=false; delivery history is preserved."""
+    endpoint = await db.get(WebhookEndpoint, webhook_id)
+    if not endpoint or endpoint.organization_id != org_id:
+        raise NotFoundException("Webhook", webhook_id)
+    endpoint.is_active = False
+    await db.flush()
+    return None
+
 
 @router.get("/{webhook_id}/deliveries", response_model=List[dict])
 async def get_webhook_deliveries(

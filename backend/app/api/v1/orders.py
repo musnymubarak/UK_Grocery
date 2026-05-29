@@ -4,7 +4,7 @@ Order router - endpoints for managing orders (creation, status updates, assignme
 from typing import List, Optional
 import traceback
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_async_session
@@ -167,13 +167,17 @@ async def reject_substitutions_at_door(
 async def list_orders(
     skip: int = 0,
     limit: int = 100,
+    store_id: Optional[UUID] = Query(None, description="Filter by store (admin override; scoped users always use their own store)"),
+    customer_id: Optional[UUID] = Query(None, description="Filter by customer"),
     org_id: UUID = Depends(get_org_context),
     store_scope: Optional[UUID] = Depends(get_store_scope),
     current_user: User = Depends(require_role(["admin", "manager", "cashier"])),
     db: AsyncSession = Depends(get_async_session)
 ):
+    # Scoped users (manager/cashier) are pinned to their assigned store; admins may filter via query param.
+    effective_store_id = store_scope if store_scope is not None else store_id
     order_service = OrderService(db)
-    return await order_service.get_orders(org_id=org_id, store_id=store_scope, skip=skip, limit=limit)
+    return await order_service.get_orders(org_id=org_id, store_id=effective_store_id, customer_id=customer_id, skip=skip, limit=limit)
 
 @router.get("/{order_id}", response_model=OrderResponse)
 async def get_order_details(

@@ -5,6 +5,7 @@ import { useAdminStore } from '../auth/AdminStoreContext';
 import toast from 'react-hot-toast';
 import { PackageOpen, Truck, CheckCircle, XCircle } from 'lucide-react';
 import AnalyticsSummary from './AnalyticsSummary';
+import UrgentAlerts from './UrgentAlerts';
 
 const COLUMNS = [
     { id: 'placed', label: 'Placed', color: 'var(--primary)', icon: PackageOpen },
@@ -58,7 +59,14 @@ export default function DashboardPage() {
     };
 
     if (!selectedStore) {
-        return <div className="p-8">Please select a store from the top header to view the dashboard.</div>;
+        return (
+            <div className="p-4">
+                <UrgentAlerts />
+                <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    Select a store from the top header to see the order pipeline and store-specific analytics.
+                </div>
+            </div>
+        );
     }
 
     if (isLoading) return <div className="p-8">Loading dashboard...</div>;
@@ -70,6 +78,7 @@ export default function DashboardPage() {
 
     return (
         <div className="p-4">
+            <UrgentAlerts />
             <AnalyticsSummary />
             <h2 className="mb-6 font-bold" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Order Pipeline</h2>
             
