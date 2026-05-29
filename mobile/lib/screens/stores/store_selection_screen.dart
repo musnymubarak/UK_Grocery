@@ -9,6 +9,7 @@ import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/store.dart';
+import '../../state/cart_provider.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/empty_state.dart';
@@ -329,13 +330,22 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
                   store: s,
                   selected: selected,
                   showDistance: provider.nearbyMode,
-                  onTap: () {
+                  onTap: () async {
                     HapticFeedback.selectionClick();
+                    final cart = context.read<CartProvider>();
+                    final navigator = Navigator.of(context);
+                    final switching =
+                        !isFirstSelection && s.id != provider.selected!.id;
+                    if (switching && cart.items.isNotEmpty) {
+                      final confirmed = await _confirmStoreSwitch(context, s.name);
+                      if (confirmed != true) return;
+                      cart.clear();
+                    }
                     provider.select(s);
                     if (isFirstSelection) {
-                      Navigator.of(context).pushReplacementNamed(AppRouter.shell);
+                      navigator.pushReplacementNamed(AppRouter.shell);
                     } else {
-                      Navigator.of(context).pop();
+                      navigator.pop();
                     }
                   },
                 ),
@@ -352,6 +362,59 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
 // ──────────────────────────────────────────────────────────────────────
 // Header bits
 // ──────────────────────────────────────────────────────────────────────
+
+Future<bool?> _confirmStoreSwitch(BuildContext context, String storeName) {
+  final theme = Theme.of(context);
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          boxShadow: AppShadows.elevated(context),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Switch store?', style: theme.textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Your basket has items from your current store. '
+              'Switching to $storeName will empty it.',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: PremiumButton(
+                    label: 'Keep current',
+                    variant: PremiumButtonVariant.ghost,
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: PremiumButton(
+                    label: 'Switch & clear',
+                    variant: PremiumButtonVariant.accent,
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
 class _Eyebrow extends StatelessWidget {
   const _Eyebrow({required this.label});

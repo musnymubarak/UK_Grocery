@@ -54,3 +54,9 @@ Each entry maps to a single-concern commit; `flutter analyze` is clean before ea
   `dg_store`). Added `StoreLocation.toJson`. On refresh, the persisted selection is reconciled with
   the latest store data so hours/fees stay current.
 
+### Store — clear cart on store switch
+- Selecting a *different* store with a non-empty basket now shows a themed confirm dialog
+  (design-system `Dialog` + `PremiumButton`s, not a bare `AlertDialog`); confirming clears the cart
+  before switching. The storefront keeps the cart across stores, but cart items aren't guaranteed to
+  exist or price the same at another store, so this implements the brief's "validate/clear on switch".
+
