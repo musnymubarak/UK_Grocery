@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/network/api_exception.dart';
 import '../data/api/api_registry.dart';
@@ -11,8 +14,11 @@ import '../data/models/store.dart';
 /// (see [sortByDistance]).
 class StoreProvider extends ChangeNotifier {
   StoreProvider() {
+    _hydrateSelected();
     refresh();
   }
+
+  static const _storeKey = 'dg_store';
 
   StoreLocation? _selected;
   List<StoreLocation> _all = const [];
@@ -36,6 +42,17 @@ class StoreProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _all = await Api.instance.catalog.getStores();
+      // Refresh the persisted selection with the latest store data (hours/fees).
+      final current = _selected;
+      if (current != null) {
+        for (final s in _all) {
+          if (s.id == current.id) {
+            _selected = s;
+            _persistSelected();
+            break;
+          }
+        }
+      }
     } on ApiException catch (e) {
       _error = e.message;
     } catch (_) {
@@ -73,10 +90,41 @@ class StoreProvider extends ChangeNotifier {
   void select(StoreLocation store) {
     _selected = store;
     notifyListeners();
+    _persistSelected();
   }
 
   void clearSelection() {
     _selected = null;
     notifyListeners();
+    _persistSelected();
+  }
+
+  Future<void> _hydrateSelected() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_storeKey);
+      if (raw == null || raw.isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        _selected = StoreLocation.fromJson(decoded);
+        notifyListeners();
+      }
+    } catch (_) {
+      // Corrupt blob — ignore; the user can reselect a store.
+    }
+  }
+
+  Future<void> _persistSelected() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final s = _selected;
+      if (s == null) {
+        await prefs.remove(_storeKey);
+      } else {
+        await prefs.setString(_storeKey, jsonEncode(s.toJson()));
+      }
+    } catch (_) {
+      // Best effort — selection still lives in memory for this session.
+    }
   }
 }
