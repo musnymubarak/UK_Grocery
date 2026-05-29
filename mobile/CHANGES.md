@@ -127,13 +127,14 @@ owner can supply:
    `context.read<AuthProvider>().googleSignIn(idToken)`.
 "Sign in with Apple" is in the same state (needs an Apple Developer Services ID + capability).
 
-### Backend connection — release builds point at production
-- `ApiConfig` now returns `https://api.dailygrocer.co.uk` for **release** builds (App Store / Play
-  Store), while debug/profile keep the local backend (`10.0.2.2` on Android emulator, else
-  `localhost:8000`) and `--dart-define=API_BASE_URL` still overrides everything. This preserves the
-  brief's dev base-URL resolution and only adds a production default for release.
+### Backend connection — production by default
+- `ApiConfig` defaults to `https://api.dailygrocer.co.uk` for **all** builds (debug + release), so
+  `flutter run` connects to prod with no flag. Pass `--dart-define=API_BASE_URL=http://10.0.2.2:8000`
+  (Android emulator) or `http://localhost:8000` (desktop / iOS sim) for a local backend.
+  (Deviates from the brief's local-first default per the owner's instruction to connect mobile to prod.)
 - Verified live: `GET https://api.dailygrocer.co.uk/api/v1/storefront/categories` → 200. The prod
   nginx `api.` server block proxies `/` to the backend with the path preserved, so the API resolves
   at `/api/v1/...` and product images at `/uploads/...`.
-- To test prod from a debug build: `flutter run --dart-define=API_BASE_URL=https://api.dailygrocer.co.uk`.
+- Re-added Windows desktop support (`windows/`) so the app can be run/verified on Windows
+  (`flutter run -d windows`). Regenerate any time via `flutter create . --platforms=windows`.
 
