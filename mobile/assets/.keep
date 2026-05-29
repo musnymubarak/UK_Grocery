@@ -1,0 +1,1 @@
+Placeholder so Flutter generates AssetManifest.bin — without any asset declaration, google_fonts logs a noisy (non-fatal) warning about a missing manifest. Once we ship real assets (icons, illustrations), this file can be removed.
