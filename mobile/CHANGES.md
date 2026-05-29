@@ -172,3 +172,13 @@ owner can supply:
 - Kept: the `Skeleton` shimmer, the `ProductThumb` image fallback, and the `ShaderMask`-recoloured
   logo wordmarks (those tint text, not surfaces). All 17 tests pass; `flutter analyze` clean.
 
+### Exact-copy rebuild — Home (reference screen)
+- Reworked `home_screen.dart` into a layout-for-layout port of the storefront `/browse`: centred
+  store-name strip, an auto-advancing hero banner carousel with dot indicators (and the blue
+  "Free Delivery Today!" promo fallback when there are no banners), the three promo cards
+  (pricing-info chip → delivery-pricing sheet, blue rewards card, red free-delivery card), then the
+  "Categories" 2-column circle-image tile grid linking into aisles.
+- Dropped the old product grid + reorder strip — the storefront Home shows categories, not products.
+  Loading skeletons / error+retry / empty states retained.
+- This is the agreed **reference screen**; the remaining screens get the same 1:1 treatment next.
+

@@ -1,30 +1,27 @@
+import 'dart:async';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/router/app_router.dart';
-import '../../core/telemetry.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/api/api_registry.dart';
 import '../../data/models/banner_spec.dart';
 import '../../data/models/category.dart';
-import '../../data/models/order.dart';
-import '../../data/models/product.dart';
-import '../../state/auth_provider.dart';
-import '../../state/cart_provider.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
-import '../../widgets/category_tile.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/premium_app_bar.dart';
 import '../../widgets/premium_button.dart';
-import '../../widgets/product_card.dart';
-import '../../widgets/section_header.dart';
 import '../../widgets/skeleton.dart';
 
+/// Faithful port of the storefront `Home` (`/browse`): store-name strip, a hero
+/// banner carousel (or the blue "Free Delivery" promo fallback), the three promo
+/// cards, then the "Categories" circle-tile grid. No product grid — matches the
+/// storefront, where Home links into aisles.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -34,20 +31,19 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Category>? _categories;
-  List<BannerSpec>? _banners;
-  List<Product>? _products;
-  OrderSummary? _lastOrder;
-  String? _error;
+  List<BannerSpec> _banners = const [];
   bool _loading = true;
+  String? _error;
   String? _lastStoreId;
+
+  int _currentBanner = 0;
+  final _pageCtrl = PageController();
+  Timer? _bannerTimer;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _load();
-      _loadLastOrder();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
@@ -58,6 +54,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _lastStoreId = storeId;
       _load();
     }
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    _pageCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -71,15 +74,17 @@ class _HomeScreenState extends State<HomeScreen> {
       final results = await Future.wait([
         Api.instance.catalog.getCategories(),
         Api.instance.catalog.getBanners(storeId: storeId),
-        Api.instance.catalog.getProducts(storeId: storeId, limit: 24),
       ]);
       if (!mounted) return;
       setState(() {
-        _categories = results[0] as List<Category>;
+        _categories = (results[0] as List<Category>)
+            .where((c) => c.parentId == null)
+            .toList();
         _banners = results[1] as List<BannerSpec>;
-        _products = results[2] as List<Product>;
         _loading = false;
+        _currentBanner = 0;
       });
+      _startBannerTimer();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -89,52 +94,53 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Something went wrong loading the storefront.';
+        _error = 'Failed to load application data';
         _loading = false;
       });
     }
   }
 
-  /// Quietly fetch the most-recent order so we can render a Reorder strip.
-  /// Non-fatal — silently skipped for guests or when the endpoint fails.
-  Future<void> _loadLastOrder() async {
-    if (!context.read<AuthProvider>().isAuthenticated) return;
-    try {
-      final orders = await Api.instance.orders.myOrders();
-      if (!mounted || orders.isEmpty) return;
-      setState(() => _lastOrder = orders.first);
-    } catch (_) {
-      // Swallow — reorder is a nice-to-have, never blocks the home page.
-    }
+  void _startBannerTimer() {
+    _bannerTimer?.cancel();
+    if (_banners.length <= 1) return;
+    _bannerTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_pageCtrl.hasClients) return;
+      final next = (_currentBanner + 1) % _banners.length;
+      _pageCtrl.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    });
   }
 
-  /// Bulk-add the items from [_lastOrder] that we already have loaded in
-  /// `_products`. We avoid a per-item GET to keep this fast; products not in
-  /// the current store's catalog are silently skipped (the snackbar reports
-  /// the count actually added).
-  void _reorderLast() {
-    final order = _lastOrder;
-    final products = _products;
-    if (order == null || products == null) return;
-    final byId = {for (final p in products) p.id: p};
-    final cart = context.read<CartProvider>();
-    var added = 0;
-    for (final line in order.lines) {
-      final pid = line.product?.id;
-      if (pid == null) continue;
-      final p = byId[pid];
-      if (p == null) continue;
-      for (var i = 0; i < line.qty; i++) {
-        cart.add(p);
-      }
-      added += line.qty;
-    }
-    Telemetry.event('reorder', {'order_id': order.id, 'added': added});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(added > 0
-            ? '$added items from order #${order.orderNumber} added to cart'
-            : 'No items from that order are stocked here right now'),
+  void _showPricingInfo(double minOrder) {
+    final theme = Theme.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: theme.colorScheme.surface,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Delivery pricing', style: theme.textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Delivery fees range from £1.99 to £5.99 based on distance. '
+              'Orders over £40 are delivered free.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            if (minOrder > 0) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Minimum order ${formatGBP(minOrder)}.',
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -151,429 +157,279 @@ class _HomeScreenState extends State<HomeScreen> {
       return const SizedBox.shrink();
     }
     final store = storeProvider.selected!;
-    final auth = context.watch<AuthProvider>();
-    final cart = context.watch<CartProvider>();
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      color: theme.colorScheme.primary,
-      child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-        slivers: [
-          SliverToBoxAdapter(
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 12, AppSpacing.lg, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AnimatedPress(
-                        onTap: () => Navigator.of(context).pushNamed(AppRouter.stores),
-                        child: Row(
-                          children: [
-                            Container(
-                              height: 44,
-                              width: 44,
-                              decoration: BoxDecoration(
-                                color: AppColors.blue900,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Icon(Icons.place_rounded, color: Colors.white, size: 22),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Delivering to', style: theme.textTheme.labelSmall),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          store.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.titleMedium,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.keyboard_arrow_down_rounded,
-                                        color: theme.colorScheme.onSurfaceVariant,
-                                        size: 20,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    CircleIconButton(
-                      icon: Icons.shopping_bag_outlined,
-                      semanticLabel: 'Cart',
-                      badge: cart.itemCount > 0 ? cart.itemCount : null,
-                      onTap: () {},
-                    ),
-                  ],
-                ),
-              ),
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          // Store header strip (mobile) — centred store name on a bordered bar.
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: AppSpacing.base),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+            ),
+            child: Text(
+              store.name.isNotEmpty ? store.name : 'Daily Grocer Local',
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: RichText(
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          text: TextSpan(
-                            style: theme.textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.6,
-                              color: theme.colorScheme.onSurface,
-                            ),
-                            children: [
-                              TextSpan(text: '${_greetingPrefix()}, '),
-                              TextSpan(
-                                text: auth.displayName.split(' ').first,
-                                style: TextStyle(color: theme.colorScheme.primary),
-                              ),
-                              const TextSpan(text: ' 👋'),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Container(
-                        height: 8,
-                        width: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: store.isOpen ? AppColors.success : AppColors.red500,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        store.isOpen
-                            ? 'Store open · delivering in ~30 min'
-                            : 'Closed · opens tomorrow',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.md),
-              child: AnimatedPress(
-                onTap: () => Navigator.of(context).pushNamed(AppRouter.search),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                    border: Border.all(color: theme.colorScheme.outlineVariant),
-                    boxShadow: AppShadows.soft(context),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search_rounded, color: theme.colorScheme.onSurfaceVariant, size: 22),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Search avocados, sourdough, olive oil…',
-                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                        ),
-                      ),
-                      Container(
-                        height: 28,
-                        width: 28,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(Icons.tune_rounded, size: 16, color: theme.colorScheme.onSurface),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (_error != null)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: EmptyState(
-                  icon: Icons.cloud_off_rounded,
-                  title: "Couldn't reach the server",
-                  message: _error!,
-                  action: PremiumButton(label: 'Retry', icon: Icons.refresh_rounded, onPressed: _load),
-                ),
-              ),
-            )
-          else ...[
-            SliverToBoxAdapter(child: _BannerCarousel(banners: _banners, loading: _loading)),
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
-            const SliverToBoxAdapter(child: _MemberStrip()),
-            if (_lastOrder != null) ...[
-              const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
-              SliverToBoxAdapter(
-                child: _ReorderStrip(order: _lastOrder!, onReorder: _reorderLast),
-              ),
-            ],
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.lg)),
-            const SliverToBoxAdapter(child: _QuickStats()),
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
-            const SliverToBoxAdapter(
-              child: SectionHeader(title: 'Shop by aisle', subtitle: 'Hand-picked categories'),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
-            _categoriesSliver(),
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
-            const SliverToBoxAdapter(
-              child: SectionHeader(title: 'Member offers', subtitle: 'Exclusive prices, refreshed every week'),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
-            _offersSliver(),
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
-            const SliverToBoxAdapter(
-              child: SectionHeader(title: 'Customer favourites', subtitle: 'Loved by people in your area'),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
-            _productsSliver(),
-          ],
-          SliverToBoxAdapter(child: SizedBox(height: cart.itemCount > 0 ? 140 : 110)),
+          Expanded(child: _body(theme, store.minOrderValue)),
         ],
       ),
     );
   }
 
-  Widget _categoriesSliver() {
+  Widget _body(ThemeData theme, double minOrder) {
     if (_loading) {
-      return SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (_, __) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Skeleton(
-                height: 96,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              ),
-            ),
-            childCount: 4,
-          ),
-        ),
-      );
-    }
-    final cats = _categories ?? const <Category>[];
-    if (cats.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (_, i) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: CategoryTile(category: cats[i]),
-          ),
-          childCount: cats.length,
-        ),
-      ),
-    );
-  }
-
-  Widget _offersSliver() {
-    if (_loading) {
-      return SliverToBoxAdapter(
-        child: SizedBox(
-          height: 280,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            itemCount: 3,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, __) => SizedBox(
-              width: 200,
-              child: Skeleton(
-                height: 280,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    final promos = (_products ?? const <Product>[]).where((p) => p.hasPromo).toList();
-    if (promos.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
-    return SliverToBoxAdapter(
-      child: SizedBox(
-        height: 280,
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          itemCount: promos.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder: (_, i) => SizedBox(width: 200, child: ProductCard(product: promos[i])),
-        ),
-      ),
-    );
-  }
-
-  Widget _productsSliver() {
-    if (_loading) {
-      return SliverPadding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      return ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.base, AppSpacing.base, AppSpacing.base, AppSpacing.xxl),
+        children: [
+          Skeleton(height: 180, borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+          const SizedBox(height: AppSpacing.lg),
+          Skeleton(height: 96, borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+          const SizedBox(height: AppSpacing.lg),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.66,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (_, __) => Skeleton(
-              height: 240,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            mainAxisSpacing: AppSpacing.base,
+            crossAxisSpacing: AppSpacing.base,
+            childAspectRatio: 0.95,
+            children: List.generate(
+              6,
+              (_) => Skeleton(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
             ),
-            childCount: 6,
           ),
-        ),
+        ],
       );
     }
-    final products = _products ?? const <Product>[];
-    if (products.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: EmptyState(
-          icon: Icons.inventory_2_outlined,
-          title: 'No products yet',
-          message: 'Check back soon — fresh stock arrives daily.',
-        ),
+    if (_error != null) {
+      return EmptyState(
+        icon: Icons.cloud_off_rounded,
+        title: 'Failed to load',
+        message: _error!,
+        action: PremiumButton(label: 'Try again', icon: Icons.refresh_rounded, onPressed: _load),
       );
     }
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.66,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (_, i) => ProductCard(product: products[i]),
-          childCount: products.length,
-        ),
+    final categories = _categories ?? const <Category>[];
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.base, AppSpacing.base, AppSpacing.base, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _banners.isNotEmpty ? _bannerCarousel() : const _PromoHero(),
+                  const SizedBox(height: AppSpacing.lg),
+                  _PricingChip(onTap: () => _showPricingInfo(minOrder)),
+                  const SizedBox(height: AppSpacing.md),
+                  const _RewardsCard(),
+                  const SizedBox(height: AppSpacing.md),
+                  const _FreeDeliveryCard(),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    'Categories',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+              ),
+            ),
+          ),
+          if (categories.isEmpty)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 48),
+                child: Center(child: Text('No categories available yet. Check back soon!')),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.base, 0, AppSpacing.base, AppSpacing.xxl),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: AppSpacing.base,
+                  crossAxisSpacing: AppSpacing.base,
+                  childAspectRatio: 0.95,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) => _CategoryCircleTile(category: categories[i]),
+                  childCount: categories.length,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  String _greetingPrefix() {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Morning';
-    if (h < 17) return 'Afternoon';
-    return 'Evening';
+  Widget _bannerCarousel() {
+    final theme = Theme.of(context);
+    return SizedBox(
+      height: 180,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: _pageCtrl,
+              itemCount: _banners.length,
+              onPageChanged: (i) => setState(() => _currentBanner = i),
+              itemBuilder: (_, i) {
+                final url = ApiConfig.resolveUploadUrl(_banners[i].imageUrl);
+                if (url.isEmpty) {
+                  return Container(color: theme.colorScheme.surfaceContainer);
+                }
+                return CachedNetworkImage(
+                  imageUrl: url,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  placeholder: (_, __) => Container(color: theme.colorScheme.surfaceContainer),
+                  errorWidget: (_, __, ___) => Container(color: theme.colorScheme.surfaceContainer),
+                );
+              },
+            ),
+            if (_banners.length > 1)
+              Positioned(
+                bottom: 8,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_banners.length, (i) {
+                    final active = i == _currentBanner;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      height: 6,
+                      width: active ? 16 : 6,
+                      decoration: BoxDecoration(
+                        color: active ? theme.colorScheme.secondary : Colors.white.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
-class _ReorderStrip extends StatelessWidget {
-  const _ReorderStrip({required this.order, required this.onReorder});
-  final OrderSummary order;
-  final VoidCallback onReorder;
+/// Default blue promotional hero shown when there are no banners.
+class _PromoHero extends StatelessWidget {
+  const _PromoHero();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      constraints: const BoxConstraints(minHeight: 160),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Free Delivery Today!',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'On all orders over £30. Stock up now.',
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondary,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            ),
+            child: const Text(
+              'Shop Now',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PricingChip extends StatelessWidget {
+  const _PricingChip({required this.onTap});
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final lines = order.lines.take(3).toList();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+    return AnimatedPress(
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.base),
         decoration: BoxDecoration(
           color: scheme.surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           border: Border.all(color: scheme.outlineVariant),
-          boxShadow: AppShadows.soft(context),
         ),
         child: Row(
           children: [
             Container(
-              height: 44,
-              width: 44,
+              height: 40,
+              width: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                shape: BoxShape.circle,
+                color: scheme.primary.withValues(alpha: 0.1),
               ),
-              child: Icon(Icons.replay_rounded, color: scheme.primary, size: 22),
+              child: Icon(Icons.pedal_bike_rounded, size: 20, color: scheme.primary),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Reorder your last shop',
-                    style: theme.textTheme.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    'PRICING INFO',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      letterSpacing: 1,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${order.itemCount} items · ${formatGBP(order.total)} · #${order.orderNumber}',
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    '£1.99 - £5.99',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                   ),
-                  if (lines.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      lines.map((l) => l.nameOrFallback).join(' · '),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-            PremiumButton(
-              label: 'Reorder',
-              icon: Icons.add_shopping_cart_rounded,
-              compact: true,
-              onPressed: onReorder,
-            ),
+            Icon(Icons.info_outline_rounded, size: 18, color: scheme.onSurfaceVariant),
           ],
         ),
       ),
@@ -581,440 +437,166 @@ class _ReorderStrip extends StatelessWidget {
   }
 }
 
-class _MemberStrip extends StatelessWidget {
-  const _MemberStrip();
+class _RewardsCard extends StatelessWidget {
+  const _RewardsCard();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const progress = 0.72;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.base),
-        decoration: BoxDecoration(
-          color: AppColors.blue900,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        ),
-        child: Stack(
-          clipBehavior: Clip.hardEdge,
-          children: [
-            const SizedBox.shrink(),
-            Row(
-              children: [
-                Container(
-                  height: 44,
-                  width: 44,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFFB87B22),
-                  ),
-                  child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 22),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            "You're £28 from Platinum",
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Spend more this month to unlock free delivery on every order.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.82),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                        child: const LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 6,
-                          backgroundColor: Color(0x33FFFFFF),
-                          valueColor: AlwaysStoppedAnimation(Color(0xFFFFD580)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BannerCarousel extends StatefulWidget {
-  const _BannerCarousel({required this.banners, required this.loading});
-  final List<BannerSpec>? banners;
-  final bool loading;
-
-  @override
-  State<_BannerCarousel> createState() => _BannerCarouselState();
-}
-
-class _BannerCarouselState extends State<_BannerCarousel> {
-  late final PageController _ctrl = PageController(viewportFraction: 0.92);
-  int _index = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.loading) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: Skeleton(
-          height: 220,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        ),
-      );
-    }
-    final banners = widget.banners ?? const <BannerSpec>[];
-    if (banners.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: _BannerCard.fallback(),
-      );
-    }
-    return Column(
-      children: [
-        SizedBox(
-          height: 220,
-          child: PageView.builder(
-            controller: _ctrl,
-            itemCount: banners.length,
-            onPageChanged: (i) => setState(() => _index = i),
-            itemBuilder: (_, i) {
-              final b = banners[i];
-              const colors = [
-                AppColors.blue900,
-                AppColors.blue900,
-                AppColors.red600,
-              ];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: _BannerCard(banner: b, color: colors[i % colors.length]),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            banners.length,
-            (i) => AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              height: 5,
-              width: i == _index ? 20 : 5,
-              decoration: BoxDecoration(
-                color: i == _index
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BannerCard extends StatelessWidget {
-  const _BannerCard({required this.banner, required this.color});
-
-  factory _BannerCard.fallback() => const _BannerCard(
-        banner: BannerSpec(
-          id: 'fallback',
-          eyebrow: 'WELCOME',
-          title: 'Premium groceries, delivered fast',
-          caption: 'Fresh stock, free over £40, real care.',
-        ),
-        color: AppColors.blue900,
-      );
-
-  final BannerSpec banner;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: color,
+        color: theme.colorScheme.primary,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // Decorative concentric rings
-          Positioned(
-            right: -90,
-            bottom: -90,
-            child: Container(
-              height: 240,
-              width: 240,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-            ),
-          ),
-          Positioned(
-            right: -40,
-            bottom: -40,
-            child: Container(
-              height: 160,
-              width: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.10),
-              ),
-            ),
-          ),
-          const SizedBox.shrink(),
-          // Sparkle accents
-          Positioned(
-            right: 24,
-            top: 18,
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              size: 22,
-              color: Colors.white.withValues(alpha: 0.35),
-            ),
-          ),
-          Positioned(
-            right: 56,
-            top: 56,
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              size: 14,
-              color: Colors.white.withValues(alpha: 0.25),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (banner.eyebrow.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          height: 6,
-                          width: 6,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          banner.eyebrow,
-                          style: t.labelSmall?.copyWith(
-                            color: Colors.white,
-                            letterSpacing: 1.2,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  const SizedBox.shrink(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      banner.title,
-                      style: t.displaySmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.6,
-                        height: 1.05,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.18),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      banner.caption,
-                      style: t.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 14),
-                    // Soft CTA pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.18),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Text(
-                            'Shop the offer',
-                            style: TextStyle(
-                              color: AppColors.blue700,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12,
-                            ),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.red500),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickStats extends StatelessWidget {
-  const _QuickStats();
-
-  @override
-  Widget build(BuildContext context) {
-    final cart = context.watch<CartProvider>();
-    final store = context.watch<StoreProvider>().selected!;
-    final remaining =
-        (store.freeDeliveryThreshold - cart.subtotal).clamp(0.0, double.infinity);
-    final progress = (cart.subtotal / store.freeDeliveryThreshold).clamp(0.0, 1.0);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Row(
-        children: [
-          const Expanded(
-            child: _StatCard(
-              icon: Icons.electric_moped_rounded,
-              fill: AppColors.blue900,
-              title: '30 min',
-              caption: 'Avg. delivery',
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _StatCard(
-              icon: Icons.local_shipping_rounded,
-              fill: AppColors.red600,
-              title: remaining == 0 ? 'Free delivery!' : '${formatGBP(remaining)} to go',
-              caption: 'Free over ${formatGBP(store.freeDeliveryThreshold)}',
-              progress: progress,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.fill,
-    required this.title,
-    required this.caption,
-    this.progress,
-  });
-
-  final IconData icon;
-  final Color fill;
-  final String title;
-  final String caption;
-  final double? progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        boxShadow: AppShadows.soft(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 32,
-            width: 32,
-            decoration: BoxDecoration(
-              color: fill,
-              borderRadius: BorderRadius.circular(10),
+          Text(
+            'DAILY GROCER REWARDS',
+            style: theme.textTheme.labelMedium?.copyWith(color: Colors.white, letterSpacing: 0.4),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Get Rewards in a Snap!',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
             ),
-            child: Icon(icon, color: Colors.white, size: 18),
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(title, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 2),
-          Text(caption, style: theme.textTheme.bodySmall),
-          if (progress != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 5,
-                backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                valueColor: const AlwaysStoppedAnimation(AppColors.red500),
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondary,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             ),
-          ],
+            child: const Text(
+              'Find out more',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+class _FreeDeliveryCard extends StatelessWidget {
+  const _FreeDeliveryCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondary,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Transform.rotate(
+            angle: -0.05,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Text(
+                'FREE\nDELIVERY',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.colorScheme.secondary,
+                  fontWeight: FontWeight.w800,
+                  height: 0.95,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.base),
+          Expanded(
+            child: Text(
+              'ON ALL ORDERS OVER £40',
+              textAlign: TextAlign.right,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryCircleTile extends StatelessWidget {
+  const _CategoryCircleTile({required this.category});
+  final Category category;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return AnimatedPress(
+      onTap: () => Navigator.of(context).pushNamed(
+        AppRouter.aisle,
+        arguments: {'id': category.id, 'title': category.name},
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 96,
+              width: 96,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: scheme.surfaceContainerLow,
+              ),
+              child: _image(),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              category.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(height: 1.15),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _image() {
+    final url = category.imageUrl;
+    if (url != null && url.trim().isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: ApiConfig.resolveUploadUrl(url),
+        fit: BoxFit.contain,
+        errorWidget: (_, __, ___) => _asset(),
+      );
+    }
+    return _asset();
+  }
+
+  Widget _asset() => Image.asset(
+        category.assetImage,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(category.icon, size: 40),
+      );
 }
