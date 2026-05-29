@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
 
 class SectionHeader extends StatelessWidget {
@@ -32,11 +31,7 @@ class SectionHeader extends StatelessWidget {
             height: 26,
             width: 4,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [stripeColor, AppColors.red500],
-              ),
+              color: stripeColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

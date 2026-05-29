@@ -155,3 +155,12 @@ owner can supply:
 - **ThemeData**: page background → `#f8f9fa` with white bordered cards; colorScheme roles mapped to
   storefront (primary=action-blue, secondary=action-red, outline `#74777f`, hairline `#c4c6cf`).
 
+### Shared primitives flattened
+- **PremiumButton**: solid fills (primary=action-blue, accent=action-red, ghost/surface bordered),
+  gradients and glows removed.
+- **GlassCard**: now a flat white hairline-bordered card (no blur/glass).
+- **PremiumBottomNav**: the selected tab is a solid action-blue pill (was a gradient + glow).
+- **ProductCard**: ADD pill + qty stepper solid green, savings pill solid red, member pill solid
+  gold — glows removed. **SectionHeader** stripe, **EmptyState** icon disc, and **CategoryTile**
+  chevron flattened to solid fills. (`Skeleton` shimmer and the `ProductThumb` image fallback kept.)
+

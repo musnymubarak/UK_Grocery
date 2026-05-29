@@ -153,7 +153,6 @@ class _AddControl extends StatelessWidget {
   final int qty;
 
   static const _green = AppColors.success;
-  static const _greenDeep = AppColors.successDeep;
 
   @override
   Widget build(BuildContext context) {
@@ -171,20 +170,8 @@ class _AddControl extends StatelessWidget {
               height: 34,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [_green, _greenDeep],
-                ),
+                color: _green,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                boxShadow: [
-                  BoxShadow(
-                    color: _green.withValues(alpha: 0.45),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                    spreadRadius: -2,
-                  ),
-                ],
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -213,20 +200,8 @@ class _AddControl extends StatelessWidget {
       height: 34,
       padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [_green, _greenDeep],
-        ),
+        color: _green,
         borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-        boxShadow: [
-          BoxShadow(
-            color: _green.withValues(alpha: 0.45),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-            spreadRadius: -2,
-          ),
-        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -294,22 +269,9 @@ class _SavingsPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        // Darker red stack — white-on-#FF1F36 fails WCAG AA (~3.8:1) for
-        // small text. red600→red700 raises contrast above 4.5:1.
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.red600, AppColors.red700],
-        ),
+        // Solid darker red keeps white text above WCAG AA contrast.
+        color: AppColors.red600,
         borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.red600.withValues(alpha: 0.5),
-            blurRadius: 12,
-            spreadRadius: -2,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Text(
         text,
@@ -334,11 +296,7 @@ class _MemberPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFE0B250), Color(0xFFB07920)],
-        ),
+        color: const Color(0xFFB07920),
         borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
       ),
       child: Row(

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/theme/app_colors.dart';
-import '../core/theme/app_shadows.dart';
 import '../core/theme/app_spacing.dart';
 import 'animated_press.dart';
 
@@ -32,36 +30,20 @@ class PremiumButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final scheme = theme.colorScheme;
 
-    Gradient? gradient;
-    Color bg = scheme.surfaceContainer;
-    Color fg = scheme.onSurface;
-    List<BoxShadow> shadow = const [];
+    Color bg;
+    Color fg;
     Border? border;
 
     switch (variant) {
       case PremiumButtonVariant.primary:
-        gradient = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            isDark ? AppColors.blue500 : AppColors.blue600,
-            AppColors.blue800,
-          ],
-        );
-        fg = Colors.white;
-        shadow = AppShadows.glowBlue();
+        bg = scheme.primary;
+        fg = scheme.onPrimary;
         break;
       case PremiumButtonVariant.accent:
-        gradient = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.red500, AppColors.red700],
-        );
-        fg = Colors.white;
-        shadow = AppShadows.glowRed();
+        bg = scheme.secondary;
+        fg = scheme.onSecondary;
         break;
       case PremiumButtonVariant.ghost:
         bg = Colors.transparent;
@@ -69,9 +51,9 @@ class PremiumButton extends StatelessWidget {
         border = Border.all(color: scheme.outline);
         break;
       case PremiumButtonVariant.surface:
-        bg = scheme.surfaceContainer;
+        bg = scheme.surface;
         fg = scheme.onSurface;
-        shadow = AppShadows.soft(context);
+        border = Border.all(color: scheme.outlineVariant);
         break;
     }
 
@@ -115,19 +97,17 @@ class PremiumButton extends StatelessWidget {
       child: AnimatedPress(
         onTap: (loading || isDisabled) ? null : onPressed,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           width: expand ? double.infinity : null,
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 16 : 24,
-            vertical: compact ? 11 : 16,
+            vertical: compact ? 11 : 15,
           ),
           decoration: BoxDecoration(
-            color: gradient == null ? bg : null,
-            gradient: gradient,
+            color: bg,
             border: border,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            boxShadow: shadow,
           ),
           child: content,
         ),
