@@ -9,17 +9,17 @@ class AppTheme {
   AppTheme._();
 
   static ThemeData light() {
-    const surface = AppColors.neutral0;
-    const background = AppColors.neutral0; // pure white everywhere
-    const onSurface = AppColors.neutral900;
-    const onSurfaceMuted = AppColors.neutral500;
+    const surface = AppColors.neutral0; // white cards
+    const background = AppColors.neutral50; // #f8f9fa page background
+    const onSurface = AppColors.neutral900; // #191c1d
+    const onSurfaceMuted = AppColors.neutral700; // #44474e
 
     final scheme = const ColorScheme.light(
-      primary: AppColors.blue600,
+      primary: AppColors.blue600, // action-blue #0056b3
       onPrimary: AppColors.neutral0,
-      secondary: AppColors.red500,
+      secondary: AppColors.red500, // action-red #e6203a
       onSecondary: AppColors.neutral0,
-      tertiary: AppColors.blue400,
+      tertiary: AppColors.blue900, // navy #001d3d
       surface: surface,
       onSurface: onSurface,
       surfaceContainerLowest: AppColors.neutral0,
@@ -28,8 +28,8 @@ class AppTheme {
       surfaceContainerHigh: AppColors.neutral200,
       surfaceContainerHighest: AppColors.neutral300,
       onSurfaceVariant: onSurfaceMuted,
-      outline: AppColors.neutral200,
-      outlineVariant: AppColors.neutral100,
+      outline: AppColors.neutral600, // #74777f
+      outlineVariant: AppColors.neutral400, // #c4c6cf hairline
       error: AppColors.red600,
       onError: AppColors.neutral0,
     );
@@ -100,6 +100,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: BorderSide(color: scheme.outlineVariant),
         ),
         clipBehavior: Clip.antiAlias,
       ),
