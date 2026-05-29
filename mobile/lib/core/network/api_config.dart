@@ -17,8 +17,14 @@ class ApiConfig {
 
   static const _explicit = String.fromEnvironment('API_BASE_URL');
 
+  /// Production backend. Release builds (App Store / Play Store) hit this by
+  /// default; debug/profile builds talk to a local backend. An explicit
+  /// `--dart-define=API_BASE_URL` overrides everything.
+  static const _prod = 'https://api.dailygrocer.co.uk';
+
   static String get baseUrl {
     if (_explicit.isNotEmpty) return _explicit;
+    if (kReleaseMode) return _prod;
     if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000';
     return 'http://localhost:8000';
   }
