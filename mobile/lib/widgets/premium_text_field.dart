@@ -16,6 +16,7 @@ class PremiumTextField extends StatefulWidget {
     this.onSubmitted,
     this.autofocus = false,
     this.onChanged,
+    this.errorText,
   });
 
   final String label;
@@ -29,6 +30,7 @@ class PremiumTextField extends StatefulWidget {
   final ValueChanged<String>? onSubmitted;
   final ValueChanged<String>? onChanged;
   final bool autofocus;
+  final String? errorText;
 
   @override
   State<PremiumTextField> createState() => _PremiumTextFieldState();
@@ -55,6 +57,7 @@ class _PremiumTextFieldState extends State<PremiumTextField> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final focused = _focus.hasFocus;
+    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,8 +75,10 @@ class _PremiumTextFieldState extends State<PremiumTextField> {
             color: scheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             border: Border.all(
-              color: focused ? scheme.primary : scheme.outline,
-              width: focused ? 1.5 : 1,
+              color: hasError
+                  ? scheme.error
+                  : (focused ? scheme.primary : scheme.outline),
+              width: focused || hasError ? 1.5 : 1,
             ),
             boxShadow: focused
                 ? [
@@ -121,6 +126,14 @@ class _PremiumTextFieldState extends State<PremiumTextField> {
             ),
           ),
         ),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 6),
+            child: Text(
+              widget.errorText!,
+              style: theme.textTheme.labelSmall?.copyWith(color: scheme.error),
+            ),
+          ),
       ],
     );
   }
