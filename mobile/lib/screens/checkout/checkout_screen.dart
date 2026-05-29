@@ -30,9 +30,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _slot = 'In 30 min · Express';
   String _payment = 'cod';
   bool _processing = false;
-  String _notes = '';
-  String? _adHocAddress;
-  String? _adHocPostcode;
+  bool _newAddress = false;
+
+  final _addressCtrl = TextEditingController();
+  final _postcodeCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
 
   // Authoritative delivery fee, resolved from the backend per postcode.
   double? _serverFee;
@@ -52,6 +54,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final addresses = context.read<AuthProvider>().customer?.addresses ?? const <DeliveryAddress>[];
     if (addresses.isNotEmpty) {
       _address = addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first);
+    } else {
+      _newAddress = true;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => _recalcFee());
   }
@@ -61,8 +65,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   /// yet or the lookup fails, so the screen never blocks on the network.
   Future<void> _recalcFee() async {
     final store = context.read<StoreProvider>().selected;
-    final postcode = _adHocPostcode ?? _address?.postcode;
-    if (store == null || postcode == null || postcode.trim().isEmpty) {
+    final postcode = (_newAddress ? _postcodeCtrl.text.trim() : _address?.postcode) ?? '';
+    if (store == null || postcode.trim().isEmpty) {
       if (!mounted) return;
       setState(() {
         _serverFee = null;
@@ -98,6 +102,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void dispose() {
     _promoCtrl.dispose();
+    _addressCtrl.dispose();
+    _postcodeCtrl.dispose();
+    _notesCtrl.dispose();
     super.dispose();
   }
 
@@ -180,7 +187,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       return;
     }
-    if (_address == null && (_adHocAddress == null || _adHocPostcode == null)) {
+    if (_newAddress) {
+      if (_addressCtrl.text.trim().isEmpty || _postcodeCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enter your delivery address and postcode')),
+        );
+        return;
+      }
+    } else if (_address == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please choose a delivery address')),
       );
@@ -195,12 +209,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         lines: cart.items
             .map((l) => CheckoutLine(productId: l.product.id, quantity: l.qty))
             .toList(),
-        deliveryAddressId: _address?.id,
-        deliveryAddress: _adHocAddress,
-        deliveryPostcode: _adHocPostcode,
+        deliveryAddressId: _newAddress ? null : _address?.id,
+        deliveryAddress: _newAddress ? _addressCtrl.text.trim() : null,
+        deliveryPostcode: _newAddress ? _postcodeCtrl.text.trim() : _address?.postcode,
         paymentMethod: _payment,
         couponCode: _appliedDiscount > 0 ? _promoCtrl.text.trim().toUpperCase() : null,
-        notes: _notes.isEmpty ? null : _notes,
+        notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         ageConfirmed: cart.hasAgeRestricted,
       );
       if (!mounted) return;
@@ -253,34 +267,48 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     _SignInBanner(),
                     const SizedBox(height: AppSpacing.lg),
                   ],
-                  const _SectionTitle(label: 'Delivery to', icon: Icons.place_rounded),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: _SectionTitle(label: 'Delivery to', icon: Icons.place_rounded),
+                      ),
+                      if (addresses.isNotEmpty)
+                        AnimatedPress(
+                          onTap: () {
+                            setState(() => _newAddress = !_newAddress);
+                            _recalcFee();
+                          },
+                          child: Text(
+                            _newAddress ? 'Use saved' : 'Add new',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
-                  if (addresses.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.base),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                        border: Border.all(color: theme.colorScheme.outlineVariant),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            auth.isAuthenticated
-                                ? 'No saved addresses yet'
-                                : 'Sign in to save delivery addresses',
-                            style: theme.textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'For now, we\'ll use your default profile address.',
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    )
-                  else
+                  if (_newAddress) ...[
+                    PremiumTextField(
+                      label: 'Postcode',
+                      hint: 'e.g. SW1A 1AA',
+                      controller: _postcodeCtrl,
+                      icon: Icons.markunread_mailbox_outlined,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (v) {
+                        if (v.trim().length >= 5) _recalcFee();
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.base),
+                    PremiumTextField(
+                      label: 'Street address',
+                      hint: '123 Conservatory Lane',
+                      controller: _addressCtrl,
+                      icon: Icons.home_outlined,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ] else
                     ...addresses.map(
                       (a) => Padding(
                         padding: const EdgeInsets.only(bottom: 10),
@@ -299,6 +327,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                       ),
                     ),
+                  const SizedBox(height: AppSpacing.base),
+                  PremiumTextField(
+                    label: 'Delivery notes (optional)',
+                    hint: 'Gate code, leave by the porch…',
+                    controller: _notesCtrl,
+                    icon: Icons.sticky_note_2_outlined,
+                  ),
                   const SizedBox(height: AppSpacing.xl),
                   const _SectionTitle(label: 'Delivery slot', icon: Icons.schedule_rounded),
                   const SizedBox(height: 10),
