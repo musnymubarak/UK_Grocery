@@ -91,11 +91,15 @@ async def google_login_customer(
     """Authenticate customer via Google ID Token."""
     try:
         # Verify the token
+        # Verify signature/issuer/expiry (no single-audience enforcement here)
         id_info = id_token.verify_oauth2_token(
-            data.id_token, 
-            requests.Request(), 
-            settings.GOOGLE_CLIENT_ID
+            data.id_token,
+            requests.Request(),
         )
+        # Accept any of the configured client IDs (web + iOS + Android) — comma-separated in GOOGLE_CLIENT_ID
+        allowed_auds = [a.strip() for a in settings.GOOGLE_CLIENT_ID.split(",") if a.strip()]
+        if allowed_auds and id_info.get("aud") not in allowed_auds:
+            raise ValueError("Unrecognized Google client ID (audience mismatch)")
         
         email = id_info['email']
         name = id_info.get('name', email.split('@')[0])
