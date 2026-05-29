@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/telemetry.dart';
+import '../../state/auth_provider.dart';
+import '../../state/notifications_provider.dart';
 import '../../widgets/premium_bottom_nav.dart';
 import '../cart/cart_screen.dart';
 import '../home/home_screen.dart';
+import '../notifications/notifications_screen.dart';
 import '../offers/offers_screen.dart';
 import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
@@ -29,6 +33,7 @@ class _ShellScreenState extends State<ShellScreen> {
     HomeScreen(),
     SearchScreen(embedded: true),
     OffersScreen(),
+    NotificationsScreen(embedded: true),
     CartScreen(embedded: true),
     ProfileScreen(),
   ];
@@ -37,6 +42,7 @@ class _ShellScreenState extends State<ShellScreen> {
     NavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
     NavItem(icon: Icons.search_rounded, activeIcon: Icons.search_rounded, label: 'Search'),
     NavItem(icon: Icons.local_offer_outlined, activeIcon: Icons.local_offer_rounded, label: 'Offers'),
+    NavItem(icon: Icons.notifications_outlined, activeIcon: Icons.notifications_rounded, label: 'Alerts'),
     NavItem(
       icon: Icons.shopping_bag_outlined,
       activeIcon: Icons.shopping_bag_rounded,
@@ -44,6 +50,16 @@ class _ShellScreenState extends State<ShellScreen> {
     ),
     NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profile'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.read<AuthProvider>().isAuthenticated) {
+        context.read<NotificationsProvider>().loadCount();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -5,6 +5,7 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_shadows.dart';
 import '../core/theme/app_spacing.dart';
 import '../state/cart_provider.dart';
+import '../state/notifications_provider.dart';
 import 'animated_press.dart';
 
 class NavItem {
@@ -31,6 +32,7 @@ class PremiumBottomNav extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final cartCount = context.watch<CartProvider>().itemCount;
+    final unread = context.watch<NotificationsProvider>().unreadCount;
 
     return SafeArea(
       top: false,
@@ -54,7 +56,11 @@ class PremiumBottomNav extends StatelessWidget {
                     item: items[i],
                     selected: i == currentIndex,
                     onTap: () => onTap(i),
-                    badge: items[i].label == 'Cart' && cartCount > 0 ? cartCount : null,
+                    badge: items[i].label == 'Cart' && cartCount > 0
+                        ? cartCount
+                        : items[i].label == 'Alerts' && unread > 0
+                            ? unread
+                            : null,
                   ),
                 ),
             ],
@@ -82,7 +88,7 @@ class _NavSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final hint = badge != null && badge! > 0
-        ? '${item.label} tab, $badge items in cart'
+        ? '${item.label} tab, $badge new'
         : '${item.label} tab';
     return Semantics(
       button: true,

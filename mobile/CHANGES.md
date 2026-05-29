@@ -60,3 +60,13 @@ Each entry maps to a single-concern commit; `flutter analyze` is clean before ea
   before switching. The storefront keeps the cart across stores, but cart items aren't guaranteed to
   exist or price the same at another store, so this implements the brief's "validate/clear on switch".
 
+### Notifications — inbox screen, API service, unread badge
+- New `AppNotification` model + `NotificationApi` (`/notifications/me`, `/me/count`, `/me/{id}/read`,
+  `/me/read-all`), registered as `Api.instance.notifications`.
+- `NotificationsProvider` holds the inbox + unread count with optimistic mark-read / mark-all-read.
+  Registered globally; the shell loads the count on launch when authenticated.
+- New Notifications screen — added as an "Alerts" bottom-nav tab and a `/notifications` route. Has
+  loading skeletons, error + retry, an "all caught up" empty state, pull-to-refresh, tap-to-read and
+  a mark-all-read action. `order_update` notifications with a `reference_id` deep-link to tracking.
+- `PremiumBottomNav` renders the unread count as a badge on the Alerts tab (same mechanism as cart).
+

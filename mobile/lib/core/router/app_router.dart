@@ -5,6 +5,7 @@ import '../../screens/auth/login_screen.dart';
 import '../../screens/checkout/checkout_screen.dart';
 import '../../screens/landing/landing_screen.dart';
 import '../../screens/legal/legal_screen.dart';
+import '../../screens/notifications/notifications_screen.dart';
 import '../../screens/order/order_history_screen.dart';
 import '../../screens/order/order_success_screen.dart';
 import '../../screens/order/order_tracking_screen.dart';
@@ -36,6 +37,7 @@ class AppRouter {
   static const privacy = '/privacy';
   static const terms = '/terms';
   static const cookies = '/cookies';
+  static const notifications = '/notifications';
 
   static Route<dynamic> onGenerateRoute(RouteSettings s) {
     switch (s.name) {
@@ -79,6 +81,8 @@ class AppRouter {
         return _slide(const TermsOfServiceScreen(), s);
       case cookies:
         return _slide(const CookiePolicyScreen(), s);
+      case notifications:
+        return _slide(const NotificationsScreen(), s);
       default:
         return _fade(const SplashScreen(), s);
     }
