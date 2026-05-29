@@ -102,16 +102,8 @@ class _NavSlot extends StatelessWidget {
           curve: Curves.easeOutCubic,
           margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
-          gradient: selected
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.blue500, AppColors.blue800],
-                )
-              : null,
-          color: selected ? null : Colors.transparent,
+          color: selected ? scheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-          boxShadow: selected ? AppShadows.glowBlue() : null,
         ),
         padding: EdgeInsets.symmetric(
           horizontal: selected ? 10 : 8,

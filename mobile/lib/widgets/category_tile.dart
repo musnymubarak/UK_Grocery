@@ -60,11 +60,7 @@ class CategoryTile extends StatelessWidget {
                     clipper: _ChevronClipper(),
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [category.colorA, category.colorB],
-                        ),
+                        color: category.colorA,
                       ),
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 14, 44, 14),
