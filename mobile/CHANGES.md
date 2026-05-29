@@ -39,3 +39,12 @@ Each entry maps to a single-concern commit; `flutter analyze` is clean before ea
 - Validation requires a customer token, so Apply is guarded when signed out (prompts sign-in)
   to avoid a 401 → forced-logout.
 
+### Checkout — delivery address entry + notes
+- Replaced the unused `_adHocAddress`/`_adHocPostcode` placeholders with real inputs.
+  Saved-address users get a "Use saved / Add new" toggle (storefront parity); users with no
+  saved address now get postcode + street fields instead of a dead "we'll use your default
+  address" panel.
+- Postcode entry drives the live delivery-fee lookup (recalculates once ≥5 chars).
+- Added a Delivery-notes field (sent as `notes`). On submit, new-address mode sends
+  `delivery_address` + `delivery_postcode`; saved mode sends `delivery_address_id`.
+
