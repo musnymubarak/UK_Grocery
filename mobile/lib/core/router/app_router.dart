@@ -49,7 +49,13 @@ class AppRouter {
         return _fade(const LandingScreen(), s);
       case login:
         final args = s.arguments as Map<String, dynamic>? ?? {};
-        return _slide(LoginScreen(initialMode: args['mode'] as String?), s);
+        return _slide(
+          LoginScreen(
+            initialMode: args['mode'] as String?,
+            redirect: args['redirect'] as String?,
+          ),
+          s,
+        );
       case shell:
         return _fade(const ShellScreen(), s);
       case aisle:

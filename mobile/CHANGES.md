@@ -93,3 +93,17 @@ Reviewed all list screens against backend capability:
   data on screen instead of flashing the skeleton, and a transient failure no longer wipes an
   already-loaded order.
 
+### Auth — refresh token, transparent 401 refresh, profile-after-login, resume destination
+- `TokenStorage` now persists the refresh token (`customer_refresh_token`) next to the access token.
+- `ApiClient` refreshes transparently on 401: a single-flight call (via an interceptor-free Dio to
+  `POST /customers/refresh`) then retries the original request once; on failure it clears tokens and
+  fires `onAuthExpired` (the prior behaviour). Only the 401 path is affected — normal traffic is
+  untouched, and a per-request `__retried` flag plus a bare client prevent refresh loops.
+- The customer `Token` response carries no profile, so `login`/`register`/`googleLogin` now persist
+  tokens and `AuthProvider` loads the customer via `/customers/me`. Previously it parsed an empty
+  customer from the token payload, so the profile showed "Guest" until the next launch. `logout` now
+  sends the refresh token for server-side revoke.
+- `LoginScreen` accepts a `redirect` route and lands there after sign-in; checkout passes
+  `redirect=/checkout`, so users resume checkout after authenticating.
+- **Needs device verification:** the 401 → refresh → retry path only runs on token expiry.
+

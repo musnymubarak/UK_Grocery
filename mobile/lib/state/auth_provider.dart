@@ -38,8 +38,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> signIn({required String email, required String password}) async {
-    final result = await Api.instance.auth.login(email: email, password: password);
-    _customer = result.customer;
+    await Api.instance.auth.login(email: email, password: password);
+    _customer = await Api.instance.auth.me();
     notifyListeners();
   }
 
@@ -49,19 +49,19 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     String? phone,
   }) async {
-    final result = await Api.instance.auth.register(
+    await Api.instance.auth.register(
       fullName: fullName,
       email: email,
       password: password,
       phone: phone,
     );
-    _customer = result.customer;
+    _customer = await Api.instance.auth.me();
     notifyListeners();
   }
 
   Future<void> googleSignIn(String idToken) async {
-    final result = await Api.instance.auth.googleLogin(idToken);
-    _customer = result.customer;
+    await Api.instance.auth.googleLogin(idToken);
+    _customer = await Api.instance.auth.me();
     notifyListeners();
   }
 

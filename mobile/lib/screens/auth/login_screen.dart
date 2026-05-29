@@ -13,8 +13,12 @@ import '../../widgets/premium_text_field.dart';
 /// Matches storefront `/login` behavior: a single screen with a sign-in /
 /// sign-up toggle (storefront uses `?mode=signup`).
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.initialMode});
+  const LoginScreen({super.key, this.initialMode, this.redirect});
   final String? initialMode;
+
+  /// Optional route to land on after a successful sign-in (resume the
+  /// destination the user was headed to, e.g. checkout).
+  final String? redirect;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -59,7 +63,12 @@ class _LoginScreenState extends State<LoginScreen> {
         await auth.signIn(email: _email.text.trim(), password: _password.text);
       }
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRouter.shell, (_) => false);
+      final redirect = widget.redirect;
+      if (redirect != null && redirect.isNotEmpty) {
+        Navigator.of(context).pushReplacementNamed(redirect);
+      } else {
+        Navigator.of(context).pushNamedAndRemoveUntil(AppRouter.shell, (_) => false);
+      }
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
