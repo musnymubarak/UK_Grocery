@@ -75,3 +75,15 @@ Each entry maps to a single-concern commit; `flutter analyze` is clean before ea
   profile screen into Settings (profile now has an Account → Settings entry), so they live in one
   place instead of being duplicated.
 
+### Pagination — audit + backend flag (no app change)
+Reviewed all list screens against backend capability:
+- **Search** and **Aisle** (the real product lists) already paginate via `/storefront/products`
+  `skip`/`limit` — no change needed.
+- **Home** is a curated landing (24 featured products + categories); infinite-scrolling the whole
+  catalog there would duplicate Aisle/Search, so it stays curated by design.
+- **Offers** is a server-capped deals page (`/storefront/offers` hard-limits to ≤20–50, no `skip`) —
+  not paginatable by design.
+- **Order history** (`/orders/me`) and **Refunds** (`/refunds/me`) return the *entire* list with no
+  `skip`/`limit` params. **FLAG:** true pagination here needs a backend change (add `skip`/`limit`
+  + a paged response) — not done here per the "don't silently edit backend" rule.
+
