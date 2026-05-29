@@ -21,7 +21,7 @@ class OrderTrackingScreen extends StatefulWidget {
 }
 
 class _OrderTrackingScreenState extends State<OrderTrackingScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _pulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1800),
@@ -34,38 +34,51 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pulse.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Tracking is time-sensitive — refresh quietly when returning to the app.
+    if (state == AppLifecycleState.resumed && _order != null) {
+      _load(silent: true);
+    }
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final order = await Api.instance.orders.getOrder(widget.orderId);
       if (!mounted) return;
       setState(() {
         _order = order;
+        _error = null;
         _loading = false;
       });
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
         _loading = false;
+        if (_order == null) _error = e.message;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = "Couldn't load this order";
         _loading = false;
+        if (_order == null) _error = "Couldn't load this order";
       });
     }
   }
@@ -149,10 +162,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     }
     final order = _order!;
     final steps = _stepsFor(order.status);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-      physics: const BouncingScrollPhysics(),
-      children: [
+    return RefreshIndicator(
+      onRefresh: () => _load(silent: true),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        children: [
         Stack(
           children: [
             Container(
@@ -296,6 +311,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
           onPressed: () {},
         ),
       ],
+      ),
     );
   }
 }
