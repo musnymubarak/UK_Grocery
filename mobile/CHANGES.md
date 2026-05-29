@@ -87,3 +87,9 @@ Reviewed all list screens against backend capability:
   `skip`/`limit` params. **FLAG:** true pagination here needs a backend change (add `skip`/`limit`
   + a paged response) — not done here per the "don't silently edit backend" rule.
 
+### Order tracking — pull-to-refresh + refresh on resume
+- Added a `RefreshIndicator` and a `WidgetsBindingObserver` that quietly reloads the order when the
+  app returns to the foreground (status is time-sensitive). The silent reload keeps the last good
+  data on screen instead of flashing the skeleton, and a transient failure no longer wipes an
+  already-loaded order.
+
