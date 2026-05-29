@@ -1,0 +1,2 @@
+- [Mobile app](mobile_app.md) — Flutter premium UI rebuild of the storefront, lives in `mobile/`.
+- [Mobile API wiring](mobile_api_wiring.md) — How the Flutter app talks to FastAPI (dio + JWT in SharedPreferences).
