@@ -2,6 +2,7 @@ import '../../core/network/api_client.dart';
 import 'catalog_api.dart';
 import 'coupon_api.dart';
 import 'customer_auth_api.dart';
+import 'notification_api.dart';
 import 'order_api.dart';
 import 'refund_api.dart';
 
@@ -12,6 +13,7 @@ class Api {
         coupons = CouponApi(client),
         auth = CustomerAuthApi(client),
         orders = OrderApi(client),
+        notifications = NotificationApi(client),
         refunds = RefundApi(client);
 
   static final Api instance = Api._(ApiClient.instance);
@@ -20,5 +22,6 @@ class Api {
   final CouponApi coupons;
   final CustomerAuthApi auth;
   final OrderApi orders;
+  final NotificationApi notifications;
   final RefundApi refunds;
 }

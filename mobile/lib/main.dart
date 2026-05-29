@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'app.dart';
 import 'state/auth_provider.dart';
 import 'state/cart_provider.dart';
+import 'state/notifications_provider.dart';
 import 'state/store_provider.dart';
 
 void main() {
@@ -26,6 +27,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => StoreProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationsProvider()),
       ],
       child: const DailyGrocerApp(),
     ),
