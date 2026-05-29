@@ -16,6 +16,7 @@ import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/premium_app_bar.dart';
 import '../../widgets/premium_button.dart';
+import '../../widgets/premium_text_field.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -38,6 +39,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _feeLoading = false;
   bool _deliverable = true;
   String? _feeMessage;
+
+  final _promoCtrl = TextEditingController();
+  double _appliedDiscount = 0;
+  String? _promoError;
+  String? _promoSuccess;
+  bool _validatingPromo = false;
 
   @override
   void initState() {
@@ -88,6 +95,76 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _promoCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _applyPromo() async {
+    final auth = context.read<AuthProvider>();
+    final store = context.read<StoreProvider>().selected;
+    final cart = context.read<CartProvider>();
+    final code = _promoCtrl.text.trim();
+    if (code.isEmpty) return;
+    if (!auth.isAuthenticated) {
+      setState(() {
+        _promoError = 'Sign in to apply a promo code.';
+        _promoSuccess = null;
+      });
+      return;
+    }
+    if (store == null) {
+      setState(() {
+        _promoError = 'Select a store first.';
+        _promoSuccess = null;
+      });
+      return;
+    }
+    setState(() {
+      _validatingPromo = true;
+      _promoError = null;
+      _promoSuccess = null;
+    });
+    try {
+      final res = await Api.instance.coupons.validate(
+        code: code,
+        storeId: store.id,
+        subtotal: cart.subtotal,
+        deliveryFee: _serverFee ?? store.defaultDeliveryFee,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (res.valid) {
+          _appliedDiscount = res.discountAmount;
+          _promoSuccess =
+              res.message ?? 'Promo applied — you saved ${formatGBP(res.discountAmount)}.';
+          _promoError = null;
+        } else {
+          _appliedDiscount = 0;
+          _promoError = res.message ?? "That code isn't valid.";
+          _promoSuccess = null;
+        }
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _appliedDiscount = 0;
+        _promoError = e.message;
+        _promoSuccess = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _appliedDiscount = 0;
+        _promoError = 'Could not validate the code. Please try again.';
+        _promoSuccess = null;
+      });
+    } finally {
+      if (mounted) setState(() => _validatingPromo = false);
+    }
+  }
+
   Future<void> _placeOrder() async {
     final auth = context.read<AuthProvider>();
     final cart = context.read<CartProvider>();
@@ -122,6 +199,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         deliveryAddress: _adHocAddress,
         deliveryPostcode: _adHocPostcode,
         paymentMethod: _payment,
+        couponCode: _appliedDiscount > 0 ? _promoCtrl.text.trim().toUpperCase() : null,
         notes: _notes.isEmpty ? null : _notes,
         ageConfirmed: cart.hasAgeRestricted,
       );
@@ -152,7 +230,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final store = context.watch<StoreProvider>().selected;
     final defaultFee = store?.defaultDeliveryFee ?? 2.99;
     final delivery = _serverFee ?? defaultFee;
-    final total = cart.subtotal + delivery;
+    final rawTotal = cart.subtotal + delivery - _appliedDiscount;
+    final total = rawTotal < 0 ? 0.0 : rawTotal;
     final addresses = auth.customer?.addresses ?? const <DeliveryAddress>[];
     final minOrder = store?.minOrderValue ?? 0;
     final belowMin = minOrder > 0 && cart.subtotal < minOrder;
@@ -277,9 +356,49 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     onTap: () => setState(() => _payment = 'cod'),
                   ),
                   const SizedBox(height: AppSpacing.xl),
+                  const _SectionTitle(label: 'Promo code', icon: Icons.local_offer_rounded),
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: PremiumTextField(
+                          label: 'Promo code',
+                          hint: 'e.g. WELCOME10',
+                          controller: _promoCtrl,
+                          icon: Icons.local_offer_outlined,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _applyPromo(),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      PremiumButton(
+                        label: 'Apply',
+                        variant: PremiumButtonVariant.surface,
+                        loading: _validatingPromo,
+                        onPressed: _validatingPromo ? null : _applyPromo,
+                      ),
+                    ],
+                  ),
+                  if (_promoError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _promoError!,
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+                    ),
+                  ],
+                  if (_promoSuccess != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _promoSuccess!,
+                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.success),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.xl),
                   _Summary(
                     subtotal: cart.subtotal,
                     delivery: delivery,
+                    discount: _appliedDiscount,
                     feeLoading: _feeLoading,
                     savings: cart.savings,
                     total: total,
@@ -646,12 +765,14 @@ class _Summary extends StatelessWidget {
   const _Summary({
     required this.subtotal,
     required this.delivery,
+    required this.discount,
     required this.feeLoading,
     required this.savings,
     required this.total,
   });
   final double subtotal;
   final double delivery;
+  final double discount;
   final bool feeLoading;
   final double savings;
   final double total;
@@ -671,6 +792,10 @@ class _Summary extends StatelessWidget {
           _row('Subtotal', formatGBP(subtotal)),
           const SizedBox(height: 8),
           _row('Delivery', feeLoading ? 'Calculating…' : (delivery == 0 ? 'Free' : formatGBP(delivery))),
+          if (discount > 0) ...[
+            const SizedBox(height: 8),
+            _row('Discount', '−${formatGBP(discount)}', color: AppColors.success),
+          ],
           if (savings > 0) ...[
             const SizedBox(height: 8),
             _row('You save', '−${formatGBP(savings)}', color: AppColors.success),

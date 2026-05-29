@@ -30,3 +30,12 @@ Each entry maps to a single-concern commit; `flutter analyze` is clean before ea
   behavior confirmed first. A flat service/tax fee (storefront hardcodes £1.85) was intentionally not
   copied; the authoritative total comes back on the created order.
 
+### Checkout — promo code
+- New `CouponApi.validate` → `POST /coupons/validate` ({code, store_id, subtotal, delivery_fee} →
+  {valid, discount_amount, message}), registered as `Api.instance.coupons`. Mirrors the storefront.
+- Added a Promo-code section (design-system `PremiumTextField` + `PremiumButton`) with a loading
+  state, inline success/error text, and an applied-discount row in the summary. The discount is
+  subtracted from the displayed total and the validated `coupon_code` is sent on checkout.
+- Validation requires a customer token, so Apply is guarded when signed out (prompts sign-in)
+  to avoid a 401 → forced-logout.
+
