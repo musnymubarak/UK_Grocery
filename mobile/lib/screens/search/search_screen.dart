@@ -401,11 +401,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     width: 130,
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [c.colorA, c.colorB],
-                      ),
+                      color: c.colorA,
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                     ),
                     child: Column(

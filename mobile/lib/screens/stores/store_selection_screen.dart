@@ -450,14 +450,7 @@ class _InfoBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            scheme.primary.withValues(alpha: 0.12),
-            scheme.primary.withValues(alpha: 0.02),
-          ],
-        ),
+        color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         border: Border.all(color: scheme.outlineVariant),
       ),
@@ -682,7 +675,7 @@ class _StoreCard extends StatelessWidget {
             color: selected ? scheme.primary : scheme.outlineVariant,
             width: selected ? 1.5 : 1,
           ),
-          boxShadow: selected ? AppShadows.glowBlue() : AppShadows.soft(context),
+          boxShadow: AppShadows.soft(context),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -698,13 +691,8 @@ class _StoreCard extends StatelessWidget {
                     height: 56,
                     width: 56,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppColors.blue500, AppColors.blue800],
-                      ),
+                      color: AppColors.blue900,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: AppShadows.glowBlue(),
                     ),
                     child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 26),
                   ),
@@ -786,15 +774,6 @@ class _StoreCard extends StatelessWidget {
                   color: selected ? scheme.primary : scheme.outline,
                   width: 1.6,
                 ),
-                boxShadow: selected
-                    ? [
-                        BoxShadow(
-                          color: scheme.primary.withValues(alpha: 0.4),
-                          blurRadius: 12,
-                          spreadRadius: -2,
-                        ),
-                      ]
-                    : null,
               ),
               child: selected
                   ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)

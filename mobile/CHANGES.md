@@ -164,3 +164,11 @@ owner can supply:
   gold — glows removed. **SectionHeader** stripe, **EmptyState** icon disc, and **CategoryTile**
   chevron flattened to solid fills. (`Skeleton` shimmer and the `ProductThumb` image fallback kept.)
 
+### Screen sweep — inline gradients/glows flattened
+- Removed ~40 inline gradient fills + coloured glow shadows across all 13 screens (checkout
+  sign-in/slot/payment cards, profile & tracking & order-success heroes, login/splash/landing
+  background blobs + logos, home location/member/banner strips, store/category/coupon swatches),
+  replacing them with solid navy / red / green brand fills. Net −326 lines.
+- Kept: the `Skeleton` shimmer, the `ProductThumb` image fallback, and the `ShaderMask`-recoloured
+  logo wordmarks (those tint text, not surfaces). All 17 tests pass; `flutter analyze` clean.
+

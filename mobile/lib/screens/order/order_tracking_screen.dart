@@ -174,12 +174,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
               height: 240,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.blue500, AppColors.blue800],
-                ),
-                boxShadow: AppShadows.glowBlue(),
+                color: AppColors.blue900,
               ),
               child: Stack(
                 children: [
@@ -203,16 +198,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                             Container(
                               height: 64,
                               width: 64,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.white,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.red500.withValues(alpha: 0.5),
-                                    blurRadius: 30,
-                                    spreadRadius: -2,
-                                  ),
-                                ],
                               ),
                               child: const Icon(Icons.electric_moped_rounded, color: AppColors.red500, size: 30),
                             ),
@@ -268,14 +256,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
                 height: 56,
                 width: 56,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppColors.red500, AppColors.red700],
-                  ),
-                  boxShadow: AppShadows.glowRed(),
+                  color: AppColors.red600,
                 ),
                 child: const Icon(Icons.receipt_long_rounded, color: Colors.white),
               ),
@@ -355,15 +338,6 @@ class _Timeline extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: step.done || step.current ? accent : theme.colorScheme.surfaceContainerHigh,
-                  boxShadow: step.current
-                      ? [
-                          BoxShadow(
-                            color: AppColors.red500.withValues(alpha: 0.45),
-                            blurRadius: 20,
-                            spreadRadius: -2,
-                          ),
-                        ]
-                      : null,
                 ),
                 child: Icon(
                   step.done ? Icons.check_rounded : step.icon,

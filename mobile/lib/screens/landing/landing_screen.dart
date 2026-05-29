@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
@@ -42,40 +41,8 @@ class _LandingScreenState extends State<LandingScreen>
           Positioned.fill(
             child: ColoredBox(color: scheme.surface),
           ),
-          Positioned(
-            top: -120,
-            right: -120,
-            child: Container(
-              height: 360,
-              width: 360,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.blue500.withValues(alpha: 0.35),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -150,
-            left: -120,
-            child: Container(
-              height: 360,
-              width: 360,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.red500.withValues(alpha: 0.22),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
+          const SizedBox.shrink(),
+          const SizedBox.shrink(),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -90,8 +57,7 @@ class _LandingScreenState extends State<LandingScreen>
                         width: 40,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          gradient: AppColors.royalGradient,
-                          boxShadow: AppShadows.glowBlue(),
+                          color: AppColors.blue900,
                         ),
                         child: const Icon(Icons.shopping_basket_rounded, color: Colors.white, size: 22),
                       ),

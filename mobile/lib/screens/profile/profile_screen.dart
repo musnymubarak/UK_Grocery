@@ -109,13 +109,8 @@ class _SignInPrompt extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.blue600, AppColors.blue900],
-        ),
+        color: AppColors.blue900,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        boxShadow: AppShadows.glowBlue(),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,13 +207,8 @@ class _SignedInHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.blue600, AppColors.blue900],
-        ),
+        color: AppColors.blue900,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        boxShadow: AppShadows.glowBlue(),
       ),
       child: Row(
         children: [
@@ -228,11 +218,7 @@ class _SignedInHero extends StatelessWidget {
             alignment: Alignment.center,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.white, Color(0xFFDDE4FF)],
-              ),
+              color: Colors.white,
             ),
             child: ShaderMask(
               shaderCallback: (rect) => const LinearGradient(

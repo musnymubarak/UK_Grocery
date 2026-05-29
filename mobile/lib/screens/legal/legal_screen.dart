@@ -38,14 +38,7 @@ class LegalScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          scheme.primary.withValues(alpha: 0.10),
-                          scheme.primary.withValues(alpha: 0.02),
-                        ],
-                      ),
+                      color: scheme.surfaceContainerLow,
                       border: Border.all(color: scheme.outlineVariant),
                       boxShadow: AppShadows.soft(context),
                     ),

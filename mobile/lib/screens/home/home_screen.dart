@@ -176,9 +176,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               height: 44,
                               width: 44,
                               decoration: BoxDecoration(
-                                gradient: AppColors.royalGradient,
+                                color: AppColors.blue900,
                                 borderRadius: BorderRadius.circular(14),
-                                boxShadow: AppShadows.glowBlue(),
                               ),
                               child: const Icon(Icons.place_rounded, color: Colors.white, size: 22),
                             ),
@@ -266,13 +265,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: store.isOpen ? AppColors.success : AppColors.red500,
-                          boxShadow: [
-                            BoxShadow(
-                              color: (store.isOpen ? AppColors.success : AppColors.red500).withValues(alpha: 0.5),
-                              blurRadius: 6,
-                              spreadRadius: 1,
-                            ),
-                          ],
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -601,50 +593,22 @@ class _MemberStrip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.base),
         decoration: BoxDecoration(
-          gradient: AppColors.elegantGradient,
+          color: AppColors.blue900,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.blue700.withValues(alpha: 0.35),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-              spreadRadius: -6,
-            ),
-          ],
         ),
         child: Stack(
           clipBehavior: Clip.hardEdge,
           children: [
-            Positioned(
-              right: -30,
-              top: -30,
-              child: Container(
-                height: 110,
-                width: 110,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFFE0B250).withValues(alpha: 0.45),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            const SizedBox.shrink(),
             Row(
               children: [
                 Container(
                   height: 44,
                   width: 44,
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFFFE08A), Color(0xFFB87B22)],
-                    ),
+                    color: Color(0xFFB87B22),
                   ),
                   child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 22),
                 ),
@@ -737,14 +701,14 @@ class _BannerCarouselState extends State<_BannerCarousel> {
             onPageChanged: (i) => setState(() => _index = i),
             itemBuilder: (_, i) {
               final b = banners[i];
-              const gradients = [
-                AppColors.royalGradient,
-                AppColors.elegantGradient,
-                AppColors.bloodGradient,
+              const colors = [
+                AppColors.blue900,
+                AppColors.blue900,
+                AppColors.red600,
               ];
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: _BannerCard(banner: b, gradient: gradients[i % gradients.length]),
+                child: _BannerCard(banner: b, color: colors[i % colors.length]),
               );
             },
           ),
@@ -774,7 +738,7 @@ class _BannerCarouselState extends State<_BannerCarousel> {
 }
 
 class _BannerCard extends StatelessWidget {
-  const _BannerCard({required this.banner, required this.gradient});
+  const _BannerCard({required this.banner, required this.color});
 
   factory _BannerCard.fallback() => const _BannerCard(
         banner: BannerSpec(
@@ -783,11 +747,11 @@ class _BannerCard extends StatelessWidget {
           title: 'Premium groceries, delivered fast',
           caption: 'Fresh stock, free over £40, real care.',
         ),
-        gradient: AppColors.royalGradient,
+        color: AppColors.blue900,
       );
 
   final BannerSpec banner;
-  final Gradient gradient;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -795,16 +759,8 @@ class _BannerCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       decoration: BoxDecoration(
-        gradient: gradient,
+        color: color,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.glowBlue,
-            blurRadius: 40,
-            offset: const Offset(0, 20),
-            spreadRadius: -6,
-          ),
-        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -834,23 +790,7 @@ class _BannerCard extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            left: -50,
-            top: -50,
-            child: Container(
-              height: 140,
-              width: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.20),
-                    Colors.white.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          const SizedBox.shrink(),
           // Sparkle accents
           Positioned(
             right: 24,
@@ -998,8 +938,7 @@ class _QuickStats extends StatelessWidget {
           const Expanded(
             child: _StatCard(
               icon: Icons.electric_moped_rounded,
-              colorA: AppColors.blue500,
-              colorB: AppColors.blue800,
+              fill: AppColors.blue900,
               title: '30 min',
               caption: 'Avg. delivery',
             ),
@@ -1008,8 +947,7 @@ class _QuickStats extends StatelessWidget {
           Expanded(
             child: _StatCard(
               icon: Icons.local_shipping_rounded,
-              colorA: AppColors.red500,
-              colorB: AppColors.red700,
+              fill: AppColors.red600,
               title: remaining == 0 ? 'Free delivery!' : '${formatGBP(remaining)} to go',
               caption: 'Free over ${formatGBP(store.freeDeliveryThreshold)}',
               progress: progress,
@@ -1024,16 +962,14 @@ class _QuickStats extends StatelessWidget {
 class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.icon,
-    required this.colorA,
-    required this.colorB,
+    required this.fill,
     required this.title,
     required this.caption,
     this.progress,
   });
 
   final IconData icon;
-  final Color colorA;
-  final Color colorB;
+  final Color fill;
   final String title;
   final String caption;
   final double? progress;
@@ -1056,7 +992,7 @@ class _StatCard extends StatelessWidget {
             height: 32,
             width: 32,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [colorA, colorB]),
+              color: fill,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: Colors.white, size: 18),

@@ -68,22 +68,19 @@ class _OffersScreenState extends State<OffersScreen> {
         code: 'WELCOME10',
         title: '10% off your first order',
         caption: 'Min spend £15 · Ends Sunday',
-        colorA: AppColors.blue500,
-        colorB: AppColors.blue800,
+        fill: AppColors.blue900,
       ),
       _Coupon(
         code: 'BLOOM10',
         title: '£10 off — members only',
         caption: 'On orders over £40',
-        colorA: AppColors.red500,
-        colorB: AppColors.red700,
+        fill: AppColors.red600,
       ),
       _Coupon(
         code: 'FREEDEL',
         title: 'Free delivery week',
         caption: 'Auto-applied at checkout',
-        colorA: AppColors.success,
-        colorB: AppColors.successDeep,
+        fill: AppColors.success,
       ),
     ];
 
@@ -181,14 +178,8 @@ class _RewardsHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.blue600, AppColors.blue900, AppColors.red700],
-          stops: [0.0, 0.6, 1.5],
-        ),
+        color: AppColors.blue900,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        boxShadow: AppShadows.glowBlue(),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,14 +232,12 @@ class _Coupon {
     required this.code,
     required this.title,
     required this.caption,
-    required this.colorA,
-    required this.colorB,
+    required this.fill,
   });
   final String code;
   final String title;
   final String caption;
-  final Color colorA;
-  final Color colorB;
+  final Color fill;
 }
 
 class _CouponCard extends StatelessWidget {
@@ -281,11 +270,7 @@ class _CouponCard extends StatelessWidget {
                   topLeft: Radius.circular(AppSpacing.radiusLg),
                   bottomLeft: Radius.circular(AppSpacing.radiusLg),
                 ),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [coupon.colorA, coupon.colorB],
-                ),
+                color: coupon.fill,
               ),
               alignment: Alignment.center,
               child: const Icon(Icons.local_offer_rounded, color: Colors.white, size: 30),
