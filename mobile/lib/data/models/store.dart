@@ -53,6 +53,22 @@ class StoreLocation {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'address': address,
+        'city': city,
+        'postcode': postcode,
+        'is_open': isOpen,
+        'min_order_value': minOrderValue,
+        'free_delivery_threshold': freeDeliveryThreshold,
+        'delivery_fee': defaultDeliveryFee,
+        'lat': lat,
+        'lng': lng,
+        'logo_url': logoUrl,
+        'banner_url': bannerUrl,
+      };
+
   factory StoreLocation.fromJson(Map<String, dynamic> json) {
     return StoreLocation(
       id: json['id'] as String,

@@ -48,3 +48,9 @@ Each entry maps to a single-concern commit; `flutter analyze` is clean before ea
 - Added a Delivery-notes field (sent as `notes`). On submit, new-address mode sends
   `delivery_address` + `delivery_postcode`; saved mode sends `delivery_address_id`.
 
+### Store — persist selection across cold start
+- `StoreProvider` hydrates the selected store from SharedPreferences (`dg_store`) on launch and
+  persists on select/clear, so the chosen store survives a cold restart (mirrors the storefront's
+  `dg_store`). Added `StoreLocation.toJson`. On refresh, the persisted selection is reconciled with
+  the latest store data so hours/fees stay current.
+
