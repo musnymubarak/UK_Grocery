@@ -138,3 +138,20 @@ owner can supply:
 - Re-added Windows desktop support (`windows/`) so the app can be run/verified on Windows
   (`flutter run -d windows`). Regenerate any time via `flutter create . --platforms=windows`.
 
+## Reskin — adopt the storefront's flat/light design system
+
+> Reverses the brief's "premium gradients/glows" direction, per the owner's request that the app
+> match the storefront's cleaner, flatter look. Done centrally (tokens → theme → primitives →
+> screen sweep) so it propagates everywhere.
+
+### Core tokens + theme
+- **Palette** retuned to the storefront: navy `#001d3d` / action-blue `#0056b3` / action-red
+  `#e6203a` with crisp light neutrals. AppColors symbol names kept stable so every screen re-skins
+  automatically; brand gradients recoloured (flattened in the screen sweep).
+- **Typography** switched to Hanken Grotesk (headings) + Inter (body), matching the storefront.
+- **Radii** shrunk to the storefront scale (cards ~8–12px, was 16–28px). **Shadows** flattened:
+  `soft()` returns none (cards now rely on hairline borders), `glowBlue/glowRed` disabled,
+  `elevated()` kept as a single subtle lift for floating surfaces.
+- **ThemeData**: page background → `#f8f9fa` with white bordered cards; colorScheme roles mapped to
+  storefront (primary=action-blue, secondary=action-red, outline `#74777f`, hairline `#c4c6cf`).
+
