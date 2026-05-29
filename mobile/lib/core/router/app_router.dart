@@ -12,6 +12,7 @@ import '../../screens/order/order_tracking_screen.dart';
 import '../../screens/product/product_details_screen.dart';
 import '../../screens/refund/refund_status_screen.dart';
 import '../../screens/search/search_screen.dart';
+import '../../screens/settings/settings_screen.dart';
 import '../../screens/shell/shell_screen.dart';
 import '../../screens/splash/splash_screen.dart';
 import '../../screens/stores/store_selection_screen.dart';
@@ -38,6 +39,7 @@ class AppRouter {
   static const terms = '/terms';
   static const cookies = '/cookies';
   static const notifications = '/notifications';
+  static const settings = '/settings';
 
   static Route<dynamic> onGenerateRoute(RouteSettings s) {
     switch (s.name) {
@@ -83,6 +85,8 @@ class AppRouter {
         return _slide(const CookiePolicyScreen(), s);
       case notifications:
         return _slide(const NotificationsScreen(), s);
+      case settings:
+        return _slide(const SettingsScreen(), s);
       default:
         return _fade(const SplashScreen(), s);
     }
