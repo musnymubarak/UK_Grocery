@@ -70,3 +70,8 @@ Each entry maps to a single-concern commit; `flutter analyze` is clean before ea
   a mark-all-read action. `order_update` notifications with a `reference_id` deep-link to tracking.
 - `PremiumBottomNav` renders the unread count as a badge on the Alerts tab (same mechanism as cart).
 
+### Settings — dedicated screen
+- New `/settings` screen with Legal links + an About/version card. The legal links moved off the
+  profile screen into Settings (profile now has an Account → Settings entry), so they live in one
+  place instead of being duplicated.
+
