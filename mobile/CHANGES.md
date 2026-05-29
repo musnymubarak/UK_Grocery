@@ -182,3 +182,14 @@ owner can supply:
   Loading skeletons / error+retry / empty states retained.
 - This is the agreed **reference screen**; the remaining screens get the same 1:1 treatment next.
 
+### Exact-copy rebuild — Landing
+- Reworked `landing_screen.dart` into a layout-for-layout port of the storefront `/`: logo header
+  bar, the royal-blue (`#005EB8`) hero with "Local store to door" / "From as little as 30 minutes",
+  the white postcode search card + red "Search Local Stores" button (→ store selection), and the
+  black image collage (produce / delivery-person / dairy circles with accent dots). Added the
+  feature trio (Fast Delivery, Support Local, In-Store Prices) and the "Shop Everyday Essentials"
+  heading, mirroring the storefront.
+- Added a storefront-style bottom nav (Stores · Menu · Orders · Account · Cart, blue active state,
+  cart badge). Bundled the storefront hero assets (`produce/dairy/delivery/logo_playful.png`) into
+  `mobile/assets/`.
+
