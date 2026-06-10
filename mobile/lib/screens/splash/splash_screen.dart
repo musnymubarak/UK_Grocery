@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../state/auth_provider.dart';
+import '../../state/store_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,16 +39,20 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     });
   }
 
-  /// Navigate to Landing only when (a) the brand animation has shown for at
+  /// Navigate to Landing/Shell only when (a) the brand animation has shown for at
   /// least 1.4 s and (b) AuthProvider has finished hydrating the customer
-  /// from stored token. Whichever finishes last triggers it — so the next
-  /// screen renders with a definitive auth state, never mid-bootstrap.
+  /// from stored token. Whichever finishes last triggers it.
   void _maybeAdvance() {
     if (_navigated || !mounted) return;
     if (!_minTimePassed) return;
     if (context.read<AuthProvider>().isBootstrapping) return;
     _navigated = true;
-    Navigator.of(context).pushReplacementNamed(AppRouter.landing);
+    final hasStore = context.read<StoreProvider>().hasStore;
+    if (hasStore) {
+      Navigator.of(context).pushReplacementNamed(AppRouter.shell);
+    } else {
+      Navigator.of(context).pushReplacementNamed(AppRouter.landing);
+    }
   }
 
   @override
@@ -58,8 +63,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    // Re-listen to AuthProvider so we retry _maybeAdvance once bootstrap flips.
+    // Re-listen to AuthProvider and StoreProvider so we retry _maybeAdvance once bootstrap flips.
     context.watch<AuthProvider>();
+    context.watch<StoreProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAdvance());
     return Scaffold(
       body: Container(

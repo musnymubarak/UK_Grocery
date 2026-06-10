@@ -1,12 +1,20 @@
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, Store, Tag, MapPin } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import { useCart } from '../CartContext';
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { selectedStore } = useCart();
   const [postcode, setPostcode] = useState('');
+
+  useEffect(() => {
+    if (selectedStore) {
+      navigate('/browse', { replace: true });
+    }
+  }, [selectedStore, navigate]);
 
   return (
     <Layout fullWidth>

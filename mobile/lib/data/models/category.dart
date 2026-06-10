@@ -63,7 +63,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFE3105D),
       const Color(0xFFA10742),
       Icons.cake_rounded,
-      asset('food'),
+      asset('confectionery_clean'),
     );
   }
   if (h.contains('crisp') || h.contains('snack') || h.contains('chip')) {
@@ -71,7 +71,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFE63F1A),
       const Color(0xFFA52310),
       Icons.fastfood_rounded,
-      asset('food'),
+      asset('snacks_clean'),
     );
   }
   if (h.contains('produce') || h.contains('fresh') || h.contains('fruit') || h.contains('veg')) {
@@ -79,7 +79,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFF1ABF7B),
       const Color(0xFF067A4D),
       Icons.eco_rounded,
-      asset('produce'),
+      asset('produce_clean'),
     );
   }
   if (h.contains('frozen')) {
@@ -87,7 +87,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFF1B9AE8),
       const Color(0xFF1F4DD9),
       Icons.ac_unit_rounded,
-      asset('frozen'),
+      asset('frozen_clean'),
     );
   }
   if (h.contains('grocery') || h.contains('pantry') || h.contains('food cupboard')) {
@@ -95,7 +95,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFD63A0F),
       const Color(0xFF82200A),
       Icons.kitchen_rounded,
-      asset('pantry'),
+      asset('grocery_clean'),
     );
   }
   if (h.contains('health') || h.contains('beauty')) {
@@ -103,7 +103,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFF0FBFA3),
       const Color(0xFF086B5B),
       Icons.spa_rounded,
-      asset('food'),
+      asset('health_clean'),
     );
   }
   if (h.contains('household') || h.contains('clean')) {
@@ -111,7 +111,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFF9333EA),
       const Color(0xFF5B179D),
       Icons.home_rounded,
-      asset('household'),
+      asset('household_clean'),
     );
   }
   if (h.contains('meat') || h.contains('poultry') || h.contains('butcher')) {
@@ -119,7 +119,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFB91414),
       const Color(0xFF6B0B0B),
       Icons.set_meal_rounded,
-      asset('meat'),
+      asset('meat_clean'),
     );
   }
   if (h.contains('pet')) {
@@ -127,7 +127,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFE85316),
       const Color(0xFFA52310),
       Icons.pets_rounded,
-      asset('food'),
+      asset('ambient_pantry_clean'),
     );
   }
   if (h.contains('seasonal') || h.contains('offer')) {
@@ -135,7 +135,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFE63F1A),
       const Color(0xFFA52310),
       Icons.celebration_rounded,
-      asset('food'),
+      asset('confectionery_clean'),
     );
   }
   if (h.contains('soft') || h.contains('drink') || h.contains('juice') || h.contains('beverage')) {
@@ -143,7 +143,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFE63F1A),
       const Color(0xFF991F0F),
       Icons.local_cafe_rounded,
-      asset('beverages'),
+      asset('bevarages_clean'),
     );
   }
   if (h.contains('tobacco') || h.contains('vape')) {
@@ -151,7 +151,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFE63F1A),
       const Color(0xFF991F0F),
       Icons.smoking_rooms_rounded,
-      asset('food'),
+      asset('household_clean'),
     );
   }
   if (h.contains('world')) {
@@ -159,15 +159,47 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFE63F1A),
       const Color(0xFF991F0F),
       Icons.public_rounded,
-      asset('food'),
+      asset('ambient_pantry_clean'),
     );
   }
-  if (h.contains('alcohol') || h.contains('wine') || h.contains('beer') || h.contains('spirit')) {
+  if (h.contains('spirits')) {
     return _CatPalette(
       const Color(0xFFB91414),
       const Color(0xFF5C0808),
       Icons.local_bar_rounded,
-      asset('food'),
+      asset('spirits_clean'),
+    );
+  }
+  if (h.contains('beer') || h.contains('cider')) {
+    return _CatPalette(
+      const Color(0xFFB91414),
+      const Color(0xFF5C0808),
+      Icons.local_bar_rounded,
+      asset('beer_cider_clean'),
+    );
+  }
+  if (h.contains('wine')) {
+    return _CatPalette(
+      const Color(0xFFB91414),
+      const Color(0xFF5C0808),
+      Icons.local_bar_rounded,
+      asset('wine_clean'),
+    );
+  }
+  if (h.contains('rtd') || h.contains('mixed drink')) {
+    return _CatPalette(
+      const Color(0xFFB91414),
+      const Color(0xFF5C0808),
+      Icons.local_bar_rounded,
+      asset('rtd_clean'),
+    );
+  }
+  if (h.contains('alcohol')) {
+    return _CatPalette(
+      const Color(0xFFB91414),
+      const Color(0xFF5C0808),
+      Icons.local_bar_rounded,
+      asset('alcohol_clean'),
     );
   }
   if (h.contains('baby') || h.contains('toddler')) {
@@ -175,7 +207,7 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFF3B82F6),
       const Color(0xFF7C3AED),
       Icons.child_friendly_rounded,
-      asset('food'),
+      asset('baby_clean'),
     );
   }
   if (h.contains('bakery') || h.contains('bread')) {
@@ -183,21 +215,21 @@ _CatPalette _paletteFor(String hint) {
       const Color(0xFFE07B1F),
       const Color(0xFF8A4106),
       Icons.bakery_dining_rounded,
-      asset('bakery'),
+      asset('bakery_clean'),
     );
   }
-  if (h.contains('dairy') || h.contains('egg') || h.contains('milk')) {
+  if (h.contains('dairy') || h.contains('egg') || h.contains('milk') || h.contains('chilled')) {
     return _CatPalette(
       const Color(0xFF5970F5),
       const Color(0xFF1A2F9E),
       Icons.egg_alt_rounded,
-      asset('dairy'),
+      asset('chilled_dairy_clean'),
     );
   }
   return _CatPalette(
     const Color(0xFF2747D8),
     const Color(0xFF0F1E6E),
     Icons.local_grocery_store_rounded,
-    asset('food'),
+    asset('grocery_clean'),
   );
 }

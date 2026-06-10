@@ -8,17 +8,16 @@ import '../../state/notifications_provider.dart';
 import '../../widgets/premium_bottom_nav.dart';
 import '../cart/cart_screen.dart';
 import '../home/home_screen.dart';
-import '../notifications/notifications_screen.dart';
-import '../offers/offers_screen.dart';
 import '../profile/profile_screen.dart';
-import '../search/search_screen.dart';
+import '../stores/store_selection_screen.dart';
+import '../order/order_history_screen.dart';
 
 /// Bottom-nav host. Each tab maps to a storefront route:
-///   Home    → /browse
-///   Search  → /search
-///   Offers  → /offers
+///   Stores  → /stores
+///   Menu    → /browse
+///   Orders  → /orders
+///   Account → /profile
 ///   Cart    → /cart
-///   Profile → /profile
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
 
@@ -27,28 +26,22 @@ class ShellScreen extends StatefulWidget {
 }
 
 class _ShellScreenState extends State<ShellScreen> {
-  int _index = 0;
+  int _index = 1; // Default to Menu tab (HomeScreen)
 
   final _pages = const [
+    StoreSelectionScreen(),
     HomeScreen(),
-    SearchScreen(embedded: true),
-    OffersScreen(),
-    NotificationsScreen(embedded: true),
-    CartScreen(embedded: true),
+    OrderHistoryScreen(),
     ProfileScreen(),
+    CartScreen(embedded: true),
   ];
 
   final _items = const [
-    NavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
-    NavItem(icon: Icons.search_rounded, activeIcon: Icons.search_rounded, label: 'Search'),
-    NavItem(icon: Icons.local_offer_outlined, activeIcon: Icons.local_offer_rounded, label: 'Offers'),
-    NavItem(icon: Icons.notifications_outlined, activeIcon: Icons.notifications_rounded, label: 'Alerts'),
-    NavItem(
-      icon: Icons.shopping_bag_outlined,
-      activeIcon: Icons.shopping_bag_rounded,
-      label: 'Cart',
-    ),
-    NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profile'),
+    NavItem(icon: Icons.storefront_outlined, activeIcon: Icons.storefront_rounded, label: 'Stores'),
+    NavItem(icon: Icons.grid_view_rounded, activeIcon: Icons.grid_view_rounded, label: 'Menu'),
+    NavItem(icon: Icons.receipt_long_outlined, activeIcon: Icons.receipt_long_rounded, label: 'Orders'),
+    NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Account'),
+    NavItem(icon: Icons.shopping_cart_outlined, activeIcon: Icons.shopping_cart_rounded, label: 'Cart'),
   ];
 
   @override
@@ -64,11 +57,11 @@ class _ShellScreenState extends State<ShellScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _index == 0,
+      canPop: _index == 1,
       onPopInvokedWithResult: (didPop, result) {
-        // Hardware back on a sub-tab returns to Home instead of leaving the app.
-        if (!didPop && _index != 0) {
-          setState(() => _index = 0);
+        // Hardware back on a sub-tab returns to Menu instead of leaving the app.
+        if (!didPop && _index != 1) {
+          setState(() => _index = 1);
         }
       },
       child: Scaffold(

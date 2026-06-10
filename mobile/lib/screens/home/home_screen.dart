@@ -158,28 +158,90 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     final store = storeProvider.selected!;
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        children: [
-          // Store header strip (mobile) — centred store name on a bordered bar.
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: AppSpacing.base),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // Header with logo and search bar
+            Container(
+              width: double.infinity,
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+              ),
+              child: Row(
+                children: [
+                  Image.asset(
+                    'assets/logo_playful.png',
+                    height: 32,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Text(
+                      'Daily Grocer',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => Navigator.of(context).pushNamed(AppRouter.search),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search_rounded, color: Colors.grey.shade600, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Search for products...',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Text(
-              store.name.isNotEmpty ? store.name : 'Daily Grocer Local',
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            // Store name banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: AppSpacing.base),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+              ),
+              child: Text(
+                store.name.isNotEmpty ? store.name : 'Daily Grocer Local',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                  fontSize: 15,
+                ),
+              ),
             ),
-          ),
-          Expanded(child: _body(theme, store.minOrderValue)),
-        ],
+            Expanded(child: _body(theme, store.minOrderValue)),
+          ],
+        ),
       ),
     );
   }
@@ -237,10 +299,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: AppSpacing.md),
                   const _FreeDeliveryCard(),
                   const SizedBox(height: AppSpacing.lg),
-                  Text(
+                  const Text(
                     'Categories',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      color: theme.colorScheme.primary,
+                    style: TextStyle(
+                      color: Color(0xFF001D3D),
+                      fontSize: 22,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -338,40 +401,50 @@ class _PromoHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      constraints: const BoxConstraints(minHeight: 160),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        color: const Color(0xFF0056B3),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Free Delivery Today!',
-            style: theme.textTheme.headlineMedium?.copyWith(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,
+              fontSize: 20,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             'On all orders over £30. Stock up now.',
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.secondary,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
-            child: const Text(
-              'Shop Now',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: () {},
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6203A),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Shop Now',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
         ],
@@ -386,16 +459,14 @@ class _PricingChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     return AnimatedPress(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.base),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: scheme.outlineVariant),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
@@ -403,33 +474,39 @@ class _PricingChip extends StatelessWidget {
               height: 40,
               width: 40,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: scheme.primary.withValues(alpha: 0.1),
+                color: Color(0xFFE0F2FE),
               ),
-              child: Icon(Icons.pedal_bike_rounded, size: 20, color: scheme.primary),
+              child: const Icon(Icons.pedal_bike_rounded, size: 20, color: Color(0xFF0056B3)),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
+            const SizedBox(width: 14),
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'PRICING INFO',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      letterSpacing: 1,
-                      color: scheme.onSurfaceVariant,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF64748B),
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 4),
                   Text(
                     '£1.99 - £5.99',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.info_outline_rounded, size: 18, color: scheme.onSurfaceVariant),
+            const Icon(Icons.info_outline_rounded, size: 20, color: Color(0xFF64748B)),
           ],
         ),
       ),
@@ -442,39 +519,51 @@ class _RewardsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        color: const Color(0xFF0056B3),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'DAILY GROCER REWARDS',
-            style: theme.textTheme.labelMedium?.copyWith(color: Colors.white, letterSpacing: 0.4),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             'Get Rewards in a Snap!',
-            style: theme.textTheme.headlineMedium?.copyWith(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,
+              fontSize: 20,
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.secondary,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: const Text(
-              'Find out more',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: () {},
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6203A),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Find out more',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
         ],
@@ -488,44 +577,50 @@ class _FreeDeliveryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.secondary,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        color: const Color(0xFFE6203A),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Transform.rotate(
             angle: -0.05,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
+                borderRadius: BorderRadius.circular(4),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Text(
+              child: const Text(
                 'FREE\nDELIVERY',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.secondary,
-                  fontWeight: FontWeight.w800,
-                  height: 0.95,
+                style: TextStyle(
+                  color: Color(0xFFE6203A),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  height: 1.0,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.base),
-          Expanded(
+          const Expanded(
             child: Text(
               'ON ALL ORDERS OVER £40',
               textAlign: TextAlign.right,
-              style: theme.textTheme.titleMedium?.copyWith(
+              style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
+                fontSize: 14,
               ),
             ),
           ),
@@ -541,19 +636,17 @@ class _CategoryCircleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     return AnimatedPress(
       onTap: () => Navigator.of(context).pushNamed(
         AppRouter.aisle,
         arguments: {'id': category.id, 'title': category.name},
       ),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          border: Border.all(color: scheme.outlineVariant),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -562,19 +655,24 @@ class _CategoryCircleTile extends StatelessWidget {
               height: 96,
               width: 96,
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: scheme.surfaceContainerLow,
+                color: Color(0xFFF1F5F9),
               ),
               child: _image(),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: 12),
             Text(
               category.name,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(height: 1.15),
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+              ),
             ),
           ],
         ),
@@ -585,9 +683,20 @@ class _CategoryCircleTile extends StatelessWidget {
   Widget _image() {
     final url = category.imageUrl;
     if (url != null && url.trim().isNotEmpty) {
+      final resolvedUrl = url.startsWith('/images/categories/')
+          ? 'https://dailygrocer.co.uk$url'
+          : ApiConfig.resolveUploadUrl(url);
       return CachedNetworkImage(
-        imageUrl: ApiConfig.resolveUploadUrl(url),
-        fit: BoxFit.contain,
+        imageUrl: resolvedUrl,
+        imageBuilder: (context, imageProvider) => Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: imageProvider,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+            ),
+          ),
+        ),
         errorWidget: (_, __, ___) => _asset(),
       );
     }
@@ -597,6 +706,7 @@ class _CategoryCircleTile extends StatelessWidget {
   Widget _asset() => Image.asset(
         category.assetImage,
         fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
         errorBuilder: (_, __, ___) => Icon(category.icon, size: 40),
       );
 }

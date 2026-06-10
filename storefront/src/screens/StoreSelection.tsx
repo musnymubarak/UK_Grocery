@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import Layout from '../components/Layout';
 import InnovativeLoader from '../components/InnovativeLoader';
-import { Search, MapPin, Clock, Truck, ReceiptText, Navigation, Loader2, Bike } from 'lucide-react';
+import { Search, MapPin, Clock, Truck, ReceiptText, Locate, Loader2, Bike } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../CartContext';
 import { catalogApi } from '../services/api';
@@ -337,7 +337,7 @@ export default function StoreSelection() {
               {locating ? (
                 <Loader2 size={13} className="animate-spin text-[#005eb8]" />
               ) : (
-                <Navigation size={13} className="rotate-45 text-[#005eb8]" />
+                <Locate size={13} className="text-[#005eb8]" />
               )}
               <span className="hidden xs:inline">Locate me</span>
             </button>

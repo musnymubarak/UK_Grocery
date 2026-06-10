@@ -32,23 +32,17 @@ class PremiumBottomNav extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final cartCount = context.watch<CartProvider>().itemCount;
-    final unread = context.watch<NotificationsProvider>().unreadCount;
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-        child: Container(
-          height: 72,
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-            border: Border.all(color: scheme.outlineVariant),
-            boxShadow: AppShadows.elevated(context),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: scheme.outlineVariant)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 60,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               for (int i = 0; i < items.length; i++)
                 Expanded(
@@ -56,11 +50,7 @@ class PremiumBottomNav extends StatelessWidget {
                     item: items[i],
                     selected: i == currentIndex,
                     onTap: () => onTap(i),
-                    badge: items[i].label == 'Cart' && cartCount > 0
-                        ? cartCount
-                        : items[i].label == 'Alerts' && unread > 0
-                            ? unread
-                            : null,
+                    badge: items[i].label == 'Cart' && cartCount > 0 ? cartCount : null,
                   ),
                 ),
             ],
@@ -86,83 +76,59 @@ class _NavSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final hint = badge != null && badge! > 0
-        ? '${item.label} tab, $badge new'
-        : '${item.label} tab';
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: hint,
-      child: AnimatedPress(
-        onTap: onTap,
-        scale: 0.93,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 240),
-          curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-        decoration: BoxDecoration(
-          color: selected ? scheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: selected ? 10 : 8,
-          vertical: 8,
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Row(
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final color = selected ? const Color(0xFF005EB8) : scheme.outline;
+
+    return InkWell(
+      onTap: onTap,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(
-                    selected ? item.activeIcon : item.icon,
-                    size: 22,
-                    color: selected ? Colors.white : scheme.onSurfaceVariant,
-                  ),
-                  if (badge != null)
-                    Positioned(
-                      top: -4,
-                      right: -8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                        decoration: const BoxDecoration(
-                          color: AppColors.red500,
-                          borderRadius: BorderRadius.all(Radius.circular(AppSpacing.radiusPill)),
-                        ),
-                        child: Text(
-                          '$badge',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            height: 1.1,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+              Icon(
+                selected ? item.activeIcon : item.icon,
+                size: 22,
+                color: color,
               ),
-              if (selected)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text(
-                    item.label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
+              const SizedBox(height: 4),
+              Text(
+                item.label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0,
                 ),
+              ),
             ],
           ),
-        ),
+          if (badge != null && badge! > 0)
+            Positioned(
+              top: 6,
+              right: 24,
+              child: Container(
+                height: 16,
+                width: 16,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppColors.red500,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$badge',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
-    ),
     );
   }
 }

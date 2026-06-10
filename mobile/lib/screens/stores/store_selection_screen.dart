@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -16,8 +18,6 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/premium_button.dart';
 import '../../widgets/skeleton.dart';
 
-enum _Filter { all, openNow, freeDelivery }
-
 class StoreSelectionScreen extends StatefulWidget {
   const StoreSelectionScreen({super.key});
 
@@ -26,32 +26,92 @@ class StoreSelectionScreen extends StatefulWidget {
 }
 
 class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
-  String _q = '';
-  _Filter _filter = _Filter.all;
   bool _locating = false;
   final _searchCtrl = TextEditingController();
-  final _postcodeRegex = RegExp(r'^[A-Z0-9 ]{3,10}$');
+  double? _lat;
+  double? _lng;
+  List<dynamic> _suggestions = [];
+  bool _showSuggestions = false;
+  Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.text = 'SW1A 2AA';
+    _lat = 51.5034;
+    _lng = -0.1276;
+  }
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  List<StoreLocation> _applyFilter(List<StoreLocation> stores) {
-    final byFilter = switch (_filter) {
-      _Filter.all => stores,
-      _Filter.openNow => stores.where((s) => s.isOpen).toList(),
-      _Filter.freeDelivery => stores.where((s) => s.defaultDeliveryFee == 0).toList(),
-    };
-    if (_q.trim().isEmpty) return byFilter;
-    final q = _q.toLowerCase();
-    return byFilter
-        .where((s) => '${s.name} ${s.postcode} ${s.city}'.toLowerCase().contains(q))
-        .toList();
+  void _onSearchChanged(String val) {
+    if (val.trim().length < 3) {
+      setState(() {
+        _suggestions = [];
+        _showSuggestions = false;
+      });
+      return;
+    }
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent('$val, UK')}&countrycodes=gb&format=json&addressdetails=1&limit=5',
+        );
+        final res = await Dio().getUri(url, options: Options(headers: {
+          'User-Agent': 'DailyGrocerMobile/1.0',
+        }));
+        if (res.statusCode == 200) {
+          setState(() {
+            _suggestions = res.data as List<dynamic>;
+            _showSuggestions = true;
+          });
+        }
+      } catch (_) {}
+    });
   }
 
-  Future<void> _onNearMe(StoreProvider provider) async {
+  Future<void> _searchPostcode(String val) async {
+    if (val.trim().isEmpty) return;
+    setState(() {
+      _locating = true;
+    });
+    try {
+      final clean = val.replaceAll(RegExp(r'\s+'), '').toUpperCase();
+      final url = Uri.parse('https://api.postcodes.io/postcodes/$clean');
+      final res = await Dio().getUri(url);
+      if (res.statusCode == 200) {
+        final data = res.data;
+        if (data != null && data['result'] != null) {
+          setState(() {
+            _lat = (data['result']['latitude'] as num).toDouble();
+            _lng = (data['result']['longitude'] as num).toDouble();
+            _searchCtrl.text = data['result']['postcode'] as String;
+            _suggestions = [];
+            _showSuggestions = false;
+          });
+          _toast('Located: ${data['result']['postcode']}');
+        }
+      } else {
+        _toast('Please enter a valid UK postcode (e.g. SW1A 2AA)');
+      }
+    } catch (_) {
+      _toast('Please enter a valid UK postcode (e.g. SW1A 2AA)');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _locating = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _onNearMe() async {
     if (_locating) return;
     setState(() => _locating = true);
     try {
@@ -74,8 +134,26 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
       );
-      provider.sortByDistance(pos.latitude, pos.longitude);
-      _toast('Sorted by distance from your location.');
+      String postcodeText = '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}';
+      try {
+        final url = Uri.parse('https://api.postcodes.io/postcodes?lon=${pos.longitude}&lat=${pos.latitude}');
+        final res = await Dio().getUri(url);
+        if (res.statusCode == 200) {
+          final data = res.data;
+          if (data != null && data['result'] != null && (data['result'] as List).isNotEmpty) {
+            postcodeText = data['result'][0]['postcode'] as String;
+          }
+        }
+      } catch (_) {}
+
+      setState(() {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+        _searchCtrl.text = postcodeText;
+        _suggestions = [];
+        _showSuggestions = false;
+      });
+      _toast('Sorted by distance from $postcodeText');
     } catch (e) {
       _toast("Couldn't get your location. Try again in a moment.");
     } finally {
@@ -90,13 +168,59 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
     );
   }
 
-  String _headerLabel(int count, StoreProvider provider) {
-    final upper = _q.toUpperCase().trim();
-    final isPostcode = _postcodeRegex.hasMatch(upper);
-    if (isPostcode) return '$count stores near $upper';
-    if (provider.nearbyMode) return '$count stores nearby';
-    if (_q.trim().isNotEmpty) return '$count stores matching "${_q.trim()}"';
-    return '$count stores';
+  List<_StoreDecorator> _getProcessedStores(List<StoreLocation> rawStores) {
+    final lat = _lat ?? 51.5034;
+    final lng = _lng ?? -0.1276;
+
+    final list = rawStores.map((s) {
+      double dist = 0.5;
+      if (s.lat != null && s.lng != null) {
+        dist = Geolocator.distanceBetween(lat, lng, s.lat!, s.lng!) / 1609.344;
+      }
+
+      // Calculate dynamic delivery fee and deliverability
+      String feeStr = '£1.99';
+      double feeNum = 1.99;
+      bool deliverable = true;
+
+      if (dist <= 1.0) {
+        feeStr = '£1.99';
+        feeNum = 1.99;
+      } else if (dist <= 2.0) {
+        feeStr = '£2.99';
+        feeNum = 2.99;
+      } else if (dist <= 3.0) {
+        feeStr = '£3.99';
+        feeNum = 3.99;
+      } else if (dist <= 4.0) {
+        feeStr = '£4.99';
+        feeNum = 4.99;
+      } else if (dist <= 5.0) {
+        feeStr = '£5.99';
+        feeNum = 5.99;
+      } else {
+        feeStr = 'Out of range';
+        feeNum = 0.0;
+        deliverable = false;
+      }
+
+      return _StoreDecorator(
+        store: s,
+        distance: dist,
+        deliveryFeeStr: feeStr,
+        deliveryFeeNum: feeNum,
+        isDeliverable: deliverable,
+      );
+    }).toList();
+
+    // Sort: Deliverable stores first, then by distance
+    list.sort((a, b) {
+      if (a.isDeliverable && !b.isDeliverable) return -1;
+      if (!a.isDeliverable && b.isDeliverable) return 1;
+      return a.distance.compareTo(b.distance);
+    });
+
+    return list;
   }
 
   @override
@@ -106,156 +230,191 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
     final provider = context.watch<StoreProvider>();
     final isFirstSelection = !provider.hasStore;
     final canGoBack = Navigator.of(context).canPop();
-    final stores = _applyFilter(provider.all);
 
-    final allCount = provider.all.length;
-    final openCount = provider.all.where((s) => s.isOpen).length;
-    final freeCount = provider.all.where((s) => s.defaultDeliveryFee == 0).length;
+    final decorated = _getProcessedStores(provider.all);
+    final openStores = decorated.where((s) => s.store.isOpen && s.isDeliverable).toList();
+    final closedStores = decorated.where((s) => !s.store.isOpen && s.isDeliverable).toList();
+    final undeliverableStores = decorated.where((s) => !s.isDeliverable).toList();
 
     return PopScope(
       canPop: canGoBack,
       child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
         body: SafeArea(
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              if (canGoBack)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.base, 8, AppSpacing.base, 0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: AnimatedPress(
-                        onTap: () => Navigator.of(context).maybePop(),
-                        child: Container(
-                          height: 44,
-                          width: 44,
-                          decoration: BoxDecoration(
-                            color: scheme.surface,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: scheme.outlineVariant),
-                          ),
-                          child: Icon(Icons.arrow_back_rounded, size: 20, color: scheme.onSurface),
-                        ),
-                      ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Main content Column
+              Column(
+                children: [
+                  // Logo Header Strip
+                  Container(
+                    height: 56,
+                    width: double.infinity,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
                     ),
-                  ),
-                ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (isFirstSelection) ...[
-                        _Eyebrow(label: 'ONBOARDING'),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-                      RichText(
-                        text: TextSpan(
-                          style: theme.textTheme.displayMedium?.copyWith(
-                            color: scheme.onSurface,
-                            fontWeight: FontWeight.w800,
-                          ),
-                          children: [
-                            const TextSpan(text: 'Choose your '),
-                            TextSpan(
-                              text: 'store.',
-                              style: theme.textTheme.displayMedium?.copyWith(
-                                color: scheme.primary,
-                                fontWeight: FontWeight.w800,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      _InfoBanner(),
-                    ],
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.sm),
-                  child: Text(
-                    'SEARCH',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      letterSpacing: 1.4,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: _SearchRow(
-                    controller: _searchCtrl,
-                    onChanged: (v) => setState(() => _q = v),
-                    locating: _locating,
-                    onNearMe: () => _onNearMe(provider),
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.base),
-                  child: SizedBox(
-                    height: 40,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    child: Row(
                       children: [
-                        _FilterChip(
-                          label: 'All stores',
-                          count: allCount,
-                          selected: _filter == _Filter.all,
-                          onTap: () => setState(() => _filter = _Filter.all),
-                        ),
-                        const SizedBox(width: 8),
-                        _FilterChip(
-                          label: 'Open now',
-                          count: openCount,
-                          selected: _filter == _Filter.openNow,
-                          onTap: () => setState(() => _filter = _Filter.openNow),
-                        ),
-                        const SizedBox(width: 8),
-                        _FilterChip(
-                          label: 'Free delivery',
-                          count: freeCount,
-                          selected: _filter == _Filter.freeDelivery,
-                          onTap: () => setState(() => _filter = _Filter.freeDelivery),
+                        if (canGoBack) ...[
+                          IconButton(
+                            icon: Icon(Icons.arrow_back_rounded, color: scheme.onSurface),
+                            onPressed: () => Navigator.of(context).maybePop(),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Image.asset(
+                          'assets/logo_playful.png',
+                          height: 32,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Text(
+                            'Daily Grocer',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: scheme.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
+
+                  // Search Row Container
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(AppSpacing.base),
+                    child: _SearchRow(
+                      controller: _searchCtrl,
+                      locating: _locating,
+                      onChanged: _onSearchChanged,
+                      onSubmitted: _searchPostcode,
+                      onNearMe: _onNearMe,
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 1),
+
+                  // Stores List
+                  Expanded(
+                    child: provider.isLoading && provider.all.isEmpty
+                        ? const Center(child: CircularProgressIndicator())
+                        : decorated.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No stores found near your location.',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              )
+                            : ListView(
+                                physics: const BouncingScrollPhysics(),
+                                padding: const EdgeInsets.all(AppSpacing.base),
+                                children: [
+                                  // Open Stores
+                                  if (openStores.isNotEmpty) ...[
+                                    _sectionHeader(
+                                      icon: Icons.pedal_bike_rounded,
+                                      iconColor: const Color(0xFF005EB8),
+                                      title: 'Stores for delivery',
+                                      theme: theme,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    ...openStores.map((d) => _buildCard(d, isFirstSelection, provider)),
+                                    const SizedBox(height: 16),
+                                  ],
+
+                                  // Closed Stores
+                                  if (closedStores.isNotEmpty) ...[
+                                    _sectionHeader(
+                                      icon: Icons.access_time_rounded,
+                                      iconColor: AppColors.red500,
+                                      title: 'Closed Stores',
+                                      theme: theme,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    ...closedStores.map((d) => _buildCard(d, isFirstSelection, provider)),
+                                    const SizedBox(height: 16),
+                                  ],
+
+                                  // Undeliverable Stores
+                                  if (undeliverableStores.isNotEmpty) ...[
+                                    _sectionHeader(
+                                      icon: Icons.place_outlined,
+                                      iconColor: scheme.outline,
+                                      title: 'Out of Delivery Range',
+                                      theme: theme,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    ...undeliverableStores.map((d) => _buildCard(d, isFirstSelection, provider)),
+                                    const SizedBox(height: 16),
+                                  ],
+                                ],
+                              ),
+                  ),
+                ],
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _headerLabel(stores.length, provider),
-                          style: theme.textTheme.titleSmall?.copyWith(color: scheme.onSurfaceVariant),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+
+              // Floating suggestions list overlay drawn on top of everything
+              if (_suggestions.isNotEmpty && _showSuggestions)
+                Positioned(
+                  top: 56 + 68, // Header height (56) + Search container height (16*2 padding + 36 height)
+                  left: 16,
+                  right: 16,
+                  child: Material(
+                    elevation: 8,
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                    child: Container(
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: scheme.outlineVariant),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      Text(
-                        provider.nearbyMode ? 'Sort: Nearest' : 'Sort: Default',
-                        style: theme.textTheme.labelMedium?.copyWith(color: scheme.onSurface, fontWeight: FontWeight.w700),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        itemCount: _suggestions.length,
+                        itemBuilder: (context, idx) {
+                          final item = _suggestions[idx];
+                          final addr = item['address'] ?? {};
+                          final parts = <String>[];
+                          if (addr['road'] != null) parts.add(addr['road'] as String);
+                          if (addr['suburb'] != null) parts.add(addr['suburb'] as String);
+                          if (addr['city'] != null || addr['town'] != null || addr['village'] != null) {
+                            parts.add((addr['city'] ?? addr['town'] ?? addr['village']) as String);
+                          }
+                          if (addr['postcode'] != null) parts.add(addr['postcode'] as String);
+                          final label = parts.isNotEmpty ? parts.join(', ') : (item['display_name'] as String? ?? '');
+
+                          return ListTile(
+                            leading: const Icon(Icons.place_outlined, color: Color(0xFF005EB8), size: 16),
+                            title: Text(
+                              label,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            dense: true,
+                            onTap: () {
+                              final lat = double.tryParse(item['lat'] ?? '');
+                              final lng = double.tryParse(item['lon'] ?? '');
+                              if (lat != null && lng != null) {
+                                setState(() {
+                                  _lat = lat;
+                                  _lng = lng;
+                                  _searchCtrl.text = label;
+                                  _suggestions = [];
+                                  _showSuggestions = false;
+                                });
+                              }
+                            },
+                          );
+                        },
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              ..._buildListSlivers(theme, provider, stores, isFirstSelection),
-              const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxxl)),
             ],
           ),
         ),
@@ -263,106 +422,391 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
     );
   }
 
-  List<Widget> _buildListSlivers(
-    ThemeData theme,
-    StoreProvider provider,
-    List<StoreLocation> stores,
-    bool isFirstSelection,
-  ) {
-    if (provider.isLoading && provider.all.isEmpty) {
-      return [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, 0),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (_, __) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Skeleton(
-                  height: 110,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                ),
-              ),
-              childCount: 3,
-            ),
+
+  Widget _sectionHeader({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required ThemeData theme,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: iconColor, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            color: theme.colorScheme.onSurface,
           ),
         ),
-      ];
-    }
-    if (provider.error != null && provider.all.isEmpty) {
-      return [
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: EmptyState(
-            icon: Icons.cloud_off_rounded,
-            title: "Couldn't load stores",
-            message: provider.error!,
-            action: PremiumButton(
-              label: 'Retry',
-              icon: Icons.refresh_rounded,
-              onPressed: provider.refresh,
-            ),
-          ),
-        ),
-      ];
-    }
-    if (stores.isEmpty) {
-      return const [
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: EmptyState(
-            icon: Icons.storefront_outlined,
-            title: 'No stores found',
-            message: 'Try a different filter, postcode, or check back soon.',
-          ),
-        ),
-      ];
-    }
-    return [
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, 0),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (_, i) {
-              final s = stores[i];
-              final selected = !isFirstSelection && s.id == provider.selected!.id;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _StoreCard(
-                  store: s,
-                  selected: selected,
-                  showDistance: provider.nearbyMode,
-                  onTap: () async {
-                    HapticFeedback.selectionClick();
-                    final cart = context.read<CartProvider>();
-                    final navigator = Navigator.of(context);
-                    final switching =
-                        !isFirstSelection && s.id != provider.selected!.id;
-                    if (switching && cart.items.isNotEmpty) {
-                      final confirmed = await _confirmStoreSwitch(context, s.name);
-                      if (confirmed != true) return;
-                      cart.clear();
-                    }
-                    provider.select(s);
-                    if (isFirstSelection) {
-                      navigator.pushNamedAndRemoveUntil(AppRouter.shell, (_) => false);
-                    } else {
-                      navigator.pop();
-                    }
-                  },
-                ),
-              );
-            },
-            childCount: stores.length,
-          ),
-        ),
+      ],
+    );
+  }
+
+  Widget _buildCard(_StoreDecorator d, bool isFirstSelection, StoreProvider provider) {
+    final s = d.store;
+    final selected = !isFirstSelection && s.id == provider.selected!.id;
+    final isDeliverable = d.isDeliverable;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: _StoreCard(
+        store: s,
+        selected: selected,
+        distance: d.distance,
+        deliveryFeeStr: d.deliveryFeeStr,
+        isDeliverable: isDeliverable,
+        onTap: () async {
+          if (!s.isOpen || !isDeliverable) return;
+          HapticFeedback.selectionClick();
+          final cart = context.read<CartProvider>();
+          final navigator = Navigator.of(context);
+          final switching = !isFirstSelection && s.id != provider.selected!.id;
+          if (switching && cart.items.isNotEmpty) {
+            final confirmed = await _confirmStoreSwitch(context, s.name);
+            if (confirmed != true) return;
+            cart.clear();
+          }
+          provider.select(s);
+          navigator.pushNamedAndRemoveUntil(AppRouter.shell, (_) => false);
+        },
       ),
-    ];
+    );
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────
-// Header bits
-// ──────────────────────────────────────────────────────────────────────
+class _SearchRow extends StatelessWidget {
+  const _SearchRow({
+    required this.controller,
+    required this.locating,
+    required this.onChanged,
+    required this.onSubmitted,
+    required this.onNearMe,
+  });
+  final TextEditingController controller;
+  final bool locating;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
+  final VoidCallback onNearMe;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        children: [
+          Icon(Icons.search_rounded, color: scheme.outline, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              onSubmitted: onSubmitted,
+              textInputAction: TextInputAction.search,
+              style: theme.textTheme.bodyLarge,
+              decoration: InputDecoration(
+                hintText: 'Enter UK postcode or street address',
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(color: scheme.outline),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          AnimatedPress(
+            onTap: locating ? null : onNearMe,
+            child: Container(
+              height: 36,
+              width: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF005EB8).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              alignment: Alignment.center,
+              child: locating
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(Color(0xFF005EB8)),
+                      ),
+                    )
+                  : const Icon(Icons.my_location_rounded, size: 18, color: Color(0xFF005EB8)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StoreCard extends StatelessWidget {
+  const _StoreCard({
+    required this.store,
+    required this.selected,
+    required this.distance,
+    required this.deliveryFeeStr,
+    required this.isDeliverable,
+    required this.onTap,
+  });
+
+  final StoreLocation store;
+  final bool selected;
+  final double distance;
+  final String deliveryFeeStr;
+  final bool isDeliverable;
+  final VoidCallback onTap;
+
+  Widget _logo(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('family shopper')) {
+      return Image.asset('assets/family_shopper.webp', fit: BoxFit.contain);
+    }
+    if (n.contains('go local')) {
+      return Image.asset('assets/golocal.png', fit: BoxFit.contain);
+    }
+    if (n.contains('premier')) {
+      return Image.asset('assets/premier.png', fit: BoxFit.contain);
+    }
+    if (n.contains('stocksfield')) {
+      return Image.asset('assets/Stocksfield.png', fit: BoxFit.contain);
+    }
+    return Container(
+      color: Colors.blue.shade50,
+      alignment: Alignment.center,
+      child: Text(
+        name.isNotEmpty ? name.substring(0, 1) : 'S',
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Color(0xFF005EB8)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final active = store.isOpen && isDeliverable;
+
+    return AnimatedPress(
+      onTap: active ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.base),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? scheme.primary : scheme.outlineVariant,
+            width: selected ? 1.5 : 1,
+          ),
+          boxShadow: AppShadows.soft(context),
+        ),
+        child: Opacity(
+          opacity: active ? 1.0 : 0.9,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Logo image on left
+              Container(
+                height: 110,
+                width: 110,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: scheme.outlineVariant),
+                ),
+                padding: const EdgeInsets.all(8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: ColorFiltered(
+                    colorFilter: active
+                        ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
+                        : const ColorFilter.mode(Colors.grey, BlendMode.saturation),
+                    child: _logo(store.name),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+
+              // Details & action button on right
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      store.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: scheme.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+
+                    // 2x2 grid
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.access_time_rounded,
+                                size: 14,
+                                color: store.isOpen ? const Color(0xFF005EB8) : AppColors.red500,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  store.isOpen ? '25 to 40 mins' : 'We are closed.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: store.isOpen ? scheme.onSurfaceVariant : AppColors.red500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.place_outlined, size: 14, color: Color(0xFF005EB8)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  '${distance.toStringAsFixed(2)} miles',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.receipt_long_outlined, size: 14, color: Color(0xFF64748B)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Min £${store.minOrderValue.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.local_shipping_outlined,
+                                size: 14,
+                                color: isDeliverable ? const Color(0xFF64748B) : AppColors.red500,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  isDeliverable ? deliveryFeeStr : 'Out of range',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDeliverable ? scheme.onSurfaceVariant : AppColors.red500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Action button
+                    Container(
+                      width: double.infinity,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: active ? const Color(0xFF005EB8) : const Color(0xFF1E293B).withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        !isDeliverable
+                            ? 'DELIVERY NOT AVAILABLE'
+                            : store.isOpen
+                                ? 'DELIVER TO ME'
+                                : 'VIEW STORE',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StoreDecorator {
+  final StoreLocation store;
+  final double distance;
+  final String deliveryFeeStr;
+  final double deliveryFeeNum;
+  final bool isDeliverable;
+
+  const _StoreDecorator({
+    required this.store,
+    required this.distance,
+    required this.deliveryFeeStr,
+    required this.deliveryFeeNum,
+    required this.isDeliverable,
+  });
+}
 
 Future<bool?> _confirmStoreSwitch(BuildContext context, String storeName) {
   final theme = Theme.of(context);
@@ -415,408 +859,4 @@ Future<bool?> _confirmStoreSwitch(BuildContext context, String storeName) {
       ),
     ),
   );
-}
-
-class _Eyebrow extends StatelessWidget {
-  const _Eyebrow({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: scheme.primary.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: scheme.primary,
-              letterSpacing: 1.6,
-              fontWeight: FontWeight.w800,
-            ),
-      ),
-    );
-  }
-}
-
-class _InfoBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 40,
-            width: 40,
-            decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.place_rounded, color: scheme.primary, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Pick where to shop from', style: theme.textTheme.titleMedium),
-                Text(
-                  'Pricing, delivery and stock are tied to your store.',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// Search row with embedded Near me pill
-// ──────────────────────────────────────────────────────────────────────
-
-class _SearchRow extends StatelessWidget {
-  const _SearchRow({
-    required this.controller,
-    required this.onChanged,
-    required this.locating,
-    required this.onNearMe,
-  });
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final bool locating;
-  final VoidCallback onNearMe;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: scheme.outlineVariant),
-        boxShadow: AppShadows.soft(context),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              textInputAction: TextInputAction.search,
-              style: theme.textTheme.bodyLarge,
-              decoration: InputDecoration(
-                hintText: 'Postcode or store name',
-                hintStyle: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-                prefixIcon: Icon(Icons.search_rounded, color: scheme.onSurfaceVariant, size: 20),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-          Container(
-            height: 32,
-            width: 1,
-            color: scheme.outlineVariant,
-          ),
-          AnimatedPress(
-            onTap: locating ? null : onNearMe,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (locating)
-                    SizedBox(
-                      height: 14,
-                      width: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(scheme.primary),
-                      ),
-                    )
-                  else
-                    Icon(Icons.my_location_rounded, size: 16, color: scheme.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Near me',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// Filter chip with count badge
-// ──────────────────────────────────────────────────────────────────────
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return AnimatedPress(
-      onTap: onTap,
-      scale: 0.95,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? scheme.onSurface : scheme.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-          border: Border.all(
-            color: selected ? scheme.onSurface : scheme.outlineVariant,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: selected ? scheme.surface : scheme.onSurface,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-              decoration: BoxDecoration(
-                color: selected
-                    ? scheme.surface.withValues(alpha: 0.18)
-                    : scheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-              ),
-              child: Text(
-                '$count',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: selected ? scheme.surface : scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// Store card
-// ──────────────────────────────────────────────────────────────────────
-
-class _StoreCard extends StatelessWidget {
-  const _StoreCard({
-    required this.store,
-    required this.selected,
-    required this.showDistance,
-    required this.onTap,
-  });
-  final StoreLocation store;
-  final bool selected;
-  final bool showDistance;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final distanceLabel = (showDistance && store.distanceMiles.isFinite)
-        ? ' · ${store.distanceMiles.toStringAsFixed(1)} mi'
-        : '';
-    return AnimatedPress(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.all(AppSpacing.base),
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(
-            color: selected ? scheme.primary : scheme.outlineVariant,
-            width: selected ? 1.5 : 1,
-          ),
-          boxShadow: AppShadows.soft(context),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Icon w/ green check overlay when selected
-            SizedBox(
-              height: 56,
-              width: 56,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    height: 56,
-                    width: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.blue900,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 26),
-                  ),
-                  if (selected)
-                    Positioned(
-                      bottom: -4,
-                      left: -4,
-                      child: Container(
-                        height: 20,
-                        width: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.success,
-                          border: Border.all(color: scheme.surface, width: 2),
-                        ),
-                        child: const Icon(Icons.check_rounded, color: Colors.white, size: 12),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            // Middle: name + address + chips
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    store.name,
-                    style: theme.textTheme.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${[store.address, store.city].where((s) => s.isNotEmpty).join(', ')}$distanceLabel',
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      _Pill(
-                        icon: Icons.access_time_rounded,
-                        label: store.isOpen ? 'Open · ${store.openUntil}' : 'Closed',
-                        color: store.isOpen ? AppColors.success : AppColors.red500,
-                      ),
-                      _Pill(
-                        icon: Icons.local_shipping_rounded,
-                        label: store.defaultDeliveryFee == 0
-                            ? 'Free delivery'
-                            : 'Free ${formatGBP(store.freeDeliveryThreshold)}+',
-                        color: AppColors.success,
-                      ),
-                      if (store.minOrderValue > 0)
-                        _Pill(
-                          icon: Icons.shopping_bag_outlined,
-                          label: 'Min ${formatGBP(store.minOrderValue)}',
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            // Right: radio circle
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              height: 24,
-              width: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: selected ? scheme.primary : Colors.transparent,
-                border: Border.all(
-                  color: selected ? scheme.primary : scheme.outline,
-                  width: 1.6,
-                ),
-              ),
-              child: selected
-                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
-                  : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.icon, required this.label, this.color});
-  final IconData icon;
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final c = color ?? theme.colorScheme.onSurfaceVariant;
-    final bg = color != null
-        ? color!.withValues(alpha: 0.10)
-        : theme.colorScheme.surfaceContainerLow;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: c),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(color: c, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
 }
