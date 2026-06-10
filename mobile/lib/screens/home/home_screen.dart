@@ -20,7 +20,7 @@ import '../../widgets/skeleton.dart';
 
 /// Faithful port of the storefront `Home` (`/browse`): store-name strip, a hero
 /// banner carousel (or the blue "Free Delivery" promo fallback), the three promo
-/// cards, then the "Categories" circle-tile grid. No product grid — matches the
+/// cards, then the "Categories" image-tile grid. No product grid — matches the
 /// storefront, where Home links into aisles.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -262,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisCount: 2,
             mainAxisSpacing: AppSpacing.base,
             crossAxisSpacing: AppSpacing.base,
-            childAspectRatio: 0.95,
+            childAspectRatio: 0.85,
             children: List.generate(
               6,
               (_) => Skeleton(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
@@ -327,10 +327,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisCount: 2,
                   mainAxisSpacing: AppSpacing.base,
                   crossAxisSpacing: AppSpacing.base,
-                  childAspectRatio: 0.95,
+                  childAspectRatio: 0.85,
                 ),
                 delegate: SliverChildBuilderDelegate(
-                  (_, i) => _CategoryCircleTile(category: categories[i]),
+                  (_, i) => _CategoryTile(category: categories[i]),
                   childCount: categories.length,
                 ),
               ),
@@ -630,8 +630,8 @@ class _FreeDeliveryCard extends StatelessWidget {
   }
 }
 
-class _CategoryCircleTile extends StatelessWidget {
-  const _CategoryCircleTile({required this.category});
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({required this.category});
   final Category category;
 
   @override
@@ -642,36 +642,48 @@ class _CategoryCircleTile extends StatelessWidget {
         arguments: {'id': category.id, 'title': category.name},
       ),
       child: Container(
-        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
           border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              height: 96,
-              width: 96,
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFF1F5F9),
+            // Image stage — soft category-tinted background, product image
+            // fills the frame (no more tiny circle floating in whitespace).
+            Expanded(
+              child: Container(
+                color: category.colorA.withValues(alpha: 0.10),
+                padding: const EdgeInsets.all(16),
+                child: _image(),
               ),
-              child: _image(),
             ),
-            const SizedBox(height: 12),
-            Text(
-              category.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                height: 1.2,
+            // Footer — label on the left, category-tinted chevron on the right.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      category.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF1A1A1A),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.chevron_right_rounded, size: 18, color: category.colorA),
+                ],
               ),
             ),
           ],

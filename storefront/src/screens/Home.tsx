@@ -25,6 +25,16 @@ interface Category {
   parent_id?: string | null;
 }
 
+// Soft per-tile background tints (theme tokens only) — cycled by index to
+// give the category grid a lively, modern quick-commerce feel.
+const CATEGORY_TINTS = [
+  'bg-action-blue/10',
+  'bg-price-green/10',
+  'bg-warning/15',
+  'bg-action-red/10',
+  'bg-primary/10',
+];
+
 export default function Home() {
   const { selectedStore } = useCart();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -240,13 +250,16 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Categories Grid — reference style: circle icon + label tile */}
+          {/* Categories Grid — modern image-forward tiles */}
           <section>
-            <div className="flex justify-between items-end mb-3">
-              <h3 className="text-headline-lg-mobile text-primary">Categories</h3>
+            <div className="flex justify-between items-end mb-4">
+              <div>
+                <h3 className="text-headline-lg-mobile text-primary">Categories</h3>
+                <p className="text-sm text-on-surface-variant mt-0.5">Browse fresh picks across the store</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
               {categories
                 .filter((c) => !c.parent_id)
                 .map((category, index) => (
@@ -259,18 +272,26 @@ export default function Home() {
                   >
                     <Link
                       to={`/aisle/${category.id}`}
-                      className="group ref-card-xl overflow-hidden flex flex-col items-center justify-center p-3 hover:border-action-blue transition-colors h-full min-h-[150px] sm:min-h-[180px]"
+                      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest transition-all duration-200 hover:-translate-y-0.5 hover:border-action-blue hover:shadow-lg"
                     >
-                      <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-surface-container-low flex items-center justify-center overflow-hidden mb-2 p-2">
+                      <div
+                        className={`relative flex aspect-[5/4] items-center justify-center p-4 ${CATEGORY_TINTS[index % CATEGORY_TINTS.length]}`}
+                      >
                         <SmartTransparentImage
                           src={getCategoryImage(category)}
                           alt={category.name}
-                          className="w-full h-full object-contain"
+                          className="h-full w-full object-contain drop-shadow-sm transition-transform duration-300 ease-out group-hover:scale-110"
                         />
                       </div>
-                      <span className="text-label-bold text-text-main text-center group-hover:text-action-blue transition-colors line-clamp-2 leading-tight">
-                        {category.name}
-                      </span>
+                      <div className="mt-auto flex items-center justify-between gap-1.5 border-t border-outline-variant/60 px-3 py-2.5">
+                        <span className="text-label-bold text-text-main leading-tight line-clamp-2 group-hover:text-action-blue transition-colors">
+                          {category.name}
+                        </span>
+                        <ChevronRight
+                          size={16}
+                          className="shrink-0 text-on-surface-variant transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-action-blue"
+                        />
+                      </div>
                     </Link>
                   </motion.div>
                 ))}
