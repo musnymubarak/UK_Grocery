@@ -20,6 +20,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   
   // Registration State
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -62,6 +64,10 @@ export default function Login() {
     e.preventDefault();
     if (isSignUp && !agreeTerms) {
       toast.error('Please agree to our terms and conditions');
+      return;
+    }
+    if (isSignUp && password !== confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -118,7 +124,7 @@ export default function Login() {
                         type="text"
                         value={firstName}
                         onChange={e => setFirstName(e.target.value)}
-                        placeholder="First Name"
+                        placeholder="e.g. Aria"
                         className="w-full bg-white border border-[#c4c6cf] rounded-lg px-4 py-3 focus:border-[#005eb8] focus:ring-1 focus:ring-[#005eb8] transition-all outline-none text-base font-medium text-text-main placeholder:text-gray-400"
                         required
                       />
@@ -131,7 +137,7 @@ export default function Login() {
                         type="text"
                         value={lastName}
                         onChange={e => setLastName(e.target.value)}
-                        placeholder="Last Name"
+                        placeholder="e.g. Patel"
                         className="w-full bg-white border border-[#c4c6cf] rounded-lg px-4 py-3 focus:border-[#005eb8] focus:ring-1 focus:ring-[#005eb8] transition-all outline-none text-base font-medium text-text-main placeholder:text-gray-400"
                         required
                       />
@@ -144,7 +150,7 @@ export default function Login() {
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        placeholder="Email"
+                        placeholder="you@example.com"
                         className="w-full bg-white border border-[#c4c6cf] rounded-lg px-4 py-3 focus:border-[#005eb8] focus:ring-1 focus:ring-[#005eb8] transition-all outline-none text-base font-medium text-text-main placeholder:text-gray-400"
                         required
                       />
@@ -157,7 +163,7 @@ export default function Login() {
                         type="tel"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
-                        placeholder="Phone Number"
+                        placeholder="+44 7700 900000"
                         className="w-full bg-white border border-[#c4c6cf] rounded-lg px-4 py-3 focus:border-[#005eb8] focus:ring-1 focus:ring-[#005eb8] transition-all outline-none text-base font-medium text-text-main placeholder:text-gray-400"
                         required
                       />
@@ -172,7 +178,7 @@ export default function Login() {
                           type={showPassword ? 'text' : 'password'}
                           value={password}
                           onChange={e => setPassword(e.target.value)}
-                          placeholder="Password"
+                          placeholder="At least 8 characters"
                           className="w-full bg-white border border-[#c4c6cf] rounded-lg px-4 py-3 pr-12 focus:border-[#005eb8] focus:ring-1 focus:ring-[#005eb8] transition-all outline-none text-base font-medium text-text-main placeholder:text-gray-400"
                           required
                           minLength={6}
@@ -183,6 +189,27 @@ export default function Login() {
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-text-main transition-colors"
                         >
                           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                      </div>
+
+                      {/* Confirm Password Input */}
+                      <div className="relative mt-4">
+                        <label className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Confirm Password</label>
+                        <input 
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          value={confirmPassword}
+                          onChange={e => setConfirmPassword(e.target.value)}
+                          placeholder="Retype your password"
+                          className="w-full bg-white border border-[#c4c6cf] rounded-lg px-4 py-3 pr-12 focus:border-[#005eb8] focus:ring-1 focus:ring-[#005eb8] transition-all outline-none text-base font-medium text-text-main placeholder:text-gray-400"
+                          required
+                          minLength={6}
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-text-main transition-colors"
+                        >
+                          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
                     </div>
@@ -235,7 +262,7 @@ export default function Login() {
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        placeholder="Email"
+                        placeholder="you@example.com"
                         className="w-full bg-white border border-[#c4c6cf] rounded-lg px-4 py-3 focus:border-[#005eb8] focus:ring-1 focus:ring-[#005eb8] transition-all outline-none text-base font-medium text-text-main placeholder:text-gray-400"
                         required
                       />
@@ -248,7 +275,7 @@ export default function Login() {
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        placeholder="Password"
+                        placeholder="Enter your password"
                         className="w-full bg-white border border-[#c4c6cf] rounded-lg px-4 py-3 pr-12 focus:border-[#005eb8] focus:ring-1 focus:ring-[#005eb8] transition-all outline-none text-base font-medium text-text-main placeholder:text-gray-400"
                         required
                       />

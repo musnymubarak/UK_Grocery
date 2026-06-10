@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/network/api_exception.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
@@ -19,6 +20,10 @@ class ProfileScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final auth = context.watch<AuthProvider>();
 
+    if (!auth.isAuthenticated) {
+      return const _UnauthenticatedLoginView();
+    }
+
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -27,23 +32,18 @@ class ProfileScreen extends StatelessWidget {
           children: [
             Text('Profile', style: theme.textTheme.displaySmall),
             const SizedBox(height: AppSpacing.xl),
-            if (auth.isAuthenticated)
-              _SignedInHero(name: auth.displayName, email: auth.email, initials: auth.initials)
-            else
-              const _SignInPrompt(),
+            _SignedInHero(name: auth.displayName, email: auth.email, initials: auth.initials),
             const SizedBox(height: AppSpacing.xl),
-            if (auth.isAuthenticated) ...[
-              const Row(
-                children: [
-                  Expanded(child: _Stat(label: 'Orders', value: '12')),
-                  SizedBox(width: 10),
-                  Expanded(child: _Stat(label: 'Saved', value: '£48')),
-                  SizedBox(width: 10),
-                  Expanded(child: _Stat(label: 'Points', value: '720')),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xl),
-            ],
+            const Row(
+              children: [
+                Expanded(child: _Stat(label: 'Orders', value: '12')),
+                SizedBox(width: 10),
+                Expanded(child: _Stat(label: 'Saved', value: '£48')),
+                SizedBox(width: 10),
+                Expanded(child: _Stat(label: 'Points', value: '720')),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xl),
             Text('Shop', style: theme.textTheme.titleLarge),
             const SizedBox(height: 10),
             _Tile(
@@ -73,26 +73,24 @@ class ProfileScreen extends StatelessWidget {
               caption: 'Legal, app info & preferences',
               onTap: () => Navigator.of(context).pushNamed(AppRouter.settings),
             ),
-            if (auth.isAuthenticated) ...[
-              const SizedBox(height: AppSpacing.xl),
-              AnimatedPress(
-                onTap: () {
-                  context.read<AuthProvider>().signOut();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.red500.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                  ),
-                  child: Text(
-                    'Sign out',
-                    style: theme.textTheme.labelLarge?.copyWith(color: AppColors.red600),
-                  ),
+            const SizedBox(height: AppSpacing.xl),
+            AnimatedPress(
+              onTap: () {
+                context.read<AuthProvider>().signOut();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.red500.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: Text(
+                  'Sign out',
+                  style: theme.textTheme.labelLarge?.copyWith(color: AppColors.red600),
                 ),
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -100,96 +98,238 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class _SignInPrompt extends StatelessWidget {
-  const _SignInPrompt();
+class _UnauthenticatedLoginView extends StatefulWidget {
+  const _UnauthenticatedLoginView();
+
+  @override
+  State<_UnauthenticatedLoginView> createState() => _UnauthenticatedLoginViewState();
+}
+
+class _UnauthenticatedLoginViewState extends State<_UnauthenticatedLoginView> {
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _loading = false;
+  bool _obscure = true;
+
+  Future<void> _submit() async {
+    if (_email.text.trim().isEmpty || _password.text.isEmpty) return;
+    setState(() => _loading = true);
+    try {
+      await context.read<AuthProvider>().signIn(
+            email: _email.text.trim(),
+            password: _password.text,
+          );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Something went wrong. Please try again.")),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.blue900,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            // Can go back to menu since it's an account tab. 
+            // The shell has logic to pop back to index 1 (menu).
+            Navigator.of(context).maybePop();
+          },
+        ),
+        titleSpacing: 0,
+        title: Image.asset('assets/logo_playful.png', height: 28, errorBuilder: (_,__,___) => const Text('Daily Grocer', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: theme.colorScheme.outlineVariant, height: 1),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                height: 56,
-                width: 56,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.18),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-                ),
-                child: const Icon(Icons.person_rounded, color: Colors.white, size: 28),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Login to your account',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: const Color(0xFF0F172A), // Very dark navy
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Guest',
-                      style: theme.textTheme.headlineSmall?.copyWith(color: Colors.white),
-                    ),
-                    Text(
-                      'Sign in to save addresses and track orders.',
-                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.78)),
-                    ),
-                  ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Checkout quickly and earn member rewards',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: const Color(0xFF64748B), // Slate/blue-grey
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 32),
+            TextField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              style: theme.textTheme.bodyLarge?.copyWith(color: const Color(0xFF334155)),
+              decoration: InputDecoration(
+                labelText: 'Email',
+                hintText: 'you@example.com',
+                labelStyle: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF005EB8), width: 1.5),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: AnimatedPress(
-                  onTap: () => Navigator.of(context).pushNamed(AppRouter.login),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                    ),
-                    child: Text(
-                      'Sign in',
-                      style: theme.textTheme.labelLarge?.copyWith(color: AppColors.blue700),
-                    ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _password,
+              obscureText: _obscure,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+              style: theme.textTheme.bodyLarge?.copyWith(color: const Color(0xFF334155)),
+              decoration: InputDecoration(
+                labelText: 'Password',
+                hintText: 'Enter your password',
+                labelStyle: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF005EB8), width: 1.5),
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loading ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF005EB8),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+              child: _loading 
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : Text('Login', style: theme.textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Facebook login coming soon')));
+              },
+              icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
+              label: Text('Login with Facebook', style: theme.textTheme.labelLarge?.copyWith(color: const Color(0xFF0F172A), fontWeight: FontWeight.w700)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Google login coming soon')));
+              },
+              icon: Image.asset('assets/google_g.png', height: 22, errorBuilder: (_,__,___) => const Icon(Icons.g_mobiledata_rounded, color: Colors.red)),
+              label: Text('Login with Google', style: theme.textTheme.labelLarge?.copyWith(color: const Color(0xFF0F172A), fontWeight: FontWeight.w700)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: InkWell(
+                onTap: () {},
+                child: Text(
+                  'Forgotten your password?',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF64748B),
+                    decoration: TextDecoration.underline,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: AnimatedPress(
-                  onTap: () => Navigator.of(context).pushNamed(
-                    AppRouter.login,
-                    arguments: {'mode': 'signup'},
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
-                    ),
-                    child: Text(
-                      'Sign up',
-                      style: theme.textTheme.labelLarge?.copyWith(color: Colors.white),
-                    ),
+            ),
+            const SizedBox(height: 32),
+            const Divider(color: Color(0xFFF1F5F9)),
+            const SizedBox(height: 24),
+            Center(
+              child: Text(
+                "Don't have an account?",
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: InkWell(
+                onTap: () => Navigator.of(context).pushNamed(AppRouter.login, arguments: {'mode': 'signup'}),
+                child: Text(
+                  'Create Account',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFF005EB8),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
