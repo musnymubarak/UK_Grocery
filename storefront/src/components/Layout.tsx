@@ -81,7 +81,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
   }, [isAuthenticated, location.pathname]);
 
   const isAuthPage = location.pathname === '/login';
-  const hideBottomNav = false; // Always keep bottom nav visible to avoid trapping users on mobile
+  const hideBottomNav = location.pathname === '/';
 
   // Header tone
   const headerBg = dark ? 'bg-surface-dark' : 'bg-surface-container-lowest';

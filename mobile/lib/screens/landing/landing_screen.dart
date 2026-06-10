@@ -76,7 +76,6 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const _StorefrontNav(activeIndex: 1),
     );
   }
 
@@ -138,6 +137,8 @@ class _LandingScreenState extends State<LandingScreen> {
                     hintText: 'Enter your postcode',
                     hintStyle: TextStyle(color: theme.colorScheme.outline),
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     isDense: true,
                     filled: false,
                     contentPadding: const EdgeInsets.symmetric(vertical: 14),
@@ -232,7 +233,7 @@ class _LandingScreenState extends State<LandingScreen> {
       child: Column(
         children: [
           _FeatureCard(
-            icon: Icons.bolt_rounded,
+            icon: Icons.bolt,
             title: 'Fast Delivery',
             desc: 'Groceries delivered from your local shop in under an hour.',
             bg: Color(0xFFDCE8FF),
@@ -240,7 +241,7 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
           SizedBox(height: AppSpacing.md),
           _FeatureCard(
-            icon: Icons.storefront_rounded,
+            icon: Icons.storefront_outlined,
             title: 'Support Local',
             desc: 'Shop directly from independent convenience stores in your area.',
             bg: Color(0xFFFFDAD6),
@@ -248,7 +249,7 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
           SizedBox(height: AppSpacing.md),
           _FeatureCard(
-            icon: Icons.sell_rounded,
+            icon: Icons.local_offer_outlined,
             title: 'In-Store Prices',
             desc: 'Pay exactly what you would in-store, with fair delivery fees.',
             bg: Color(0xFFDCE8FF),
@@ -308,7 +309,7 @@ class _FeatureCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
@@ -320,19 +321,32 @@ class _FeatureCard extends StatelessWidget {
             height: 56,
             width: 56,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
-            child: Icon(icon, color: fg, size: 26),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+            ),
+            child: Icon(icon, color: fg, size: 24),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: 16),
           Text(
             title,
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            desc,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(height: 8),
+          Container(
+            constraints: const BoxConstraints(maxWidth: 280),
+            child: Text(
+              desc,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 15,
+                height: 1.4,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
         ],
       ),
