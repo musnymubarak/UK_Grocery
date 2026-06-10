@@ -651,16 +651,15 @@ class _CategoryTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image stage — soft category-tinted background, product image
-            // fills the frame (no more tiny circle floating in whitespace).
+            // Image stage — product image fills the frame on a clean surface
+            // (no more tiny circle floating in whitespace).
             Expanded(
-              child: Container(
-                color: category.colorA.withValues(alpha: 0.10),
+              child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: _image(),
               ),
             ),
-            // Footer — label on the left, category-tinted chevron on the right.
+            // Footer — label on the left, neutral chevron on the right.
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: const BoxDecoration(
@@ -682,7 +681,7 @@ class _CategoryTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Icon(Icons.chevron_right_rounded, size: 18, color: category.colorA),
+                  const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF64748B)),
                 ],
               ),
             ),
