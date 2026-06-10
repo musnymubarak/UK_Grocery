@@ -25,16 +25,6 @@ interface Category {
   parent_id?: string | null;
 }
 
-// Soft per-tile background tints (theme tokens only) — cycled by index to
-// give the category grid a lively, modern quick-commerce feel.
-const CATEGORY_TINTS = [
-  'bg-action-blue/10',
-  'bg-price-green/10',
-  'bg-warning/15',
-  'bg-action-red/10',
-  'bg-primary/10',
-];
-
 export default function Home() {
   const { selectedStore } = useCart();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -274,9 +264,7 @@ export default function Home() {
                       to={`/aisle/${category.id}`}
                       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest transition-all duration-200 hover:-translate-y-0.5 hover:border-action-blue hover:shadow-lg"
                     >
-                      <div
-                        className={`relative flex aspect-[5/4] items-center justify-center p-4 ${CATEGORY_TINTS[index % CATEGORY_TINTS.length]}`}
-                      >
+                      <div className="relative flex aspect-[5/4] items-center justify-center p-4">
                         <SmartTransparentImage
                           src={getCategoryImage(category)}
                           alt={category.name}
