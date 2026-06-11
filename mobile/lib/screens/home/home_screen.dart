@@ -12,10 +12,13 @@ import '../../core/utils/formatters.dart';
 import '../../data/api/api_registry.dart';
 import '../../data/models/banner_spec.dart';
 import '../../data/models/category.dart';
+import '../../data/models/home_layout.dart';
+import '../../state/home_layout_provider.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/premium_button.dart';
+import '../../widgets/sections/section_builder.dart';
 import '../../widgets/skeleton.dart';
 
 /// Faithful port of the storefront `Home` (`/browse`): store-name strip, a hero
@@ -53,7 +56,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (storeId != null && storeId != _lastStoreId) {
       _lastStoreId = storeId;
       _load();
+      _refreshLayout();
     }
+  }
+
+  /// Fetch the server-driven home layout for the active store. When it returns
+  /// no sections (or fails) the hardcoded fallback layout below is shown.
+  void _refreshLayout() {
+    final storeId = context.read<StoreProvider>().selected?.id;
+    context.read<HomeLayoutProvider>().refresh(storeId);
   }
 
   @override
@@ -247,6 +258,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _body(ThemeData theme, double minOrder) {
+    // Server-driven layout takes precedence when the admin has published
+    // sections; otherwise we fall through to the hardcoded default below.
+    final layoutProvider = context.watch<HomeLayoutProvider>();
+    final sections = layoutProvider.layout?.sections ?? const <HomeSection>[];
+    if (sections.isNotEmpty) {
+      return RefreshIndicator(
+        onRefresh: () async {
+          await _load();
+          _refreshLayout();
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          slivers: [
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.base)),
+            for (final section in sections)
+              SliverToBoxAdapter(child: SectionBuilder(section: section)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
+          ],
+        ),
+      );
+    }
+
     if (_loading) {
       return ListView(
         physics: const BouncingScrollPhysics(),

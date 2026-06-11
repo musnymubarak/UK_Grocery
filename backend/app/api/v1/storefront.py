@@ -12,12 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_async_session
-from app.core.cache import cached
+from app.core.cache import cached, CacheService
+from app.core.dependencies import get_optional_customer
 from app.models.organization import Organization
 from app.models.store import Store
 from app.models.product import Product
 from app.models.category import Category
 from app.models.inventory import Inventory
+from app.models.customer import Customer
 from app.core.exceptions import NotFoundException
 
 router = APIRouter(prefix="/storefront", tags=["Storefront (Public)"])
@@ -30,6 +32,47 @@ async def _get_default_org(db: AsyncSession) -> Organization:
     if not org:
         raise NotFoundException("Organization", "default")
     return org
+
+
+def serialize_product(p, qty=0, category_name=None) -> dict:
+    """Public storefront representation of a Product (shared by listing + home layout)."""
+    return {
+        "id": str(p.id),
+        "name": p.name,
+        "sku": p.sku,
+        "description": getattr(p, 'description', None),
+        "price": float(p.selling_price),
+        "category_id": str(p.category_id) if p.category_id else None,
+        "category_name": category_name,
+        "image_url": getattr(p, 'image_url', None),
+        "unit": getattr(p, 'unit', None),
+        "is_active": getattr(p, 'is_active', True),
+        "stock": qty if qty is not None else 0,
+
+        # shop.md extensions
+        "member_price": float(p.member_price) if p.member_price is not None else None,
+        "promo_price": float(p.promo_price) if p.promo_price is not None else None,
+        "promo_start": p.promo_start.isoformat() if p.promo_start else None,
+        "promo_end": p.promo_end.isoformat() if p.promo_end else None,
+        "is_age_restricted": p.is_age_restricted,
+        "allergens": p.allergens,
+        "nutritional_info": p.nutritional_info,
+        "weight_unit": p.weight_unit,
+        "calories_per_100g": float(p.calories_per_100g) if p.calories_per_100g is not None else None,
+
+        # Extended Details
+        "safety_statements": p.safety_statements,
+        "allergy_advice": p.allergy_advice,
+        "product_marketing": p.product_marketing,
+        "features": p.features,
+        "storage_type": p.storage_type,
+        "country_of_origin": p.country_of_origin,
+        "alcohol_data": p.alcohol_data,
+        "company_name": p.company_name,
+        "company_address": p.company_address,
+        "manufacturer_name": p.manufacturer_name,
+        "disclaimer": p.disclaimer,
+    }
 
 
 @router.get("/products", summary="Browse products (public)")
@@ -92,46 +135,7 @@ async def list_products(
     rows = result.all()
 
     # If store_id provided, attach stock info
-    items = []
-    for p, qty in rows:
-        item = {
-            "id": str(p.id),
-            "name": p.name,
-            "sku": p.sku,
-            "description": getattr(p, 'description', None),
-            "price": float(p.selling_price),
-            "category_id": str(p.category_id) if p.category_id else None,
-            "category_name": None,
-            "image_url": getattr(p, 'image_url', None),
-            "unit": getattr(p, 'unit', None),
-            "is_active": getattr(p, 'is_active', True),
-            "stock": qty if qty is not None else 0,
-            
-            # shop.md extensions
-            "member_price": float(p.member_price) if p.member_price is not None else None,
-            "promo_price": float(p.promo_price) if p.promo_price is not None else None,
-            "promo_start": p.promo_start.isoformat() if p.promo_start else None,
-            "promo_end": p.promo_end.isoformat() if p.promo_end else None,
-            "is_age_restricted": p.is_age_restricted,
-            "allergens": p.allergens,
-            "nutritional_info": p.nutritional_info,
-            "weight_unit": p.weight_unit,
-            "calories_per_100g": float(p.calories_per_100g) if p.calories_per_100g is not None else None,
-
-            # Extended Details
-            "safety_statements": p.safety_statements,
-            "allergy_advice": p.allergy_advice,
-            "product_marketing": p.product_marketing,
-            "features": p.features,
-            "storage_type": p.storage_type,
-            "country_of_origin": p.country_of_origin,
-            "alcohol_data": p.alcohol_data,
-            "company_name": p.company_name,
-            "company_address": p.company_address,
-            "manufacturer_name": p.manufacturer_name,
-            "disclaimer": p.disclaimer,
-        }
-        items.append(item)
+    items = [serialize_product(p, qty) for p, qty in rows]
 
     # Batch load category names
     cat_ids = {item["category_id"] for item in items if item["category_id"]}
@@ -454,3 +458,78 @@ async def list_offers(
         }
         for p in products
     ]
+
+
+@router.get("/home-layout", summary="Server-driven home layout (public)")
+async def get_home_layout(
+    store_id: Optional[UUID] = None,
+    platform: str = "web",
+    customer: Optional[Customer] = Depends(get_optional_customer),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """
+    Return the ordered, fully-resolved list of home sections the client should
+    render. Anonymous responses are cached; logged-in responses are personalised
+    (audience targeting) and bypass the cache.
+    """
+    # Lazy import keeps storefront <-> home_layout service decoupled.
+    from app.services.home_layout import HomeLayoutService
+
+    org = await _get_default_org(db)
+    cache_key = f"storefront:home_layout:{store_id}:{platform}"
+
+    if customer is None:
+        cached_val = await CacheService.get(cache_key)
+        if cached_val is not None:
+            return cached_val
+
+    layout = await HomeLayoutService(db).get_published_layout(
+        org_id=org.id,
+        store_id=store_id,
+        platform=platform,
+        customer=customer,
+    )
+
+    if customer is None:
+        await CacheService.set(cache_key, layout, ttl=300)
+    return layout
+
+
+@router.get("/app-config", summary="Client remote config & min supported version (public)")
+@cached("storefront:app_config", ttl=120)
+async def get_app_config(
+    db: AsyncSession = Depends(get_async_session),
+):
+    """
+    Remote configuration for native/web clients: feature flags plus the minimum
+    supported app version so the mobile app can force an update when a build is
+    too old. Driven by PlatformConfig / FeatureFlag rows the admin controls.
+    """
+    from app.services.config import ConfigService
+
+    org = await _get_default_org(db)
+    svc = ConfigService(db)
+    flags = await svc.get_all_flags(org.id)
+    configs = await svc.get_all_configs(org.id)
+    cfg = {c.key: c.value for c in configs}
+
+    def _v(key, default=None):
+        return cfg.get(key, default)
+
+    return {
+        "feature_flags": {f.key: f.is_enabled for f in flags},
+        "min_supported_version": {
+            "ios": _v("mobile.min_version.ios", "1.0.0"),
+            "android": _v("mobile.min_version.android", "1.0.0"),
+        },
+        "latest_version": {
+            "ios": _v("mobile.latest_version.ios"),
+            "android": _v("mobile.latest_version.android"),
+        },
+        "force_update": bool(_v("mobile.force_update", False)),
+        "maintenance_mode": bool(_v("maintenance_mode", False)),
+        "update_url": {
+            "ios": _v("mobile.update_url.ios", "https://apps.apple.com/"),
+            "android": _v("mobile.update_url.android", "https://play.google.com/store"),
+        },
+    }

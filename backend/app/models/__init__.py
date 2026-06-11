@@ -20,6 +20,7 @@ from app.models.refund import Refund
 from app.models.notification import Notification
 from app.models.review import Review
 from app.models.banner import Banner
+from app.models.home_section import HomeSection
 from app.models.refresh_token import RefreshToken
 from app.models.driver import DriverProfile
 from app.models.promotion import Promotion
@@ -54,6 +55,7 @@ __all__ = [
     "Notification",
     "Review",
     "Banner",
+    "HomeSection",
     "RefreshToken",
     "DriverProfile",
     "Promotion",

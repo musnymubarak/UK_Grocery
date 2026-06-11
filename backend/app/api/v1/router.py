@@ -23,6 +23,8 @@ from app.api.v1.refunds import router as refund_router
 from app.api.v1.notifications import router as notification_router
 from app.api.v1.reviews import router as review_router
 from app.api.v1.banners import router as banner_router
+from app.api.v1.home_layout import router as home_layout_router
+from app.api.v1.media import router as media_router
 from app.api.v1.exports import router as export_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.drivers import router as driver_router
@@ -57,6 +59,8 @@ api_router.include_router(refund_router)
 api_router.include_router(notification_router)
 api_router.include_router(review_router)
 api_router.include_router(banner_router)
+api_router.include_router(home_layout_router)
+api_router.include_router(media_router)
 api_router.include_router(export_router)
 api_router.include_router(analytics_router)
 api_router.include_router(driver_router)

@@ -244,6 +244,27 @@ export const refundApi = {
         api.post(`/refunds/${refundId}/items/${itemId}/process`, data),
 };
 
+// --- Home Layout API (server-driven home) ---
+export const homeLayoutApi = {
+    list: () => api.get('/home-layout/sections'),
+    create: (data: any) => api.post('/home-layout/sections', data),
+    update: (id: string, data: any) => api.put(`/home-layout/sections/${id}`, data),
+    delete: (id: string) => api.delete(`/home-layout/sections/${id}`),
+    reorder: (orderedIds: string[]) => api.post('/home-layout/sections/reorder', { ordered_ids: orderedIds }),
+};
+
+// --- Media Upload API (generic image upload, e.g. for home layout slides) ---
+export const mediaApi = {
+    uploadImage: (file: File, subdir?: string) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        return api.post('/media/image', formData, {
+            params: subdir ? { subdir } : undefined,
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+};
+
 // --- Drivers API Expansion ---
 export const driverApi = {
     list: (storeId?: string) => api.get('/drivers', { params: { store_id: storeId } }),

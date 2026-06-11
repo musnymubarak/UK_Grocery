@@ -72,6 +72,9 @@ export const catalogApi = {
   getBanners: (storeId?: string) => api.get('/storefront/banners', { params: { store_id: storeId } }),
 
   getOffers: (storeId?: string) => api.get('/storefront/offers', { params: { store_id: storeId } }),
+
+  getHomeLayout: (storeId?: string) =>
+    api.get('/storefront/home-layout', { params: { store_id: storeId, platform: 'web' } }),
 };
 
 // ─── Customer Auth Endpoints ──────────────────────────────────────
