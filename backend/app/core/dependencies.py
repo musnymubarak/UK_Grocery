@@ -81,6 +81,34 @@ async def get_current_customer(
     return customer
 
 
+async def get_optional_customer(
+    authorization: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[Customer]:
+    """
+    Like get_current_customer but never raises — returns None when there is no
+    valid customer token. Used by public endpoints that personalize when a
+    customer is logged in (e.g. audience-targeted home layout) but still serve
+    anonymous visitors.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    try:
+        token = authorization.split("Bearer ")[1]
+        payload = verify_token(token)
+        if not payload or payload.get("role") != "customer":
+            return None
+        customer_id = payload.get("sub")
+        if not customer_id:
+            return None
+        result = await db.execute(
+            select(Customer).where(Customer.id == customer_id, Customer.is_active == True)
+        )
+        return result.scalar_one_or_none()
+    except Exception:
+        return None
+
+
 def require_role(allowed_roles: List[str]):
     """Dependency factory: require the current user to have one of the listed roles."""
 

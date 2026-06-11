@@ -73,3 +73,62 @@ export interface Order {
   tip_amount: number;
   coupon_code?: string;
 }
+
+// ─── Server-Driven Home Layout ───────────────────────────────────
+// Mirrors the backend contract for GET /storefront/home-layout.
+
+export type SectionActionType =
+  | 'category'
+  | 'product'
+  | 'search'
+  | 'offers'
+  | 'url'
+  | 'none';
+
+export interface SectionAction {
+  type: SectionActionType;
+  value?: string | null;
+  label?: string | null;
+}
+
+export interface SectionItem {
+  image_url?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  badge?: string | null;
+  action?: SectionAction | null;
+}
+
+// Resolved category as returned inside a category_grid section config.
+export interface SectionCategory {
+  id: string;
+  name: string;
+  image_url?: string | null;
+  parent_id?: string | null;
+}
+
+// Config payloads differ per section type; the renderer narrows by `type`.
+export interface SectionConfig {
+  // hero_slider | banner_strip | promo_grid
+  autoplay?: boolean;
+  interval_ms?: number;
+  aspect_ratio?: string | null;
+  columns?: number | null;
+  items?: any[]; // SectionItem[] | SectionCategory[] | Product[] depending on type
+  // product_carousel
+  source?: Record<string, any>;
+  see_all?: SectionAction | null;
+}
+
+// A fully resolved section ready to render (ResolvedSection in the contract).
+export interface HomeSection {
+  id: string;
+  type: string;
+  title?: string | null;
+  subtitle?: string | null;
+  config: SectionConfig;
+}
+
+export interface HomeLayout {
+  sections: HomeSection[];
+}

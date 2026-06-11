@@ -6,6 +6,7 @@ import '../../screens/checkout/checkout_screen.dart';
 import '../../screens/landing/landing_screen.dart';
 import '../../screens/legal/legal_screen.dart';
 import '../../screens/notifications/notifications_screen.dart';
+import '../../screens/offers/offers_screen.dart';
 import '../../screens/order/order_history_screen.dart';
 import '../../screens/order/order_success_screen.dart';
 import '../../screens/order/order_tracking_screen.dart';
@@ -29,6 +30,7 @@ class AppRouter {
   static const aisle = '/aisle';
   static const product = '/product';
   static const search = '/search';
+  static const offers = '/offers';
   static const checkout = '/checkout';
   static const orderSuccess = '/order/success';
   static const orderTracking = '/order/tracking';
@@ -68,7 +70,10 @@ class AppRouter {
         final args = s.arguments as Map<String, dynamic>? ?? {};
         return _slide(ProductDetailsScreen(productId: args['id'] as String), s);
       case search:
-        return _slide(const SearchScreen(), s);
+        final args = s.arguments as Map<String, dynamic>? ?? {};
+        return _slide(SearchScreen(initialQuery: args['query'] as String?), s);
+      case offers:
+        return _slide(const OffersScreen(), s);
       case checkout:
         return _slide(const CheckoutScreen(), s);
       case orderSuccess:

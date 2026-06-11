@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/version_gate.dart';
 import 'widgets/error_boundary.dart';
 
 class DailyGrocerApp extends StatelessWidget {
@@ -17,7 +18,7 @@ class DailyGrocerApp extends StatelessWidget {
       initialRoute: AppRouter.splash,
       onGenerateRoute: AppRouter.onGenerateRoute,
       builder: (context, child) => ErrorBoundary(
-        child: child ?? const SizedBox.shrink(),
+        child: VersionGate(child: child ?? const SizedBox.shrink()),
       ),
     );
   }

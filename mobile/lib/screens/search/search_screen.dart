@@ -19,8 +19,11 @@ import '../../widgets/product_card.dart';
 import '../../widgets/skeleton.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, this.embedded = false});
+  const SearchScreen({super.key, this.embedded = false, this.initialQuery});
   final bool embedded;
+
+  /// Seed the search with a query (e.g. from a home-layout `search` action).
+  final String? initialQuery;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -51,6 +54,11 @@ class _SearchScreenState extends State<SearchScreen> {
     RecentSearches.instance.hydrate().then((_) {
       if (mounted) setState(() {});
     });
+    final seed = widget.initialQuery?.trim();
+    if (seed != null && seed.isNotEmpty) {
+      _ctrl.text = seed;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onChanged(seed));
+    }
   }
 
   @override

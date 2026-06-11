@@ -1,6 +1,8 @@
 import '../../core/network/api_client.dart';
+import '../models/app_config.dart';
 import '../models/banner_spec.dart';
 import '../models/category.dart';
+import '../models/home_layout.dart';
 import '../models/product.dart';
 import '../models/store.dart';
 
@@ -73,6 +75,35 @@ class CatalogApi {
         .whereType<Map<String, dynamic>>()
         .map(BannerSpec.fromJson)
         .toList();
+  }
+
+  /// Server-driven home layout. Sections are resolved server-side, so product
+  /// and category sections arrive with their items inline. `platform` is one of
+  /// `web`, `ios`, `android` and lets the backend filter platform-scoped
+  /// sections.
+  Future<HomeLayout> getHomeLayout({
+    String? storeId,
+    String platform = 'android',
+  }) async {
+    final data = await _client.request<Map<String, dynamic>>(
+      () => _client.raw.get(
+        '/storefront/home-layout',
+        queryParameters: {
+          if (storeId != null) 'store_id': storeId,
+          'platform': platform,
+        },
+      ),
+    );
+    return HomeLayout.fromJson(data);
+  }
+
+  /// Remote app configuration — feature flags, minimum supported version,
+  /// force-update + maintenance gates. Drives the startup version gate.
+  Future<AppConfig> getAppConfig() async {
+    final data = await _client.request<Map<String, dynamic>>(
+      () => _client.raw.get('/storefront/app-config'),
+    );
+    return AppConfig.fromJson(data);
   }
 
   Future<List<Product>> getOffers({String? storeId}) async {

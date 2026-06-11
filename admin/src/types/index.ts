@@ -193,6 +193,46 @@ export interface SyncAction {
     sync_status: 'pending' | 'syncing' | 'synced' | 'failed';
 }
 
+// --- Home Layout (server-driven home) ---
+export interface SectionAction {
+    type: 'category' | 'product' | 'search' | 'offers' | 'url' | 'none';
+    value?: string | null;
+    label?: string | null;
+}
+
+export interface SectionItem {
+    image_url?: string | null;
+    title?: string | null;
+    subtitle?: string | null;
+    badge?: string | null;
+    action?: SectionAction | null;
+}
+
+export type HomeSectionType =
+    | 'hero_slider'
+    | 'banner_strip'
+    | 'product_carousel'
+    | 'category_grid'
+    | 'promo_grid';
+
+export interface HomeSection {
+    id: string;
+    organization_id: string;
+    section_type: HomeSectionType;
+    title?: string | null;
+    subtitle?: string | null;
+    position: number;
+    is_active: boolean;
+    starts_at?: string | null;
+    ends_at?: string | null;
+    platforms?: string[] | null;
+    audience?: Record<string, any> | null;
+    config: Record<string, any>;
+    store_id?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 // --- Paginated ---
 export interface PaginatedResponse<T> {
     items: T[];

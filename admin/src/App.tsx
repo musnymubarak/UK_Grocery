@@ -31,6 +31,7 @@ import PlatformSettingsPage from './features/settings/PlatformSettingsPage';
 import RewardsPage from './features/rewards/RewardsPage';
 import WebhooksPage from './features/webhooks/WebhooksPage';
 import BannersPage from './features/banners/BannersPage';
+import HomeLayoutPage from './features/home-layout/HomeLayoutPage';
 import ReviewsPage from './features/reviews/ReviewsPage';
 import RefundsPage from './features/refunds/RefundsPage';
 import SystemHealthPage from './features/system/SystemHealthPage';
@@ -85,6 +86,7 @@ function AppRoutes() {
                 <Route path="/rewards" element={<RewardsPage />} />
                 <Route path="/webhooks" element={<WebhooksPage />} />
                 <Route path="/banners" element={<BannersPage />} />
+                <Route path="/home-layout" element={<HomeLayoutPage />} />
                 <Route path="/reviews" element={<ReviewsPage />} />
                 <Route path="/refunds" element={<RefundsPage />} />
                 <Route path="/system" element={<SystemHealthPage />} />
