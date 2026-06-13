@@ -1,3 +1,6 @@
+import 'announcement.dart';
+import 'branding.dart';
+
 /// Remote app configuration. Built from `GET /storefront/app-config`:
 ///
 /// ```json
@@ -13,7 +16,7 @@
 ///
 /// Drives the startup version gate (`core/version_gate.dart`).
 class AppConfig {
-  const AppConfig({
+  AppConfig({
     this.featureFlags = const {},
     this.minIos = '0.0.0',
     this.minAndroid = '0.0.0',
@@ -21,7 +24,10 @@ class AppConfig {
     this.maintenanceMode = false,
     this.updateUrlIos = '',
     this.updateUrlAndroid = '',
-  });
+    this.content = const {},
+    this.announcement,
+    BrandingConfig? branding,
+  }) : branding = branding ?? BrandingConfig.defaults();
 
   final Map<String, bool> featureFlags;
   final String minIos;
@@ -31,12 +37,32 @@ class AppConfig {
   final String updateUrlIos;
   final String updateUrlAndroid;
 
+  /// Admin-editable marketing copy keyed by dotted string (e.g.
+  /// `home.rewards_title`). Source: `GET /storefront/app-config` → `content`.
+  final Map<String, String> content;
+
+  /// Active announcement bar (null when none). Source: `app-config` →
+  /// `announcement` (already schedule-gated server-side).
+  final Announcement? announcement;
+
+  /// Admin-controlled branding (app name, logo, palette). Source: `app-config`
+  /// → `branding`. Defaults to the built-in brand when absent.
+  final BrandingConfig branding;
+
   factory AppConfig.fromJson(Map<String, dynamic> json) {
     final flagsRaw = json['feature_flags'];
     final flags = <String, bool>{};
     if (flagsRaw is Map<String, dynamic>) {
       flagsRaw.forEach((key, value) {
         if (value is bool) flags[key] = value;
+      });
+    }
+
+    final contentRaw = json['content'];
+    final content = <String, String>{};
+    if (contentRaw is Map) {
+      contentRaw.forEach((key, value) {
+        if (key is String && value != null) content[key] = value.toString();
       });
     }
 
@@ -59,6 +85,9 @@ class AppConfig {
       maintenanceMode: json['maintenance_mode'] as bool? ?? false,
       updateUrlIos: pick(updateUrl, 'ios', ''),
       updateUrlAndroid: pick(updateUrl, 'android', ''),
+      content: content,
+      announcement: Announcement.fromJson(json['announcement']),
+      branding: BrandingConfig.fromJson(json['branding']),
     );
   }
 }

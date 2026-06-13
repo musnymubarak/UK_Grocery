@@ -179,6 +179,21 @@ async def list_orders(
     order_service = OrderService(db)
     return await order_service.get_orders(org_id=org_id, store_id=effective_store_id, customer_id=customer_id, skip=skip, limit=limit)
 
+@router.get("/dispatch", summary="Live delivery dispatch board")
+async def dispatch_board(
+    store_id: Optional[UUID] = Query(None, description="Filter by store (admin override)"),
+    org_id: UUID = Depends(get_org_context),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
+    current_user: User = Depends(require_role(["admin", "manager"])),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Active orders split into unassigned vs in-flight + the driver roster with
+    each driver's current load. Backs the admin dispatch board; assignment and
+    status changes reuse the existing PATCH /{order_id}/assign and /status."""
+    effective_store_id = store_scope if store_scope is not None else store_id
+    return await OrderService(db).get_dispatch_board(org_id=org_id, store_id=effective_store_id)
+
+
 @router.get("/{order_id}", response_model=OrderResponse)
 async def get_order_details(
     order_id: UUID,

@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Bike, Info } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { catalogApi } from '../services/api';
 import { useCart } from '../CartContext';
+import { useContent } from '../context/ContentContext';
 import type { HomeSection } from '../types';
 import bakeryImg from '../../images/categories/bakery_clean.webp';
 import beveragesImg from '../../images/categories/bevarages_clean.webp';
@@ -29,6 +30,7 @@ interface Category {
 
 export default function Home() {
   const { selectedStore } = useCart();
+  const { t } = useContent();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -207,11 +209,11 @@ export default function Home() {
                 <div className="relative bg-action-blue rounded-xl overflow-hidden min-h-[160px] flex flex-col justify-center p-5 text-on-primary">
                   <div className="relative z-10 w-full xs:w-[90%] md:w-2/3 pr-4 md:pr-0">
                     <h2 className="text-[20px] xs:text-2xl md:text-headline-lg-mobile font-extrabold text-on-primary mb-1.5 whitespace-nowrap overflow-hidden text-ellipsis">
-                      Free Delivery Today!
+                      {t('home.fallback_hero_title', 'Free Delivery Today!')}
                     </h2>
-                    <p className="text-body-md opacity-90 mb-3">On all orders over £30. Stock up now.</p>
+                    <p className="text-body-md opacity-90 mb-3">{t('home.fallback_hero_subtitle', 'On all orders over £30. Stock up now.')}</p>
                     <button className="bg-action-red text-on-primary text-label-bold font-semibold px-4 py-2 rounded-md hover:bg-secondary-container transition-colors">
-                      Shop Now
+                      {t('home.fallback_hero_cta', 'Shop Now')}
                     </button>
                   </div>
                   <div className="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-black/20 to-transparent z-0" />
@@ -247,13 +249,13 @@ export default function Home() {
               <div className="rounded-xl border border-outline-variant bg-action-blue text-on-primary p-5 relative overflow-hidden h-full flex flex-col justify-center">
                 <div className="relative z-10">
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="text-label-bold font-semibold tracking-tight uppercase">daily grocer rewards</span>
+                    <span className="text-label-bold font-semibold tracking-tight uppercase">{t('home.rewards_label', 'daily grocer rewards')}</span>
                   </div>
                   <h3 className="text-[20px] xs:text-2xl md:text-headline-lg-mobile font-extrabold mb-3 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-                    Get Rewards in a Snap!
+                    {t('home.rewards_title', 'Get Rewards in a Snap!')}
                   </h3>
                   <button className="bg-action-red text-on-primary text-xs font-semibold px-4 py-2 rounded-md hover:bg-secondary transition-colors w-fit">
-                    Find out more
+                    {t('home.rewards_cta', 'Find out more')}
                   </button>
                 </div>
                 <div className="absolute right-[-10%] top-[-10%] bottom-0 w-[50%] bg-on-primary/10 rounded-full blur-2xl" />
@@ -269,7 +271,7 @@ export default function Home() {
                 </div>
                 <div className="flex-1 z-10">
                   <h3 className="text-base xs:text-lg lg:text-xl font-extrabold leading-tight tracking-tight uppercase text-right whitespace-nowrap overflow-hidden text-ellipsis">
-                    ON ALL ORDERS OVER £40
+                    {t('home.free_delivery_threshold', 'ON ALL ORDERS OVER £40')}
                   </h3>
                 </div>
               </div>
@@ -279,8 +281,8 @@ export default function Home() {
             <section>
               <div className="flex justify-between items-end mb-4">
                 <div>
-                  <h3 className="text-headline-lg-mobile text-primary">Categories</h3>
-                  <p className="text-sm text-on-surface-variant mt-0.5">Browse fresh picks across the store</p>
+                  <h3 className="text-headline-lg-mobile text-primary">{t('home.categories_title', 'Categories')}</h3>
+                  <p className="text-sm text-on-surface-variant mt-0.5">{t('home.categories_subtitle', 'Browse fresh picks across the store')}</p>
                 </div>
               </div>
 

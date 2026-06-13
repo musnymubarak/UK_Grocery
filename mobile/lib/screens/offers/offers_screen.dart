@@ -7,6 +7,7 @@ import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/api/api_registry.dart';
 import '../../data/models/product.dart';
+import '../../state/content_provider.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/empty_state.dart';
@@ -63,6 +64,7 @@ class _OffersScreenState extends State<OffersScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.watch<ContentProvider>().t;
     const coupons = [
       _Coupon(
         code: 'WELCOME10',
@@ -93,16 +95,16 @@ class _OffersScreenState extends State<OffersScreen> {
             physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
             padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 12, AppSpacing.lg, AppSpacing.xxxl),
             children: [
-              Text('Offers & rewards', style: theme.textTheme.displaySmall),
+              Text(t('offers.header_title', 'Offers & rewards'), style: theme.textTheme.displaySmall),
               const SizedBox(height: 4),
               Text(
-                'Hand-picked savings for our members.',
+                t('offers.header_subtitle', 'Hand-picked savings for our members.'),
                 style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: AppSpacing.xl),
               const _RewardsHero(),
               const SizedBox(height: AppSpacing.xl),
-              Text('Active coupons', style: theme.textTheme.titleLarge),
+              Text(t('offers.coupons_title', 'Active coupons'), style: theme.textTheme.titleLarge),
               const SizedBox(height: AppSpacing.md),
               ...coupons.map((c) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),

@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 
 import '../data/api/api_registry.dart';
 import '../data/models/app_config.dart';
 import '../screens/force_update/force_update_screen.dart';
+import '../state/branding_provider.dart';
+import '../state/content_provider.dart';
 
 /// Wraps the app and consults `GET /storefront/app-config` once at startup.
 ///
@@ -37,6 +40,13 @@ class _VersionGateState extends State<VersionGate> {
     try {
       final AppConfig cfg = await Api.instance.catalog.getAppConfig();
       final pkg = await PackageInfo.fromPlatform();
+
+      if (mounted) {
+        context.read<ContentProvider>()
+          ..setContent(cfg.content)
+          ..setAnnouncement(cfg.announcement);
+        context.read<BrandingProvider>().setBranding(cfg.branding);
+      }
 
       final isIos = defaultTargetPlatform == TargetPlatform.iOS;
       final minVersion = isIos ? cfg.minIos : cfg.minAndroid;

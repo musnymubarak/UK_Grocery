@@ -1,51 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* Dark mode driven by a `.dark` class on <html> (toggled by ThemeToggle). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /**
- * Main CSS — design system for Daily Grocer.
+ * Daily Grocer Admin — design system.
+ * Aligned to the storefront palette (navy / action-red / action-blue,
+ * Hanken Grotesk headings). Tokens below become Tailwind utilities
+ * (bg-primary, text-on-surface, rounded-lg, font-headline, …) for new
+ * components, while a legacy-variable bridge keeps the existing pages on-brand.
  */
+@theme {
+  --font-headline: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
 
-/* ===== CSS Variables ===== */
+  /* Primary — deep navy (structure) */
+  --color-primary: #001d3d;
+  --color-primary-container: #001d3d;
+  --color-on-primary: #ffffff;
+  --color-primary-fixed: #d5e3ff;
+  --color-primary-fixed-dim: #b0c8f0;
+  --color-inverse-primary: #b0c8f0;
+
+  /* Secondary — vibrant red */
+  --color-secondary: #bb0027;
+  --color-secondary-container: #e31d39;
+  --color-on-secondary: #ffffff;
+
+  /* Action colors — brand CTAs */
+  --color-action-red: #e6203a;
+  --color-action-blue: #0056b3;
+  --color-price-green: #28a745;
+
+  /* Surfaces — light, crisp neutrals */
+  --color-surface: #f8f9fa;
+  --color-surface-bright: #f8f9fa;
+  --color-surface-dim: #d9dadb;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f4f5;
+  --color-surface-container: #edeeef;
+  --color-surface-container-high: #e7e8e9;
+  --color-surface-container-highest: #e1e3e4;
+  --color-inverse-surface: #2e3132;
+  --color-inverse-on-surface: #f0f1f2;
+
+  /* On surface / background */
+  --color-on-surface: #191c1d;
+  --color-on-surface-variant: #44474e;
+  --color-background: #f8f9fa;
+  --color-on-background: #191c1d;
+
+  /* Outlines */
+  --color-outline: #74777f;
+  --color-outline-variant: #c4c6cf;
+
+  /* Semantic */
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-warning: #f59e0b;
+  --color-success: #28a745;
+  --color-info: #0056b3;
+  --color-accent: #0056b3;
+
+  /* Border radius — soft, modern (4 / 8 / 12 / 16) */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headline);
+  }
+}
+
+/* ===== Legacy-variable bridge =====
+   The existing 22 pages reference these names via var(); we map them onto the
+   storefront tokens so the whole app re-skins centrally. */
 :root {
-  /* Primary Green Palette */
-  --primary: #2e7d32; /* Forest Green */
-  --primary-light: #4caf50;
-  --primary-dark: #1b5e20;
-  --primary-50: #f1f8f3;
-  --primary-100: #e8f5e9;
-  --primary-200: #c8e6c9;
+  /* Primary (navy) */
+  --primary: var(--color-primary);
+  --primary-light: var(--color-action-blue);
+  --primary-dark: #001a3b;
+  --primary-50: #d5e3ff;
+  --primary-100: #acc7ff;
+  --primary-200: #c4c6cf;
 
-  /* Sidebar Mint Palette */
-  --sidebar-bg: #e6f7ef;
-  --sidebar-text: #1a1a1a;
-  --sidebar-text-muted: #6b7280;
-  --sidebar-active-bg: #ffffff;
-  --sidebar-active-text: #2e7d32;
+  /* Sidebar — neutral surface (no more mint) */
+  --sidebar-bg: var(--color-surface-container-lowest);
+  --sidebar-text: var(--color-on-surface);
+  --sidebar-text-muted: var(--color-on-surface-variant);
+  --sidebar-active-bg: var(--color-surface-container);
+  --sidebar-active-text: var(--color-primary);
 
-  /* Accent & Semantic */
-  --accent: #10b981;
-  --success: #10b981;
-  --success-bg: rgba(16, 185, 129, 0.1);
-  --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.1);
-  --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.1);
-  --info: #3b82f6;
-  --info-bg: rgba(59, 130, 246, 0.1);
+  /* Accent & semantic */
+  --accent: var(--color-action-blue);
+  --success: var(--color-success);
+  --success-bg: rgba(40, 167, 69, 0.10);
+  --warning: var(--color-warning);
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --danger: var(--color-error);
+  --danger-bg: rgba(186, 26, 26, 0.10);
+  --info: var(--color-info);
+  --info-bg: rgba(0, 86, 179, 0.10);
 
-  /* Neutrals (Light Mode Default) */
-  --bg-primary: #f9fbf9;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --bg-elevated: #f1f5f9;
-  --bg-input: #ffffff;
+  /* Neutrals */
+  --bg-primary: var(--color-background);
+  --bg-secondary: var(--color-surface-container-lowest);
+  --bg-card: var(--color-surface-container-lowest);
+  --bg-elevated: var(--color-surface-container-low);
+  --bg-input: var(--color-surface-container-lowest);
 
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #9ca3af;
+  --text-primary: var(--color-on-surface);
+  --text-secondary: var(--color-on-surface-variant);
+  --text-muted: var(--color-outline);
   --text-inverse: #ffffff;
 
-  --border: #e5e7eb;
-  --border-light: #f3f4f6;
+  --border: var(--color-outline-variant);
+  --border-light: var(--color-surface-container-highest);
 
-  /* Shadows - Modern/Premium */
+  /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
@@ -54,15 +132,101 @@
   /* Layout */
   --sidebar-width: 280px;
   --header-height: 72px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 
   /* Transitions */
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  color-scheme: light;
 }
+
+/* ===== Dark mode ===== */
+.dark {
+  /* Re-point storefront tokens (also re-themes Tailwind utilities) */
+  --color-background: #0f1416;
+  --color-surface: #0f1416;
+  --color-surface-bright: #1b1f22;
+  --color-surface-container-lowest: #15191b;
+  --color-surface-container-low: #1b1f22;
+  --color-surface-container: #20262a;
+  --color-surface-container-high: #252b2f;
+  --color-surface-container-highest: #2b3135;
+  --color-on-surface: #e1e3e4;
+  --color-on-surface-variant: #c4c6cf;
+  --color-on-background: #e1e3e4;
+  --color-outline: #8b9198;
+  --color-outline-variant: #3a4045;
+  /* Lift the brand navy so primary surfaces/buttons stay legible on dark */
+  --color-primary: #3568bf;
+  --color-primary-container: #1e3a63;
+
+  /* Legacy bridge overrides */
+  --primary: #4a84e3;
+  --primary-dark: #2f5aa6;
+  --primary-light: #6fa0ec;
+  --primary-50: #1e2a3a;
+  --primary-200: #3a4045;
+  --sidebar-bg: #15191b;
+  --sidebar-text: #e1e3e4;
+  --sidebar-text-muted: #c4c6cf;
+  --sidebar-active-bg: #20262a;
+  --sidebar-active-text: #9ec1f5;
+  --accent: #4a84e3;
+
+  --bg-primary: #0f1416;
+  --bg-secondary: #15191b;
+  --bg-card: #15191b;
+  --bg-elevated: #1b1f22;
+  --bg-input: #1b1f22;
+  --text-primary: #e1e3e4;
+  --text-secondary: #c4c6cf;
+  --text-muted: #8b9198;
+  --border: #3a4045;
+  --border-light: #2a2f33;
+
+  --success-bg: rgba(40, 167, 69, 0.18);
+  --warning-bg: rgba(245, 158, 11, 0.18);
+  --danger-bg: rgba(255, 84, 84, 0.18);
+  --info-bg: rgba(74, 132, 227, 0.20);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}
+
+/* ===== App shell — deterministic plain CSS (independent of utility scanning) ===== */
+/* Navy brand sidebar, constant across light/dark for a premium, branded feel. */
+.admin-sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #002a55 0%, #001d3d 60%, #00162e 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.admin-main { transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* Soft, layered elevation for cards/tables so the UI reads with depth, not flat. */
+.elev-card { box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px -12px rgba(16, 24, 40, 0.12); }
+.dark .elev-card { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6); }
+@media (min-width: 1024px) {
+  .admin-main { padding-left: 260px; }
+  .admin-main[data-collapsed="true"] { padding-left: 76px; }
+  .admin-sidebar[data-collapsed="true"] { width: 76px; }
+}
+
+/* ============================================================================
+   LEGACY component styles — wrapped in @layer so Tailwind utilities (which live
+   in the higher `utilities` layer) always win. Without this, the unlayered
+   universal reset below zeroes out every padding/margin utility (ml-auto, px-4,
+   gap, …) and the new UI collapses/overlaps.
+   ============================================================================ */
+@layer components {
 
 /* ===== Custom Scrollbars ===== */
 ::-webkit-scrollbar {
@@ -164,7 +328,7 @@ a {
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 29, 61, 0.25);
 }
 
 .sidebar-nav {
@@ -201,7 +365,7 @@ a {
 }
 
 .nav-item:hover {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--bg-elevated);
   color: var(--text-primary);
 }
 
@@ -214,7 +378,7 @@ a {
 
 .sidebar-footer {
   padding: 24px 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--border-light);
 }
 
 .user-info {
@@ -260,7 +424,7 @@ a {
   position: sticky;
   top: 0;
   height: var(--header-height);
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--bg-secondary) 82%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-light);
   display: flex;
@@ -409,13 +573,13 @@ a {
 }
 
 .stat-icon.purple {
-  background: rgba(99, 102, 241, 0.15);
-  color: var(--primary-light);
+  background: rgba(0, 29, 61, 0.10);
+  color: var(--color-primary);
 }
 
 .stat-icon.cyan {
-  background: rgba(6, 182, 212, 0.15);
-  color: var(--accent);
+  background: rgba(0, 86, 179, 0.12);
+  color: var(--color-action-blue);
 }
 
 .stat-icon.green {
@@ -468,7 +632,7 @@ a {
 .btn-primary:hover {
   background: var(--primary-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 29, 61, 0.28);
 }
 
 .btn-secondary {
@@ -549,8 +713,8 @@ a {
 
 .form-input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--color-action-blue);
+  box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
 }
 
 .form-input::placeholder {
@@ -588,8 +752,8 @@ a {
 
 .form-select:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+  border-color: var(--color-action-blue);
+  box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
 }
 
 .form-select:disabled {
@@ -671,8 +835,8 @@ a {
 }
 
 .badge-primary {
-  background: rgba(99, 102, 241, 0.15);
-  color: var(--primary-light);
+  background: rgba(0, 29, 61, 0.10);
+  color: var(--color-primary);
 }
 
 /* ===== Login Page ===== */
@@ -1166,3 +1330,5 @@ a {
     margin: 0;
   }
 }
+
+} /* end @layer components (legacy styles) */

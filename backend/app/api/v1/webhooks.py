@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 
 from app.core.database import get_async_session
-from app.core.dependencies import get_org_context, require_role
+from app.core.dependencies import get_org_context, require_role, require_capability
 from app.core.exceptions import NotFoundException
 from app.models.webhook import WebhookEndpoint, WebhookDelivery
 from app.models.user import User
@@ -33,7 +33,7 @@ class WebhookResponse(BaseModel):
     class Config:
         from_attributes = True
 
-@router.post("", response_model=dict)
+@router.post("", response_model=dict, dependencies=[Depends(require_capability("manage_settings"))])
 async def create_webhook(
     data: WebhookCreate,
     org_id: UUID = Depends(get_org_context),
@@ -58,7 +58,7 @@ async def create_webhook(
         "status": "created"
     }
 
-@router.get("", response_model=List[dict])
+@router.get("", response_model=List[dict], dependencies=[Depends(require_capability("manage_settings"))])
 async def list_webhooks(
     org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_role(["admin"])),
@@ -77,7 +77,7 @@ async def list_webhooks(
         } for e in result.scalars().all()
     ]
 
-@router.delete("/{webhook_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{webhook_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_capability("manage_settings")), Depends(require_capability("delete_records"))])
 async def delete_webhook(
     webhook_id: UUID,
     org_id: UUID = Depends(get_org_context),

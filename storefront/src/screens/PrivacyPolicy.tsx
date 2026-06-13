@@ -1,5 +1,6 @@
 import React from 'react';
 import Layout from '../components/Layout';
+import LegalPageView from '../components/LegalPageView';
 import { motion } from 'motion/react';
 import { Shield, FileText, Lock, Globe, Mail, Phone } from 'lucide-react';
 
@@ -29,7 +30,7 @@ const LegalSection = ({ title, icon, children }: LegalSectionProps) => (
   </motion.div>
 );
 
-export default function PrivacyPolicy() {
+function PrivacyFallback() {
   return (
     <Layout title="Privacy Policy" showBack>
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16 pb-32">
@@ -109,4 +110,8 @@ export default function PrivacyPolicy() {
       </div>
     </Layout>
   );
+}
+
+export default function PrivacyPolicy() {
+  return <LegalPageView slug="privacy" defaultTitle="Privacy Policy" fallback={<PrivacyFallback />} />;
 }

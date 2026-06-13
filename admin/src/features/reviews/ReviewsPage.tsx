@@ -3,7 +3,24 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { reviewApi, getErrorMessage } from '../../services/api';
 import { useAdminStore } from '../auth/AdminStoreContext';
 import toast from 'react-hot-toast';
-import { MessageSquare, Star, Reply, Eye, EyeOff, Search } from 'lucide-react';
+import { MessageSquare, Star, Reply, Eye, EyeOff } from 'lucide-react';
+import { PageHeader, Button, Badge, Card, StatCard, FormField, Textarea, Skeleton, EmptyState } from '../../components/ui';
+import { Modal } from '../../components/ui/Modal';
+
+function Stars({ rating }: { rating: number }) {
+    return (
+        <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                    key={s}
+                    size={14}
+                    className={s <= rating ? 'text-warning' : 'text-on-surface-variant/40'}
+                    fill={s <= rating ? 'currentColor' : 'none'}
+                />
+            ))}
+        </div>
+    );
+}
 
 export default function ReviewsPage() {
     const { selectedStore } = useAdminStore();
@@ -16,6 +33,16 @@ export default function ReviewsPage() {
         queryFn: async () => {
             if (!selectedStore?.id) return [];
             const res = await reviewApi.list(selectedStore.id);
+            return res.data;
+        },
+        enabled: !!selectedStore?.id,
+    });
+
+    const { data: summary } = useQuery({
+        queryKey: ['reviews-summary', selectedStore?.id],
+        queryFn: async () => {
+            if (!selectedStore?.id) return null;
+            const res = await reviewApi.summary(selectedStore.id);
             return res.data;
         },
         enabled: !!selectedStore?.id,
@@ -42,125 +69,131 @@ export default function ReviewsPage() {
     });
 
     if (!selectedStore) {
-        return <div className="p-8">Please select a store to manage reviews.</div>;
+        return (
+            <div>
+                <PageHeader title="Customer Reviews" subtitle="Moderate and respond to customer feedback." />
+                <Card className="p-0">
+                    <EmptyState icon={MessageSquare} title="No store selected" message="Please select a store to manage its reviews." />
+                </Card>
+            </div>
+        );
     }
 
-    if (isLoading) return <div className="p-8">Loading reviews...</div>;
-
     return (
-        <div className="p-6">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
-                <MessageSquare size={32} color="var(--primary)" />
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Customer Reviews</h2>
-            </div>
+        <div>
+            <PageHeader title="Customer Reviews" subtitle="Moderate and respond to customer feedback." />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {reviews.length === 0 ? (
-                    <div style={{ padding: '4rem', textAlign: 'center', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                        No reviews found for this store.
-                    </div>
-                ) : (
-                    reviews.map((review: any) => (
-                        <div key={review.id} style={{ 
-                            background: 'var(--bg-card)', 
-                            padding: '1.5rem', 
-                            borderRadius: 'var(--radius-lg)', 
-                            border: '1px solid var(--border)',
-                            boxShadow: 'var(--shadow-sm)',
-                            opacity: review.is_visible ? 1 : 0.6
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', padding: '0.75rem', borderRadius: '50%' }}>
-                                        <Star size={20} color={review.rating >= 4 ? 'var(--warning)' : 'var(--text-muted)'} fill={review.rating >= 4 ? 'var(--warning)' : 'transparent'} />
+            {summary && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <StatCard icon={Star} label="Average rating" value={Number(summary.average_rating ?? 0).toFixed(1)} tone="amber" />
+                    <StatCard icon={MessageSquare} label="Total reviews" value={summary.total_reviews ?? 0} tone="blue" />
+                </div>
+            )}
+
+            {isLoading ? (
+                <div className="flex flex-col gap-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <Card key={i} className="p-5">
+                            <Skeleton className="h-5 w-48 mb-3" />
+                            <Skeleton className="h-16 w-full" />
+                        </Card>
+                    ))}
+                </div>
+            ) : reviews.length === 0 ? (
+                <Card className="p-0">
+                    <EmptyState icon={MessageSquare} title="No reviews yet" message="This store has not received any customer reviews." />
+                </Card>
+            ) : (
+                <div className="flex flex-col gap-4">
+                    {reviews.map((review: any) => (
+                        <Card key={review.id} className={`p-5 ${review.is_visible ? '' : 'opacity-60'}`}>
+                            <div className="flex items-start justify-between gap-4 mb-4">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="h-11 w-11 shrink-0 rounded-full bg-surface-container flex items-center justify-center">
+                                        <Star
+                                            size={20}
+                                            className={review.rating >= 4 ? 'text-warning' : 'text-on-surface-variant'}
+                                            fill={review.rating >= 4 ? 'currentColor' : 'none'}
+                                        />
                                     </div>
-                                    <div>
-                                        <div style={{ fontWeight: 700, fontSize: '1rem' }}>{review.customer_name || 'Anonymous Customer'}</div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(review.created_at).toLocaleString()}</div>
+                                    <div className="min-w-0">
+                                        <div className="font-semibold text-on-surface truncate">{review.customer_name || 'Anonymous Customer'}</div>
+                                        <div className="text-xs text-on-surface-variant">{new Date(review.created_at).toLocaleString()}</div>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button 
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <Badge tone={review.is_visible ? 'success' : 'neutral'} dot>{review.is_visible ? 'Visible' : 'Hidden'}</Badge>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        icon={review.is_visible ? Eye : EyeOff}
                                         onClick={() => toggleVisibility.mutate(review.id)}
-                                        className="btn btn-ghost"
-                                        style={{ color: review.is_visible ? 'var(--text-primary)' : 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                                        className={review.is_visible ? '' : 'text-error'}
                                     >
-                                        {review.is_visible ? <Eye size={18} /> : <EyeOff size={18} />}
                                         {review.is_visible ? 'Hide' : 'Unhide'}
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
 
-                            <div style={{ padding: '1rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem' }}>
-                                <div style={{ display: 'flex', gap: '2px', marginBottom: '0.5rem' }}>
-                                    {[1,2,3,4,5].map(s => (
-                                        <Star key={s} size={14} fill={s <= review.rating ? 'var(--warning)' : 'transparent'} color={s <= review.rating ? 'var(--warning)' : 'var(--text-muted)'} />
-                                    ))}
-                                </div>
-                                <div style={{ color: 'var(--text-primary)', fontStyle: review.comment ? 'normal' : 'italic' }}>
+                            <div className="rounded-lg bg-surface-container-low p-4 mb-4">
+                                <div className="mb-2"><Stars rating={review.rating} /></div>
+                                <div className={`text-sm text-on-surface ${review.comment ? '' : 'italic text-on-surface-variant'}`}>
                                     {review.comment || 'No comment provided.'}
                                 </div>
                             </div>
 
                             {review.store_response ? (
-                                <div style={{ marginLeft: '2rem', padding: '1rem', borderLeft: '4px solid var(--primary)', background: 'var(--glass-bg)', borderRadius: '0 var(--radius-md) var(--radius-md) 0' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>
-                                        <Reply size={16} /> Store Response
+                                <div className="ml-6 rounded-r-lg border-l-4 border-primary bg-primary/5 px-4 py-3">
+                                    <div className="flex items-center gap-1.5 text-xs font-bold text-primary mb-1">
+                                        <Reply size={15} /> Store Response
                                     </div>
-                                    <div style={{ fontSize: '0.9rem' }}>{review.store_response}</div>
+                                    <div className="text-sm text-on-surface">{review.store_response}</div>
                                 </div>
                             ) : (
-                                <button 
-                                    onClick={() => setRespondingTo(review)}
-                                    className="btn btn-ghost"
-                                    style={{ marginLeft: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--primary)' }}
-                                >
-                                    <Reply size={16} /> Post Response
-                                </button>
+                                <div className="ml-6">
+                                    <Button variant="ghost" size="sm" icon={Reply} onClick={() => setRespondingTo(review)} className="text-primary">
+                                        Post Response
+                                    </Button>
+                                </div>
                             )}
-                        </div>
-                    ))
-                )}
-            </div>
-
-            {respondingTo && (
-                <div style={{ 
-                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', 
-                    background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', 
-                    justifyContent: 'center', zIndex: 1000 
-                }}>
-                    <div style={{ 
-                        background: 'var(--bg-card)', padding: '2rem', borderRadius: 'var(--radius-lg)', 
-                        width: '600px', border: '1px solid var(--border)' 
-                    }}>
-                        <h3 style={{ marginTop: 0 }}>Respond to {respondingTo.customer_name}'s Review</h3>
-                        <div style={{ padding: '1rem', borderLeft: '3px solid var(--border)', background: 'var(--bg-elevated)', margin: '1rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                            "{respondingTo.comment}"
-                        </div>
-                        <textarea 
-                            value={responseText}
-                            onChange={(e) => setResponseText(e.target.value)}
-                            placeholder="Write your response as the store manager..."
-                            style={{ 
-                                width: '100%', minHeight: '120px', padding: '1rem', 
-                                borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', 
-                                border: '1px solid var(--border)', color: 'var(--text-primary)',
-                                outline: 'none', resize: 'vertical'
-                            }}
-                        />
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                            <button onClick={() => { setRespondingTo(null); setResponseText(''); }} className="btn btn-ghost">Cancel</button>
-                            <button 
-                                disabled={!responseText.trim() || sendResponse.isPending}
-                                onClick={() => sendResponse.mutate({ id: respondingTo.id, text: responseText })}
-                                className="btn btn-primary"
-                            >
-                                {sendResponse.isPending ? 'Posting...' : 'Post Response'}
-                            </button>
-                        </div>
-                    </div>
+                        </Card>
+                    ))}
                 </div>
             )}
+
+            <Modal
+                open={!!respondingTo}
+                onClose={() => { setRespondingTo(null); setResponseText(''); }}
+                title={respondingTo ? `Respond to ${respondingTo.customer_name || 'review'}` : 'Respond'}
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => { setRespondingTo(null); setResponseText(''); }}>Cancel</Button>
+                        <Button
+                            loading={sendResponse.isPending}
+                            disabled={!responseText.trim()}
+                            onClick={() => respondingTo && sendResponse.mutate({ id: respondingTo.id, text: responseText })}
+                        >
+                            Post Response
+                        </Button>
+                    </>
+                }
+            >
+                {respondingTo && (
+                    <>
+                        <div className="rounded-lg border-l-2 border-outline-variant bg-surface-container-low px-4 py-3 mb-4 text-sm text-on-surface-variant italic">
+                            "{respondingTo.comment || 'No comment provided.'}"
+                        </div>
+                        <FormField label="Your response">
+                            <Textarea
+                                value={responseText}
+                                onChange={(e) => setResponseText(e.target.value)}
+                                placeholder="Write your response as the store manager…"
+                                className="min-h-[120px]"
+                            />
+                        </FormField>
+                    </>
+                )}
+            </Modal>
         </div>
     );
 }

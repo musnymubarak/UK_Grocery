@@ -43,17 +43,17 @@ export default function SystemHealthPage() {
             icon: Cpu, 
             color: health?.cache === 'healthy' ? 'var(--success)' : 'var(--warning)' 
         },
-        { 
-            label: 'API Service', 
-            status: 'Operational', 
-            icon: Server, 
-            color: 'var(--success)' 
+        {
+            label: 'API Service',
+            status: health ? 'Operational' : 'Unreachable',
+            icon: Server,
+            color: health ? 'var(--success)' : 'var(--danger)'
         },
-        { 
-            label: 'Security Layer', 
-            status: 'HSTS Enabled', 
-            icon: ShieldCheck, 
-            color: 'var(--info)' 
+        {
+            label: 'Security Layer',
+            status: metrics?.environment === 'production' ? 'Hardened (HSTS)' : 'Dev mode',
+            icon: ShieldCheck,
+            color: metrics?.environment === 'production' ? 'var(--success)' : 'var(--warning)'
         },
     ];
 
@@ -107,7 +107,7 @@ export default function SystemHealthPage() {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
                             <span style={{ color: 'var(--text-secondary)' }}>Environment</span>
-                            <span className="badge badge-outline">Production</span>
+                            <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{metrics?.environment || 'unknown'}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
                             <span style={{ color: 'var(--text-secondary)' }}>Uptime</span>

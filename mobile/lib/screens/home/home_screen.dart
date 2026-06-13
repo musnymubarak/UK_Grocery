@@ -11,11 +11,15 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/api/api_registry.dart';
 import '../../data/models/banner_spec.dart';
+import '../../data/models/branding.dart';
 import '../../data/models/category.dart';
 import '../../data/models/home_layout.dart';
+import '../../state/branding_provider.dart';
+import '../../state/content_provider.dart';
 import '../../state/home_layout_provider.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
+import '../../widgets/announcement_bar.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/premium_button.dart';
 import '../../widgets/sections/section_builder.dart';
@@ -159,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final branding = context.watch<BrandingProvider>().branding;
     final storeProvider = context.watch<StoreProvider>();
     if (!storeProvider.hasStore) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -186,18 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Row(
                 children: [
-                  Image.asset(
-                    'assets/logo_playful.png',
-                    height: 32,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Text(
-                      'Daily Grocer',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+                  _logo(theme, branding),
                   const SizedBox(width: 12),
                   Expanded(
                     child: InkWell(
@@ -230,6 +224,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+            // Admin-controlled announcement strip (hidden when none is active)
+            const AnnouncementBar(),
             // Store name banner
             Container(
               width: double.infinity,
@@ -257,10 +253,39 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Header brand logo. Renders the admin-set remote logo when one is
+  /// configured (resolving relative `/uploads/...` URLs the same way banners
+  /// do), falling back to the bundled asset, then to the brand name text.
+  Widget _logo(ThemeData theme, BrandingConfig branding) {
+    final asset = Image.asset(
+      'assets/logo_playful.png',
+      height: 32,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => Text(
+        branding.appName,
+        style: theme.textTheme.titleLarge?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+    if (branding.logoUrl.isEmpty) return asset;
+    final url = ApiConfig.resolveUploadUrl(branding.logoUrl);
+    if (url.isEmpty) return asset;
+    return CachedNetworkImage(
+      imageUrl: url,
+      height: 32,
+      fit: BoxFit.contain,
+      placeholder: (_, __) => asset,
+      errorWidget: (_, __, ___) => asset,
+    );
+  }
+
   Widget _body(ThemeData theme, double minOrder) {
     // Server-driven layout takes precedence when the admin has published
     // sections; otherwise we fall through to the hardcoded default below.
     final layoutProvider = context.watch<HomeLayoutProvider>();
+    final t = context.watch<ContentProvider>().t;
     final sections = layoutProvider.layout?.sections ?? const <HomeSection>[];
     if (sections.isNotEmpty) {
       return RefreshIndicator(
@@ -332,9 +357,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: AppSpacing.md),
                   const _FreeDeliveryCard(),
                   const SizedBox(height: AppSpacing.lg),
-                  const Text(
-                    'Categories',
-                    style: TextStyle(
+                  Text(
+                    t('home.categories_title', 'Categories'),
+                    style: const TextStyle(
                       color: Color(0xFF001D3D),
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -434,6 +459,7 @@ class _PromoHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<ContentProvider>().t;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -444,18 +470,18 @@ class _PromoHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Free Delivery Today!',
-            style: TextStyle(
+          Text(
+            t('home.fallback_hero_title', 'Free Delivery Today!'),
+            style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,
               fontSize: 20,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'On all orders over £30. Stock up now.',
-            style: TextStyle(
+          Text(
+            t('home.fallback_hero_subtitle', 'On all orders over £30. Stock up now.'),
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -470,9 +496,9 @@ class _PromoHero extends StatelessWidget {
                 color: const Color(0xFFE6203A),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text(
-                'Shop Now',
-                style: TextStyle(
+              child: Text(
+                t('home.fallback_hero_cta', 'Shop Now'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
@@ -552,6 +578,7 @@ class _RewardsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<ContentProvider>().t;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -562,9 +589,9 @@ class _RewardsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'DAILY GROCER REWARDS',
-            style: TextStyle(
+          Text(
+            t('home.rewards_label', 'DAILY GROCER REWARDS'),
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -572,9 +599,9 @@ class _RewardsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Get Rewards in a Snap!',
-            style: TextStyle(
+          Text(
+            t('home.rewards_title', 'Get Rewards in a Snap!'),
+            style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,
               fontSize: 20,
@@ -589,9 +616,9 @@ class _RewardsCard extends StatelessWidget {
                 color: const Color(0xFFE6203A),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text(
-                'Find out more',
-                style: TextStyle(
+              child: Text(
+                t('home.rewards_cta', 'Find out more'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
@@ -610,6 +637,7 @@ class _FreeDeliveryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<ContentProvider>().t;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
@@ -646,11 +674,11 @@ class _FreeDeliveryCard extends StatelessWidget {
               ),
             ),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'ON ALL ORDERS OVER £40',
+              t('home.free_delivery_threshold', 'ON ALL ORDERS OVER £40'),
               textAlign: TextAlign.right,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: 14,

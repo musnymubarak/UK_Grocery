@@ -4,6 +4,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider } from './CartContext';
 import { AuthProvider } from './context/AuthContext';
+import { ContentProvider } from './context/ContentContext';
 import Landing from './screens/Landing';
 import Home from './screens/Home';
 import Aisle from './screens/Aisle';
@@ -60,11 +61,13 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
-          <ScrollToTop />
-          <AnimatedRoutes />
-          <CookieBanner />
-        </Router>
+        <ContentProvider>
+          <Router>
+            <ScrollToTop />
+            <AnimatedRoutes />
+            <CookieBanner />
+          </Router>
+        </ContentProvider>
       </CartProvider>
     </AuthProvider>
   );

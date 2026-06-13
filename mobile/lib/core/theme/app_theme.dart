@@ -8,18 +8,22 @@ import 'app_typography.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData light() {
+  static ThemeData light({
+    Color? brandPrimary,
+    Color? brandAction,
+    Color? brandAccent,
+  }) {
     const surface = AppColors.neutral0; // white cards
     const background = AppColors.neutral50; // #f8f9fa page background
     const onSurface = AppColors.neutral900; // #191c1d
     const onSurfaceMuted = AppColors.neutral700; // #44474e
 
-    final scheme = const ColorScheme.light(
-      primary: AppColors.blue600, // action-blue #0056b3
+    final scheme = ColorScheme.light(
+      primary: brandAccent ?? AppColors.blue600, // action-blue #0056b3
       onPrimary: AppColors.neutral0,
-      secondary: AppColors.red500, // action-red #e6203a
+      secondary: brandAction ?? AppColors.red500, // action-red #e6203a
       onSecondary: AppColors.neutral0,
-      tertiary: AppColors.blue900, // navy #001d3d
+      tertiary: brandPrimary ?? AppColors.blue900, // navy #001d3d
       surface: surface,
       onSurface: onSurface,
       surfaceContainerLowest: AppColors.neutral0,

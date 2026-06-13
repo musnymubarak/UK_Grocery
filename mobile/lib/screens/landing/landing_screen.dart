@@ -5,6 +5,7 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../state/auth_provider.dart';
 import '../../state/cart_provider.dart';
+import '../../state/content_provider.dart';
 
 /// Layout-for-layout port of the storefront Landing (`/`): logo header, the
 /// royal-blue hero with the postcode search card and the black image collage,
@@ -80,6 +81,7 @@ class _LandingScreenState extends State<LandingScreen> {
   }
 
   Widget _hero(ThemeData theme) {
+    final t = context.watch<ContentProvider>().t;
     return Container(
       width: double.infinity,
       color: _heroBlue,
@@ -87,7 +89,7 @@ class _LandingScreenState extends State<LandingScreen> {
       child: Column(
         children: [
           Text(
-            'Local store to door',
+            t('landing.hero_title', 'Local store to door'),
             textAlign: TextAlign.center,
             style: theme.textTheme.displaySmall?.copyWith(
               color: Colors.white,
@@ -97,7 +99,7 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'From as little as 30 minutes',
+            t('landing.hero_subtitle', 'From as little as 30 minutes'),
             textAlign: TextAlign.center,
             style: theme.textTheme.titleMedium?.copyWith(
               color: const Color(0xFFBFDBFE),
@@ -228,32 +230,33 @@ class _LandingScreenState extends State<LandingScreen> {
       Container(height: size, width: size, decoration: BoxDecoration(shape: BoxShape.circle, color: color));
 
   Widget _features() {
-    return const Padding(
-      padding: EdgeInsets.all(AppSpacing.base),
+    final t = context.watch<ContentProvider>().t;
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.base),
       child: Column(
         children: [
           _FeatureCard(
             icon: Icons.bolt,
-            title: 'Fast Delivery',
-            desc: 'Groceries delivered from your local shop in under an hour.',
-            bg: Color(0xFFDCE8FF),
-            fg: Color(0xFF0056B3),
+            title: t('landing.feature_1_title', 'Fast Delivery'),
+            desc: t('landing.feature_1_desc', 'Groceries delivered from your local shop in under an hour.'),
+            bg: const Color(0xFFDCE8FF),
+            fg: const Color(0xFF0056B3),
           ),
-          SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.md),
           _FeatureCard(
             icon: Icons.storefront_outlined,
-            title: 'Support Local',
-            desc: 'Shop directly from independent convenience stores in your area.',
-            bg: Color(0xFFFFDAD6),
-            fg: Color(0xFFE6203A),
+            title: t('landing.feature_2_title', 'Support Local'),
+            desc: t('landing.feature_2_desc', 'Shop directly from independent convenience stores in your area.'),
+            bg: const Color(0xFFFFDAD6),
+            fg: const Color(0xFFE6203A),
           ),
-          SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.md),
           _FeatureCard(
             icon: Icons.local_offer_outlined,
-            title: 'In-Store Prices',
-            desc: 'Pay exactly what you would in-store, with fair delivery fees.',
-            bg: Color(0xFFDCE8FF),
-            fg: Color(0xFF0056B3),
+            title: t('landing.feature_3_title', 'In-Store Prices'),
+            desc: t('landing.feature_3_desc', 'Pay exactly what you would in-store, with fair delivery fees.'),
+            bg: const Color(0xFFDCE8FF),
+            fg: const Color(0xFF0056B3),
           ),
         ],
       ),
@@ -261,6 +264,7 @@ class _LandingScreenState extends State<LandingScreen> {
   }
 
   Widget _essentials(ThemeData theme) {
+    final t = context.watch<ContentProvider>().t;
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.base, 0, AppSpacing.base, AppSpacing.sm),
       child: Row(
@@ -268,7 +272,7 @@ class _LandingScreenState extends State<LandingScreen> {
         children: [
           Expanded(
             child: Text(
-              'Shop Everyday Essentials',
+              t('landing.section_title', 'Shop Everyday Essentials'),
               style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),

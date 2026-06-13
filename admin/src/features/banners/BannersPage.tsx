@@ -1,18 +1,36 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { bannerApi, getErrorMessage } from '../../services/api';
+import { bannerApi, mediaApi, getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
-import { Image, Plus, Trash2, Edit2, ToggleLeft, ToggleRight, ExternalLink } from 'lucide-react';
+import { Image as ImageIcon, Plus, Trash2, Edit2, ExternalLink, Upload } from 'lucide-react';
+import { PageHeader, Button, Badge, Card, FormField, Input, Toggle, EmptyState, Skeleton } from '../../components/ui';
+import { Modal, ConfirmDialog } from '../../components/ui/Modal';
+import { usePermissions } from '../../features/auth/PermissionContext';
+
+interface Banner {
+    id?: string;
+    title: string;
+    image_url: string;
+    target_url: string;
+    is_active: boolean;
+}
+
+const EMPTY: Banner = { title: '', image_url: '', target_url: '', is_active: true };
 
 export default function BannersPage() {
     const queryClient = useQueryClient();
-    const [isEditing, setIsEditing] = useState<any>(null);
+    const { can } = usePermissions();
+    const [showForm, setShowForm] = useState(false);
+    const [form, setForm] = useState<Banner>(EMPTY);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const { data: banners = [], isLoading } = useQuery({
         queryKey: ['banners'],
         queryFn: async () => {
             const res = await bannerApi.list();
-            return res.data;
+            return res.data as Banner[];
         },
     });
 
@@ -20,7 +38,7 @@ export default function BannersPage() {
         mutationFn: (data: any) => bannerApi.create(data),
         onSuccess: () => {
             toast.success('Banner created');
-            setIsEditing(null);
+            closeForm();
             queryClient.invalidateQueries({ queryKey: ['banners'] });
         },
         onError: (err) => toast.error(getErrorMessage(err)),
@@ -30,7 +48,6 @@ export default function BannersPage() {
         mutationFn: ({ id, data }: { id: string; data: any }) => bannerApi.update(id, data),
         onSuccess: () => {
             toast.success('Banner updated');
-            setIsEditing(null);
             queryClient.invalidateQueries({ queryKey: ['banners'] });
         },
         onError: (err) => toast.error(getErrorMessage(err)),
@@ -40,141 +57,214 @@ export default function BannersPage() {
         mutationFn: (id: string) => bannerApi.delete(id),
         onSuccess: () => {
             toast.success('Banner removed');
+            setDeleteId(null);
             queryClient.invalidateQueries({ queryKey: ['banners'] });
         },
         onError: (err) => toast.error(getErrorMessage(err)),
     });
 
-    if (isLoading) return <div className="p-8">Loading banners...</div>;
+    const openCreate = () => {
+        setForm(EMPTY);
+        setShowForm(true);
+    };
+    const openEdit = (banner: Banner) => {
+        setForm({ ...EMPTY, ...banner });
+        setShowForm(true);
+    };
+    const closeForm = () => {
+        setShowForm(false);
+        setForm(EMPTY);
+    };
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image too large (max 5MB)');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+        setUploading(true);
+        try {
+            const res = await mediaApi.uploadImage(file, 'banners');
+            setForm((f) => ({ ...f, image_url: res.data.url }));
+            toast.success('Image uploaded');
+        } catch (err) {
+            toast.error(getErrorMessage(err, 'Upload failed'));
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const submitForm = () => {
+        if (form.id) updateBanner.mutate({ id: form.id, data: form }, { onSuccess: closeForm });
+        else createBanner.mutate(form);
+    };
 
     return (
-        <div className="p-6">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Image size={32} color="var(--primary)" />
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Storefront Banners</h2>
+        <div>
+            <PageHeader
+                title="Storefront Banners"
+                subtitle="Promotional images shown across the customer storefront."
+                actions={<Button icon={Plus} onClick={openCreate}>Add banner</Button>}
+            />
+
+            {isLoading ? (
+                <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-64 w-full" />
+                    ))}
                 </div>
-                <button 
-                    onClick={() => setIsEditing({ title: '', image_url: '', target_url: '', is_active: true })}
-                    className="btn btn-primary"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                    <Plus size={18} /> Add Banner
-                </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
-                {banners.map((banner: any) => (
-                    <div key={banner.id} style={{ 
-                        background: 'var(--bg-card)', 
-                        borderRadius: 'var(--radius-lg)', 
-                        border: '1px solid var(--border)', 
-                        overflow: 'hidden',
-                        opacity: banner.is_active ? 1 : 0.6,
-                        transition: 'opacity 0.2s'
-                    }}>
-                        <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: 'var(--bg-elevated)' }}>
-                            {banner.image_url ? (
-                                <img src={banner.image_url} alt={banner.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                                    <Image size={48} />
+            ) : banners.length === 0 ? (
+                <Card className="p-0">
+                    <EmptyState
+                        icon={ImageIcon}
+                        title="No banners yet"
+                        message="Add a promotional banner to feature on the storefront home screen."
+                        action={<Button icon={Plus} onClick={openCreate}>Add banner</Button>}
+                    />
+                </Card>
+            ) : (
+                <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+                    {banners.map((banner) => (
+                        <Card key={banner.id} className={`overflow-hidden ${banner.is_active ? '' : 'opacity-60'}`}>
+                            <div className="relative h-44 bg-surface-container-high">
+                                {banner.image_url ? (
+                                    <img src={banner.image_url} alt={banner.title} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-on-surface-variant/50">
+                                        <ImageIcon size={44} />
+                                    </div>
+                                )}
+                                <div className="absolute top-2 left-2">
+                                    <Badge tone={banner.is_active ? 'success' : 'neutral'} dot>
+                                        {banner.is_active ? 'Active' : 'Hidden'}
+                                    </Badge>
                                 </div>
-                            )}
-                            <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                                <button 
-                                    onClick={() => setIsEditing(banner)}
-                                    style={{ padding: '0.4rem', borderRadius: 'var(--radius-md)', background: 'var(--glass-bg)', border: '1px solid var(--border)', cursor: 'pointer' }}
-                                >
-                                    <Edit2 size={16} />
-                                </button>
-                                <button 
-                                    onClick={() => deleteBanner.mutate(banner.id)}
-                                    style={{ padding: '0.4rem', borderRadius: 'var(--radius-md)', background: 'var(--glass-bg)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--danger)' }}
-                                >
-                                    <Trash2 size={16} />
-                                </button>
                             </div>
-                        </div>
-                        <div style={{ padding: '1.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>{banner.title}</h3>
-                                <button 
-                                    onClick={() => updateBanner.mutate({ id: banner.id, data: { ...banner, is_active: !banner.is_active } })}
-                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: banner.is_active ? 'var(--success)' : 'var(--text-muted)' }}
-                                >
-                                    {banner.is_active ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
-                                </button>
+                            <div className="p-4">
+                                <div className="flex items-start justify-between gap-3 mb-2">
+                                    <h3 className="font-headline text-base font-bold text-on-surface truncate">{banner.title || 'Untitled banner'}</h3>
+                                    <Toggle
+                                        checked={banner.is_active}
+                                        onChange={(v) => banner.id && updateBanner.mutate({ id: banner.id, data: { ...banner, is_active: v } })}
+                                        label="Toggle active"
+                                    />
+                                </div>
+                                {banner.target_url && (
+                                    <a
+                                        href={banner.target_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline truncate max-w-full"
+                                    >
+                                        <ExternalLink size={13} className="shrink-0" />
+                                        <span className="truncate">{banner.target_url}</span>
+                                    </a>
+                                )}
+                                <div className="flex items-center gap-1 mt-3 pt-3 border-t border-outline-variant">
+                                    <Button variant="ghost" size="sm" icon={Edit2} onClick={() => openEdit(banner)}>Edit</Button>
+                                    {can('delete_records') && banner.id && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            icon={Trash2}
+                                            onClick={() => setDeleteId(banner.id!)}
+                                            className="text-error hover:bg-error/10 ml-auto"
+                                        />
+                                    )}
+                                </div>
                             </div>
-                            {banner.target_url && (
-                                <a 
-                                    href={banner.target_url} 
-                                    target="_blank" 
-                                    rel="noreferrer"
-                                    style={{ fontSize: '0.8rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
-                                >
-                                    <ExternalLink size={14} /> {banner.target_url}
-                                </a>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {isEditing && (
-                <div style={{ 
-                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', 
-                    background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', 
-                    justifyContent: 'center', zIndex: 1000 
-                }}>
-                    <div style={{ 
-                        background: 'var(--bg-card)', padding: '2rem', borderRadius: 'var(--radius-lg)', 
-                        width: '500px', border: '1px solid var(--border)' 
-                    }}>
-                        <h3 style={{ marginTop: 0 }}>{isEditing.id ? 'Edit Banner' : 'New Banner'}</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem' }}>Title</label>
-                                <input 
-                                    value={isEditing.title}
-                                    onChange={(e) => setIsEditing({...isEditing, title: e.target.value})}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem' }}>Image URL</label>
-                                <input 
-                                    value={isEditing.image_url}
-                                    onChange={(e) => setIsEditing({...isEditing, image_url: e.target.value})}
-                                    placeholder="https://images.com/banner.jpg"
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem' }}>Target Path / URL (Optional)</label>
-                                <input 
-                                    value={isEditing.target_url}
-                                    onChange={(e) => setIsEditing({...isEditing, target_url: e.target.value})}
-                                    placeholder="/aisle/uuid"
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                                />
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                            <button onClick={() => setIsEditing(null)} className="btn btn-ghost">Cancel</button>
-                            <button 
-                                onClick={() => {
-                                    if(isEditing.id) updateBanner.mutate({ id: isEditing.id, data: isEditing });
-                                    else createBanner.mutate(isEditing);
-                                }}
-                                className="btn btn-primary"
-                            >
-                                {isEditing.id ? 'Save Changes' : 'Create Banner'}
-                            </button>
-                        </div>
-                    </div>
+                        </Card>
+                    ))}
                 </div>
             )}
+
+            {/* Create / edit modal */}
+            <Modal
+                open={showForm}
+                onClose={closeForm}
+                title={form.id ? 'Edit banner' : 'New banner'}
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={closeForm}>Cancel</Button>
+                        <Button
+                            onClick={submitForm}
+                            loading={createBanner.isPending || updateBanner.isPending}
+                            disabled={uploading}
+                        >
+                            {form.id ? 'Save changes' : 'Create banner'}
+                        </Button>
+                    </>
+                }
+            >
+                <FormField label="Title" required>
+                    <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                </FormField>
+
+                <FormField label="Banner image" hint="Upload an image or paste a URL below.">
+                    <div className="flex items-start gap-3">
+                        <div className="h-20 w-32 shrink-0 rounded-md overflow-hidden border border-outline-variant bg-surface-container-high flex items-center justify-center">
+                            {form.image_url ? (
+                                <img src={form.image_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                <ImageIcon size={26} className="text-on-surface-variant/40" />
+                            )}
+                        </div>
+                        <div className="flex-1">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleUpload}
+                                className="hidden"
+                            />
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                icon={Upload}
+                                loading={uploading}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                {uploading ? 'Uploading…' : 'Upload image'}
+                            </Button>
+                            <p className="mt-1 text-xs text-on-surface-variant">PNG or JPG, max 5MB.</p>
+                        </div>
+                    </div>
+                </FormField>
+
+                <FormField label="Image URL">
+                    <Input
+                        value={form.image_url}
+                        onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                        placeholder="https://images.com/banner.jpg"
+                    />
+                </FormField>
+
+                <FormField label="Target path / URL (optional)">
+                    <Input
+                        value={form.target_url}
+                        onChange={(e) => setForm({ ...form, target_url: e.target.value })}
+                        placeholder="/aisle/uuid"
+                    />
+                </FormField>
+
+                <FormField label="Active">
+                    <Toggle checked={form.is_active} onChange={(v) => setForm({ ...form, is_active: v })} label="Active" />
+                </FormField>
+            </Modal>
+
+            <ConfirmDialog
+                open={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                onConfirm={() => deleteId && deleteBanner.mutate(deleteId)}
+                title="Delete banner?"
+                message="This banner will be permanently removed from the storefront."
+                confirmLabel="Delete"
+                loading={deleteBanner.isPending}
+            />
         </div>
     );
 }

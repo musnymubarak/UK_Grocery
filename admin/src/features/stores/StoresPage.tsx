@@ -1,253 +1,199 @@
 /**
- * Store management page — admin only.
+ * Store management — admin only. Real per-store ops stats (no fabricated KPIs).
  */
-import React, { useState, useEffect } from 'react';
-import { storeApi, getErrorMessage } from '../../services/api';
-import { Plus, Edit2, Trash2, MapPin, Truck } from 'lucide-react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { storeApi, authApi, analyticsApi, getErrorMessage } from '../../services/api';
+import { Plus, Edit2, Trash2, MapPin, Truck, ShoppingBag, PackageX } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { PageHeader, Button, Card, Badge, Toggle, FormField, Input, Skeleton } from '../../components/ui/primitives';
+import { Modal, ConfirmDialog } from '../../components/ui/Modal';
 
 interface Store {
-    id: string;
-    name: string;
-    code: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-    phone?: string;
-    email?: string;
-    is_active: boolean;
-    created_at: string;
+    id: string; name: string; code: string; address?: string; city?: string; state?: string;
+    country?: string; phone?: string; email?: string; is_active: boolean; avg_prep_time_min?: number; created_at: string;
+}
+interface AlertData {
+    orders?: { pending_action?: number; out_for_delivery?: number; substitution_pending?: number };
+    inventory?: { out_of_stock_skus?: number };
 }
 
+const EMPTY = { name: '', code: '', address: '', city: '', state: '', country: '', phone: '', email: '' };
+
 export default function StoresPage() {
-    const [stores, setStores] = useState<Store[]>([]);
-    const [loading, setLoading] = useState(true);
+    const qc = useQueryClient();
     const [showModal, setShowModal] = useState(false);
     const [editStore, setEditStore] = useState<Store | null>(null);
-    const [form, setForm] = useState({
-        name: '', code: '', address: '', city: '', state: '',
-        country: '', phone: '', email: '',
+    const [form, setForm] = useState(EMPTY);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+
+    const { data: stores = [], isLoading } = useQuery({
+        queryKey: ['stores'],
+        queryFn: async () => { const r = await storeApi.list(); return (r.data.items || r.data || []) as Store[]; },
     });
 
-    useEffect(() => { loadStores(); }, []);
+    const { data: users = [] } = useQuery({
+        queryKey: ['users', 'for-stores'],
+        queryFn: async () => { try { const r = await authApi.listUsers(); return (r.data.items || r.data || []) as any[]; } catch { return []; } },
+    });
 
-    const loadStores = async () => {
-        try {
-            const res = await storeApi.list();
-            setStores(res.data.items || res.data || []);
-        } catch (err) { console.error(err); } finally { setLoading(false); }
+    const storeIds = stores.map((s) => s.id).join(',');
+    const { data: stats = {} } = useQuery<Record<string, AlertData>>({
+        queryKey: ['store-stats', storeIds],
+        enabled: stores.length > 0,
+        refetchInterval: 60000,
+        queryFn: async () => {
+            const entries = await Promise.allSettled(
+                stores.map((s) => analyticsApi.alerts({ store_id: s.id }).then((r) => [s.id, r.data as AlertData] as const)),
+            );
+            const map: Record<string, AlertData> = {};
+            for (const e of entries) if (e.status === 'fulfilled') map[e.value[0]] = e.value[1];
+            return map;
+        },
+    });
+
+    const managerFor = (storeId: string): string | null => {
+        const m = users.find((u) => u.store_id === storeId && u.role === 'manager') || users.find((u) => u.store_id === storeId);
+        return m?.full_name ?? null;
     };
+    const activeOrders = (a?: AlertData): number | null =>
+        a?.orders ? (a.orders.pending_action ?? 0) + (a.orders.out_for_delivery ?? 0) + (a.orders.substitution_pending ?? 0) : null;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const payload = {
-                name: form.name,
-                code: form.code,
-                address: form.address || undefined,
-                city: form.city || undefined,
-                state: form.state || undefined,
-                country: form.country || undefined,
-                phone: form.phone || undefined,
-                email: form.email || undefined,
-            };
-            if (editStore) {
-                await storeApi.update(editStore.id, payload);
-                toast.success('Store updated');
-            } else {
-                await storeApi.create(payload);
-                toast.success('Store created');
-            }
-            setShowModal(false);
-            resetForm();
-            loadStores();
-        } catch (err: any) { toast.error(getErrorMessage(err, 'Failed')); }
-    };
+    const saveMut = useMutation({
+        mutationFn: (payload: any) => editStore ? storeApi.update(editStore.id, payload) : storeApi.create(payload),
+        onSuccess: () => { toast.success(editStore ? 'Store updated' : 'Store created'); setShowModal(false); qc.invalidateQueries({ queryKey: ['stores'] }); },
+        onError: (e) => toast.error(getErrorMessage(e, 'Failed to save')),
+    });
+    const toggleMut = useMutation({
+        mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) => storeApi.update(id, { is_active }),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ['stores'] }),
+        onError: (e) => toast.error(getErrorMessage(e, 'Failed')),
+    });
+    const deleteMut = useMutation({
+        mutationFn: (id: string) => storeApi.delete(id),
+        onSuccess: () => { toast.success('Store deleted'); setDeleteId(null); qc.invalidateQueries({ queryKey: ['stores'] }); },
+        onError: (e) => toast.error(getErrorMessage(e, 'Failed to delete')),
+    });
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this store?')) return;
-        try {
-            await storeApi.delete(id);
-            toast.success('Store deleted');
-            loadStores();
-        } catch (err) { toast.error('Failed to delete'); }
-    };
-
-    const resetForm = () => {
-        setEditStore(null);
-        setForm({ name: '', code: '', address: '', city: '', state: '', country: '', phone: '', email: '' });
-    };
-
-    const openEdit = (store: Store) => {
-        setEditStore(store);
-        setForm({
-            name: store.name, code: store.code, address: store.address || '',
-            city: store.city || '', state: store.state || '', country: store.country || '',
-            phone: store.phone || '', email: store.email || '',
-        });
+    const openCreate = () => { setEditStore(null); setForm(EMPTY); setShowModal(true); };
+    const openEdit = (s: Store) => {
+        setEditStore(s);
+        setForm({ name: s.name, code: s.code, address: s.address || '', city: s.city || '', state: s.state || '', country: s.country || '', phone: s.phone || '', email: s.email || '' });
         setShowModal(true);
+    };
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        saveMut.mutate(Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v || undefined])));
     };
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40 }}>
-                <div>
-                    <h1 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>Stores</h1>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '600px' }}>
-                        Manage your physical locations, monitor fulfillment health, and configure local availability.
-                    </p>
-                </div>
-                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                    <div style={{ display: 'flex', background: 'var(--bg-elevated)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
-                        <button className="btn btn-secondary" style={{ border: 'none', background: 'var(--bg-card)', padding: '8px 16px', boxShadow: 'var(--shadow-sm)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Plus size={14} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, transform: 'scale(1.2)' }} /> Grid</div>
-                        </button>
-                        <button className="btn btn-secondary" style={{ border: 'none', background: 'transparent', padding: '8px 16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MapPin size={16} /> Map</div>
-                        </button>
-                    </div>
-                    <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true); }} style={{ padding: '14px 28px', fontSize: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <Plus size={20} />
-                            Add New Store
-                        </div>
-                    </button>
-                </div>
-            </div>
+            <PageHeader
+                title="Stores"
+                subtitle="Manage locations and monitor live fulfilment health."
+                actions={<Button icon={Plus} onClick={openCreate}>Add store</Button>}
+            />
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
-                {loading ? (
-                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 100 }}><div className="loading-spinner"><div className="spinner" /></div></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {isLoading ? (
+                    Array.from({ length: 3 }).map((_, i) => <Card key={i} className="p-6"><Skeleton className="h-40 w-full" /></Card>)
                 ) : stores.length === 0 ? (
-                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 100, color: 'var(--text-muted)' }}>No stores found.</div>
-                ) : stores.map((store) => (
-                    <div key={store.id} className="card" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>{store.name}</h2>
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 700, borderRadius: 4, padding: '2px 6px', background: store.is_active ? 'var(--success-bg)' : 'var(--danger-bg)', color: store.is_active ? 'var(--success)' : 'var(--danger)' }}>
-                                        {store.is_active ? 'ACTIVE' : 'INACTIVE'}
-                                    </span>
+                    <Card className="col-span-full p-12 text-center text-on-surface-variant">No stores yet.</Card>
+                ) : stores.map((store) => {
+                    const a = stats[store.id];
+                    const orders = activeOrders(a);
+                    const oos = a?.inventory?.out_of_stock_skus;
+                    const manager = managerFor(store.id);
+                    return (
+                        <Card key={store.id} className="p-6 flex flex-col gap-5">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="font-headline text-lg font-extrabold text-on-surface truncate">{store.name}</h2>
+                                        <Badge tone={store.is_active ? 'success' : 'danger'}>{store.is_active ? 'Active' : 'Inactive'}</Badge>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-sm text-on-surface-variant mt-1">
+                                        <MapPin size={15} /> <span className="truncate">{store.address || 'Location not set'}</span>
+                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 8 }}>
-                                    <MapPin size={16} />
-                                    {store.address || 'Location not set'}
-                                </div>
+                                <Toggle checked={store.is_active} onChange={(v) => toggleMut.mutate({ id: store.id, is_active: v })} label="Toggle active" />
                             </div>
-                            <div style={{ 
-                                width: 44, height: 24, background: store.is_active ? 'var(--primary)' : '#ddd', 
-                                borderRadius: 12, position: 'relative', cursor: 'pointer' 
-                            }}>
-                                <div style={{ 
-                                    width: 18, height: 18, background: '#fff', borderRadius: '50%', 
-                                    position: 'absolute', top: 3, left: store.is_active ? 23 : 3,
-                                    transition: 'all 0.2s'
-                                }} />
-                            </div>
-                        </div>
 
-                        <div style={{ background: 'var(--bg-primary)', padding: '1.25rem', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#ccc', overflow: 'hidden' }}>
-                                <img src={`https://ui-avatars.com/api/?name=Manager&background=random`} alt="Avatar" style={{ width: '100%', height: '100%' }} />
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Manager</div>
-                                <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>Sarah Jenkins</div>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <div style={{ background: 'var(--bg-primary)', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Active Orders</div>
-                                <div style={{ fontSize: '1.75rem', fontWeight: 800, margin: '4px 0' }}>142</div>
-                                <div style={{ height: 4, background: '#ddd', borderRadius: 2, overflow: 'hidden' }}>
-                                    <div style={{ width: '60%', height: '100%', background: 'var(--primary)' }} />
+                            <div className="flex items-center gap-3 rounded-md bg-surface-container-low px-4 py-3">
+                                <span className="h-9 w-9 rounded-full bg-primary text-on-primary flex items-center justify-center text-sm font-bold">
+                                    {(manager ?? '–').charAt(0).toUpperCase()}
+                                </span>
+                                <div className="min-w-0">
+                                    <div className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">Manager</div>
+                                    <div className="text-sm font-semibold text-on-surface truncate">{manager ?? 'Unassigned'}</div>
                                 </div>
                             </div>
-                            <div style={{ background: 'var(--bg-primary)', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Today's Revenue</div>
-                                <div style={{ fontSize: '1.75rem', fontWeight: 800, margin: '4px 0' }}>£4,250</div>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>+12%</div>
-                            </div>
-                        </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--border-light)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
-                                <Truck size={18} />
-                                Avg. Fulfillment: <b>24m</b>
+                            <div className="grid grid-cols-2 gap-3">
+                                <StatBox icon={ShoppingBag} label="Active orders" value={orders ?? '—'} />
+                                <StatBox icon={PackageX} label="Out of stock" value={oos ?? '—'} tone={oos ? 'red' : 'muted'} />
                             </div>
-                            <button className="btn-icon" onClick={() => openEdit(store)} style={{ border: 'none', background: 'transparent' }}>
-                                <Edit2 size={18} />
-                            </button>
-                        </div>
-                    </div>
-                ))}
+
+                            <div className="flex items-center justify-between pt-3 border-t border-outline-variant">
+                                <span className="flex items-center gap-2 text-sm text-on-surface-variant">
+                                    <Truck size={16} /> Avg prep: <b className="text-on-surface">{store.avg_prep_time_min ? `${store.avg_prep_time_min}m` : '—'}</b>
+                                </span>
+                                <div className="flex items-center gap-1">
+                                    <Button variant="ghost" size="sm" icon={Edit2} onClick={() => openEdit(store)}>Edit</Button>
+                                    <Button variant="ghost" size="sm" icon={Trash2} onClick={() => setDeleteId(store.id)} className="text-error hover:bg-error/10" />
+                                </div>
+                            </div>
+                        </Card>
+                    );
+                })}
             </div>
 
-            {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 550 }}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">{editStore ? 'Edit Store' : 'New Store'}</h3>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="input-group">
-                                <div className="form-group" style={{ flex: 2 }}>
-                                    <label className="form-label">Store Name *</label>
-                                    <input className="form-input" value={form.name}
-                                        onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                                </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">Code *</label>
-                                    <input className="form-input" value={form.code}
-                                        onChange={(e) => setForm({ ...form, code: e.target.value })} required
-                                        placeholder="e.g. MAIN-01" />
-                                </div>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Address</label>
-                                <input className="form-input" value={form.address}
-                                    onChange={(e) => setForm({ ...form, address: e.target.value })} />
-                            </div>
-                            <div className="input-group">
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">City</label>
-                                    <input className="form-input" value={form.city}
-                                        onChange={(e) => setForm({ ...form, city: e.target.value })} />
-                                </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">State</label>
-                                    <input className="form-input" value={form.state}
-                                        onChange={(e) => setForm({ ...form, state: e.target.value })} />
-                                </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">Country</label>
-                                    <input className="form-input" value={form.country}
-                                        onChange={(e) => setForm({ ...form, country: e.target.value })} />
-                                </div>
-                            </div>
-                            <div className="input-group">
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">Phone</label>
-                                    <input className="form-input" value={form.phone}
-                                        onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                                </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">Email</label>
-                                    <input type="email" className="form-input" value={form.email}
-                                        onChange={(e) => setForm({ ...form, email: e.target.value })} />
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 24 }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">{editStore ? 'Update' : 'Create'} Store</button>
-                            </div>
-                        </form>
+            <Modal
+                open={showModal}
+                onClose={() => setShowModal(false)}
+                title={editStore ? 'Edit store' : 'New store'}
+                footer={<>
+                    <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+                    <Button onClick={submit} loading={saveMut.isPending}>{editStore ? 'Update' : 'Create'}</Button>
+                </>}
+            >
+                <form onSubmit={submit} className="space-y-0">
+                    <div className="grid grid-cols-3 gap-3">
+                        <FormField label="Store name" required className="col-span-2"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></FormField>
+                        <FormField label="Code" required><Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required placeholder="MAIN-01" /></FormField>
                     </div>
-                </div>
-            )}
+                    <FormField label="Address"><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></FormField>
+                    <div className="grid grid-cols-3 gap-3">
+                        <FormField label="City"><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></FormField>
+                        <FormField label="State"><Input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} /></FormField>
+                        <FormField label="Country"><Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} /></FormField>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <FormField label="Phone"><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></FormField>
+                        <FormField label="Email"><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></FormField>
+                    </div>
+                </form>
+            </Modal>
+
+            <ConfirmDialog
+                open={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                onConfirm={() => deleteId && deleteMut.mutate(deleteId)}
+                title="Delete store?"
+                message="This will remove the store. This action cannot be undone."
+                confirmLabel="Delete"
+                loading={deleteMut.isPending}
+            />
+        </div>
+    );
+}
+
+function StatBox({ icon: Icon, label, value, tone = 'primary' }: { icon: React.ComponentType<{ size?: number | string }>; label: string; value: React.ReactNode; tone?: 'primary' | 'red' | 'muted' }) {
+    const color = tone === 'red' ? 'text-error' : tone === 'muted' ? 'text-on-surface-variant' : 'text-primary';
+    return (
+        <div className="rounded-md bg-surface-container-low px-4 py-3">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-on-surface-variant"><Icon size={13} /> {label}</div>
+            <div className={`font-headline text-2xl font-extrabold mt-1 ${color}`}>{value}</div>
         </div>
     );
 }

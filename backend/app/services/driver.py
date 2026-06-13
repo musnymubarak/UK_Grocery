@@ -150,3 +150,49 @@ class DriverService:
             "total_deliveries": profile.total_deliveries,
             "shift_start": profile.shift_start,
         }
+
+    async def update_driver(
+        self,
+        org_id: UUID,
+        user_id: UUID,
+        full_name: Optional[str] = None,
+        phone: Optional[str] = None,
+        store_id: Optional[UUID] = None,
+        vehicle_type: Optional[str] = None,
+        is_active: Optional[bool] = None,
+    ) -> dict:
+        """Edit a driver's profile fields. Only provided fields change."""
+        user = await self.db.get(User, user_id)
+        if not user or user.role != "delivery_boy" or user.organization_id != org_id:
+            raise NotFoundException("Driver not found")
+
+        if full_name is not None:
+            user.full_name = full_name
+        if phone is not None:
+            user.phone = phone
+        if store_id is not None:
+            user.store_id = store_id
+        if is_active is not None:
+            user.is_active = is_active
+
+        profile = await self.get_or_create_profile(user_id)
+        if vehicle_type is not None:
+            profile.vehicle_type = vehicle_type
+
+        await self.db.flush()
+        await self.db.refresh(user)
+        await self.db.refresh(profile)
+        return {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "phone": user.phone,
+            "store_id": user.store_id,
+            "is_active": user.is_active,
+            "created_at": user.created_at,
+            "vehicle_type": profile.vehicle_type,
+            "is_available": profile.is_available,
+            "is_online": profile.is_online,
+            "total_deliveries": profile.total_deliveries,
+            "shift_start": profile.shift_start,
+        }
