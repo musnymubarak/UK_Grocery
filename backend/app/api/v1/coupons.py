@@ -5,7 +5,7 @@ from app.core.rate_limiter import limiter
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_async_session
-from app.core.dependencies import get_current_user, require_role, get_org_context, get_current_customer
+from app.core.dependencies import get_current_user, require_role, get_org_context, get_current_customer, require_capability
 from app.models.user import User
 from app.models.customer import Customer
 from app.schemas.coupon import CouponCreate, CouponUpdate, CouponResponse, CouponValidateRequest, CouponValidateResponse
@@ -19,7 +19,7 @@ async def list_coupons(
     skip: int = 0,
     limit: int = 100,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session)
 ):
     service = CouponService(db)
@@ -29,7 +29,7 @@ async def list_coupons(
 async def create_coupon(
     data: CouponCreate,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session)
 ):
     service = CouponService(db)
@@ -40,7 +40,7 @@ async def update_coupon(
     coupon_id: UUID,
     data: CouponUpdate,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session)
 ):
     service = CouponService(db)
@@ -50,7 +50,7 @@ async def update_coupon(
 async def delete_coupon(
     coupon_id: UUID,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session)
 ):
     service = CouponService(db)

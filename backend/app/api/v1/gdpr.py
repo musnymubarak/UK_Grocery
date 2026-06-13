@@ -36,7 +36,7 @@ async def forget_me(
     await service.anonymize_customer(customer.id)
     return None
 
-@router.post("/admin/anonymize/{customer_id}", summary="Admin-initiated anonymization", dependencies=[Depends(require_capability("delete_records"))])
+@router.post("/admin/anonymize/{customer_id}", summary="Admin-initiated anonymization")
 async def admin_anonymize(
     customer_id: str,
     admin: User = Depends(require_role(["admin", "super_admin"])),

@@ -9,7 +9,7 @@ from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_async_session
-from app.core.dependencies import get_org_context, get_store_scope, require_role
+from app.core.dependencies import get_org_context, get_store_scope, require_role, require_capability
 from app.services.analytics import AnalyticsService
 from app.models.user import User
 from app.models.order import Order
@@ -25,7 +25,7 @@ async def get_dashboard_summary(
     store_id: Optional[UUID] = Query(None, description="Filter by store (admin override)"),
     org_id: UUID = Depends(get_org_context),
     store_scope: Optional[UUID] = Depends(get_store_scope),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("view_reports")),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Get high-level KPIs for the admin dashboard."""
@@ -39,7 +39,7 @@ async def get_revenue_chart(
     store_id: Optional[UUID] = Query(None, description="Filter by store (admin override)"),
     org_id: UUID = Depends(get_org_context),
     store_scope: Optional[UUID] = Depends(get_store_scope),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("view_reports")),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Get historical revenue data for chart rendering."""
@@ -55,7 +55,7 @@ async def get_urgent_alerts(
     low_stock_threshold: int = Query(5, ge=0, le=100, description="Quantity below this counts as low stock"),
     org_id: UUID = Depends(get_org_context),
     store_scope: Optional[UUID] = Depends(get_store_scope),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("view_reports")),
     db: AsyncSession = Depends(get_async_session),
 ):
     """Counts that drive the dashboard's 'urgent actions' panel."""

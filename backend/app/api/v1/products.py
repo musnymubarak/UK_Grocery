@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_db, get_current_user, require_role, get_org_context
+from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, require_capability
 from app.services.product import ProductService
 from app.models.user import User
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
@@ -49,7 +49,7 @@ async def create_product(
     data: ProductCreate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Create a new product (admin/manager only)."""
@@ -87,7 +87,7 @@ async def update_product(
     data: ProductUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Update product (admin/manager only)."""
@@ -100,7 +100,7 @@ async def delete_product(
     product_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Soft delete product (admin/manager only)."""
@@ -114,7 +114,7 @@ async def upload_product_image(
     product_id: UUID,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Upload product image (admin/manager only)."""

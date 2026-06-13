@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, get_store_scope, enforce_store_access
+from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, get_store_scope, enforce_store_access, require_capability
 from app.services.report import ReportService
 from app.models.user import User
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 @router.get("/sales-summary", summary="Sales summary")
 async def sales_summary(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("view_reports")),
     org_id: UUID = Depends(get_org_context),
     store_scope: Optional[UUID] = Depends(get_store_scope),
     store_id: Optional[UUID] = None,
@@ -35,7 +35,7 @@ async def sales_summary(
 @router.get("/product-performance", summary="Product performance")
 async def product_performance(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("view_reports")),
     org_id: UUID = Depends(get_org_context),
     store_scope: Optional[UUID] = Depends(get_store_scope),
     store_id: Optional[UUID] = None,
@@ -53,7 +53,7 @@ async def product_performance(
 @router.get("/cashier-performance", summary="Cashier performance")
 async def cashier_performance(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("view_reports")),
     org_id: UUID = Depends(get_org_context),
     store_scope: Optional[UUID] = Depends(get_store_scope),
     store_id: Optional[UUID] = None,
@@ -70,7 +70,7 @@ async def cashier_performance(
 @router.get("/inventory-valuation", summary="Inventory valuation")
 async def inventory_valuation(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("view_reports")),
     org_id: UUID = Depends(get_org_context),
     store_scope: Optional[UUID] = Depends(get_store_scope),
     store_id: Optional[UUID] = None,

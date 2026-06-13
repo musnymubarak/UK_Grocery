@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_db, get_current_user, require_role, get_org_context
+from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, require_capability
 from app.models.user import User
 from app.models.category import Category
 from app.repositories.base import BaseRepository
@@ -32,7 +32,7 @@ async def list_categories(
 async def create_category(
     data: CategoryCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Create a new category (admin/manager only)."""
@@ -47,7 +47,7 @@ async def update_category(
     category_id: UUID,
     data: CategoryUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Update category (admin/manager only)."""
@@ -62,7 +62,7 @@ async def update_category(
 async def delete_category(
     category_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Soft delete category (admin/manager only)."""

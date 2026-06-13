@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, get_store_scope, enforce_store_access
+from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, get_store_scope, enforce_store_access, require_capability
 from app.services.inventory import InventoryService
 from app.models.user import User
 from app.schemas.inventory import (
@@ -42,7 +42,7 @@ async def adjust_stock(
     data: StockAdjustment,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
     store_scope: UUID = Depends(get_store_scope),
 ):
@@ -62,7 +62,7 @@ async def transfer_stock(
     data: StockTransfer,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
     store_scope: UUID = Depends(get_store_scope),
 ):
@@ -78,7 +78,7 @@ async def add_purchase(
     data: PurchaseEntry,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_catalog")),
     org_id: UUID = Depends(get_org_context),
     store_scope: UUID = Depends(get_store_scope),
 ):

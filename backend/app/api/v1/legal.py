@@ -22,21 +22,21 @@ class LegalSave(BaseModel):
     body: str = ""
 
 
-@router.get("", dependencies=[Depends(require_capability("manage_settings"))])
+@router.get("")
 async def get_legal_admin(
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session),
 ) -> Dict[str, Any]:
     return {"pages": LEGAL_PAGES, "values": await get_legal(db, org_id)}
 
 
-@router.put("/{slug}", dependencies=[Depends(require_capability("manage_settings"))])
+@router.put("/{slug}")
 async def save_legal_admin(
     slug: str,
     data: LegalSave,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session),
 ) -> Dict[str, Any]:
     if slug not in SLUGS:

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_async_session
-from app.core.dependencies import require_role, get_org_context
+from app.core.dependencies import require_role, get_org_context, require_capability
 from app.models.user import User
 from app.schemas.purchase_order import (
     PurchaseOrderCreate, PurchaseOrderUpdate, PurchaseOrderResponse, ReceiveRequest,
@@ -24,7 +24,7 @@ async def list_purchase_orders(
     supplier_id: Optional[UUID] = None,
     status: Optional[str] = None,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(ROLES)),
+    current_user: User = Depends(require_capability("manage_procurement")),
     db: AsyncSession = Depends(get_async_session),
 ):
     return await PurchaseOrderService(db).list_orders(org_id, supplier_id, status)
@@ -34,7 +34,7 @@ async def list_purchase_orders(
 async def create_purchase_order(
     data: PurchaseOrderCreate, request: Request,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(ROLES)),
+    current_user: User = Depends(require_capability("manage_procurement")),
     db: AsyncSession = Depends(get_async_session),
 ):
     return await PurchaseOrderService(db).create_with_items(org_id, data, current_user, request)
@@ -44,7 +44,7 @@ async def create_purchase_order(
 async def get_purchase_order(
     po_id: UUID,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(ROLES)),
+    current_user: User = Depends(require_capability("manage_procurement")),
     db: AsyncSession = Depends(get_async_session),
 ):
     return await PurchaseOrderService(db).get_order(org_id, po_id)
@@ -54,7 +54,7 @@ async def get_purchase_order(
 async def update_purchase_order(
     po_id: UUID, data: PurchaseOrderUpdate, request: Request,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(ROLES)),
+    current_user: User = Depends(require_capability("manage_procurement")),
     db: AsyncSession = Depends(get_async_session),
 ):
     return await PurchaseOrderService(db).update(org_id, po_id, data, current_user, request)
@@ -64,7 +64,7 @@ async def update_purchase_order(
 async def receive_purchase_order(
     po_id: UUID, data: ReceiveRequest, request: Request,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(ROLES)),
+    current_user: User = Depends(require_capability("manage_procurement")),
     db: AsyncSession = Depends(get_async_session),
 ):
     return await PurchaseOrderService(db).receive(org_id, po_id, data, current_user, request)
@@ -74,7 +74,7 @@ async def receive_purchase_order(
 async def cancel_purchase_order(
     po_id: UUID, request: Request,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(ROLES)),
+    current_user: User = Depends(require_capability("manage_procurement")),
     db: AsyncSession = Depends(get_async_session),
 ):
     return await PurchaseOrderService(db).cancel(org_id, po_id, current_user, request)
@@ -84,7 +84,7 @@ async def cancel_purchase_order(
 async def delete_purchase_order(
     po_id: UUID, request: Request,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(ROLES)),
+    current_user: User = Depends(require_capability("manage_procurement")),
     db: AsyncSession = Depends(get_async_session),
 ):
     await PurchaseOrderService(db).delete(org_id, po_id, current_user, request)

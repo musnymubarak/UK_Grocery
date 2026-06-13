@@ -33,11 +33,11 @@ class WebhookResponse(BaseModel):
     class Config:
         from_attributes = True
 
-@router.post("", response_model=dict, dependencies=[Depends(require_capability("manage_settings"))])
+@router.post("", response_model=dict)
 async def create_webhook(
     data: WebhookCreate,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Register a new webhook endpoint."""
@@ -58,10 +58,10 @@ async def create_webhook(
         "status": "created"
     }
 
-@router.get("", response_model=List[dict], dependencies=[Depends(require_capability("manage_settings"))])
+@router.get("", response_model=List[dict])
 async def list_webhooks(
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session)
 ):
     """List all registered webhooks for the organization."""
@@ -81,7 +81,7 @@ async def list_webhooks(
 async def delete_webhook(
     webhook_id: UUID,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Disable a webhook endpoint. Sets is_active=false; delivery history is preserved."""
@@ -96,7 +96,7 @@ async def delete_webhook(
 @router.get("/{webhook_id}/deliveries", response_model=List[dict])
 async def get_webhook_deliveries(
     webhook_id: UUID,
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session)
 ):
     """View recent delivery logs for a specific webhook."""

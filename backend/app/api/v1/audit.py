@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, get_store_scope, enforce_store_access
+from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, get_store_scope, enforce_store_access, require_capability
 from app.services.audit import AuditService
 from app.models.user import User
 from app.schemas.audit import AuditLogResponse
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/audit", tags=["Audit"])
 @router.get("", summary="List audit logs")
 async def list_audit_logs(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("view_reports")),
     org_id: UUID = Depends(get_org_context),
     store_scope: Optional[UUID] = Depends(get_store_scope),
     store_id: Optional[UUID] = Query(None, description="Filter by store"),
@@ -64,7 +64,7 @@ async def list_audit_logs(
 @router.get("/export", summary="Export audit logs to CSV")
 async def export_audit_logs(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("view_reports")),
     org_id: UUID = Depends(get_org_context),
     store_id: Optional[UUID] = Query(None, description="Filter by store"),
     start_date: Optional[datetime] = Query(None, description="Start date"),
