@@ -21,20 +21,20 @@ class ContentSave(BaseModel):
     values: Dict[str, str]
 
 
-@router.get("", dependencies=[Depends(require_capability("manage_settings"))])
+@router.get("")
 async def get_content_admin(
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session),
 ):
     return {"groups": CONTENT_CATALOGUE, "values": await get_content(db, org_id)}
 
 
-@router.put("", dependencies=[Depends(require_capability("manage_settings"))])
+@router.put("")
 async def save_content_admin(
     data: ContentSave,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session),
 ):
     await save_content(db, org_id, data.values)

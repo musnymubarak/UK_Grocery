@@ -30,20 +30,20 @@ class AnnouncementSave(BaseModel):
     ends_at: Optional[str] = None
 
 
-@router.get("", dependencies=[Depends(require_capability("manage_settings"))])
+@router.get("")
 async def get_announcement_admin(
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session),
 ) -> Dict[str, Any]:
     return await get_announcement(db, org_id)
 
 
-@router.put("", dependencies=[Depends(require_capability("manage_settings"))])
+@router.put("")
 async def save_announcement_admin(
     data: AnnouncementSave,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session),
 ) -> Dict[str, Any]:
     saved = await save_announcement(db, org_id, data.model_dump())

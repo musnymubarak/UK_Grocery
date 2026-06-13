@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_async_session
-from app.core.dependencies import get_current_user, require_role, get_org_context, get_current_customer
+from app.core.dependencies import get_current_user, require_role, get_org_context, get_current_customer, require_capability
 from app.models.user import User
 from app.models.customer import Customer
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/rewards", tags=["Rewards"])
 @router.get("/tiers", response_model=List[RewardsTierResponse])
 async def list_tiers(
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session)
 ):
     service = RewardsService(db)
@@ -27,7 +27,7 @@ async def list_tiers(
 async def create_tier(
     data: RewardsTierCreate,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session)
 ):
     service = RewardsService(db)
@@ -38,7 +38,7 @@ async def update_tier(
     tier_id: UUID,
     data: RewardsTierUpdate,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session)
 ):
     service = RewardsService(db)
@@ -48,7 +48,7 @@ async def update_tier(
 async def delete_tier(
     tier_id: UUID,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session)
 ):
     service = RewardsService(db)

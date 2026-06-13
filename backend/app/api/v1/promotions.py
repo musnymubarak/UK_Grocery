@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 
 from app.core.database import get_async_session
-from app.core.dependencies import get_org_context, require_role
+from app.core.dependencies import get_org_context, require_role, require_capability
 from app.services.promotion import PromotionService
 from app.models.user import User
 
@@ -62,7 +62,7 @@ def _serialize(p) -> dict:
 async def list_promotions(
     store_id: Optional[UUID] = Query(None, description="Filter to a store (also includes org-wide)"),
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session),
 ):
     service = PromotionService(db)
@@ -74,7 +74,7 @@ async def list_promotions(
 async def create_promotion(
     data: PromotionCreate,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session),
 ):
     service = PromotionService(db)
@@ -87,7 +87,7 @@ async def update_promotion(
     promotion_id: UUID,
     data: PromotionUpdate,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session),
 ):
     service = PromotionService(db)
@@ -99,7 +99,7 @@ async def update_promotion(
 async def delete_promotion(
     promotion_id: UUID,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("manage_promotions")),
     db: AsyncSession = Depends(get_async_session),
 ):
     service = PromotionService(db)

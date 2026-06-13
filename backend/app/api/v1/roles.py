@@ -25,20 +25,20 @@ class RolesConfig(BaseModel):
     roles: Dict[str, RoleEntry]
 
 
-@router.get("", dependencies=[Depends(require_capability("manage_users"))])
+@router.get("")
 async def get_roles(
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_users")),
     db: AsyncSession = Depends(get_async_session),
 ):
     return {"capabilities": CAPABILITIES, "roles": await get_rbac_config(db, org_id)}
 
 
-@router.put("", dependencies=[Depends(require_capability("manage_users"))])
+@router.put("")
 async def save_roles(
     data: RolesConfig,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["super_admin", "admin"])),
+    current_user: User = Depends(require_capability("manage_users")),
     db: AsyncSession = Depends(get_async_session),
 ):
     payload = {r: {"capabilities": e.capabilities, "hidden_pages": e.hidden_pages} for r, e in data.roles.items()}

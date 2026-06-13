@@ -119,12 +119,12 @@ async def get_current_user_info(
     return current_user
 
 
-@router.post("/users", response_model=UserResponse, summary="Create user", dependencies=[Depends(require_capability("manage_users"))])
+@router.post("/users", response_model=UserResponse, summary="Create user")
 async def create_user(
     data: UserCreate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_users")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Create a new user (admin only)."""
@@ -132,10 +132,10 @@ async def create_user(
     return await service.register_user(data, org_id, current_user=current_user, request=request)
 
 
-@router.get("/users", response_model=List[UserResponse], summary="List users", dependencies=[Depends(require_capability("manage_users"))])
+@router.get("/users", response_model=List[UserResponse], summary="List users")
 async def list_users(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_users")),
     org_id: UUID = Depends(get_org_context),
 ):
     """List all users in the organization (admin only)."""
@@ -153,7 +153,7 @@ async def delete_user(
     user_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_users")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Soft-delete a staff user (admin only). Cannot delete yourself."""
@@ -174,13 +174,13 @@ async def delete_user(
     )
 
 
-@router.put("/users/{user_id}", response_model=UserResponse, summary="Update user", dependencies=[Depends(require_capability("manage_users"))])
+@router.put("/users/{user_id}", response_model=UserResponse, summary="Update user")
 async def update_user(
     user_id: UUID,
     data: UserUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"])),
+    current_user: User = Depends(require_capability("manage_users")),
     org_id: UUID = Depends(get_org_context),
 ):
     """Update user details (admin only)."""

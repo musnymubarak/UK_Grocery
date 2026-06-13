@@ -15,13 +15,13 @@ from app.services.report import ReportService
 
 router = APIRouter(prefix="/exports", tags=["Exports"])
 
-@router.get("/sales", dependencies=[Depends(require_capability("export_data"))])
+@router.get("/sales")
 async def export_sales_csv(
     store_id: Optional[UUID] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
     org_id: UUID = Depends(get_org_context),
-    current_user: User = Depends(require_role(["admin", "manager"])),
+    current_user: User = Depends(require_capability("export_data")),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Export sales summary as CSV."""
