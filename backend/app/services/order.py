@@ -82,6 +82,72 @@ class OrderService:
         result = await self.db.execute(query)
         return list(result.scalars().all())
         
+    async def get_dispatch_board(self, org_id: UUID, store_id: Optional[UUID] = None) -> dict:
+        """Live dispatch view: active orders split into unassigned vs in-flight,
+        plus the driver roster with each driver's current active-order load."""
+        from sqlalchemy.orm import selectinload
+        from app.models.driver import DriverProfile
+
+        active = [
+            "confirmed", "picking", "substitution_pending",
+            "ready_for_collection", "assigned_to_driver", "out_for_delivery",
+        ]
+        query = (
+            select(Order)
+            .options(selectinload(Order.customer), selectinload(Order.delivery_boy))
+            .where(Order.organization_id == org_id, Order.status.in_(active))
+        )
+        if store_id:
+            query = query.where(Order.store_id == store_id)
+        query = query.order_by(Order.created_at)
+        orders = list((await self.db.execute(query)).scalars().all())
+
+        def card(o: Order) -> dict:
+            return {
+                "id": str(o.id),
+                "order_number": o.order_number,
+                "status": o.status,
+                "total": float(o.total or 0),
+                "created_at": o.created_at.isoformat() if o.created_at else None,
+                "item_count": len(o.items),
+                "customer_name": o.customer.full_name if o.customer else None,
+                "delivery_address": o.delivery_address,
+                "store_id": str(o.store_id),
+                "assigned_to": str(o.assigned_to) if o.assigned_to else None,
+                "driver_name": o.delivery_boy.full_name if o.delivery_boy else None,
+            }
+
+        unassigned = [card(o) for o in orders if o.assigned_to is None]
+        in_flight = [card(o) for o in orders if o.assigned_to is not None]
+
+        load: dict = {}
+        for o in orders:
+            if o.assigned_to is not None:
+                load[o.assigned_to] = load.get(o.assigned_to, 0) + 1
+
+        dq = (
+            select(User, DriverProfile)
+            .outerjoin(DriverProfile, DriverProfile.user_id == User.id)
+            .where(User.organization_id == org_id, User.role == "delivery_boy")
+        )
+        if store_id:
+            dq = dq.where(User.store_id == store_id)
+        rows = (await self.db.execute(dq)).all()
+        drivers = [
+            {
+                "id": str(u.id),
+                "name": u.full_name,
+                "is_available": bool(p.is_available) if p else False,
+                "is_online": bool(p.is_online) if p else False,
+                "total_deliveries": int(p.total_deliveries) if p else 0,
+                "active_orders": load.get(u.id, 0),
+            }
+            for (u, p) in rows
+        ]
+        drivers.sort(key=lambda d: (not d["is_available"], d["active_orders"], d["name"]))
+
+        return {"unassigned": unassigned, "in_flight": in_flight, "drivers": drivers}
+
     async def get_assigned_orders(self, user_id: UUID, skip: int = 0, limit: int = 50) -> List[Order]:
         from sqlalchemy.orm import selectinload
         query = select(Order).options(

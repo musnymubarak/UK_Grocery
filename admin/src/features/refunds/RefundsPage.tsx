@@ -1,14 +1,50 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { refundApi, getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
-import { Undo2, CheckCircle, XCircle, Clock, AlertTriangle, FileText, Eye, ShoppingBag, User, CreditCard } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, ShoppingBag, CreditCard, User } from 'lucide-react';
+import { PageHeader, Button, Badge, Select, Textarea } from '../../components/ui';
+import { Modal } from '../../components/ui/Modal';
+import { DataTable, type Column } from '../../components/ui/DataTable';
+import { usePermissions } from '../../features/auth/PermissionContext';
+
+const gbp = (n: any) => `£${Number(n || 0).toFixed(2)}`;
+
+const STATUS_TONE: Record<string, any> = {
+    pending: 'warning',
+    approved: 'success',
+    rejected: 'danger',
+    partially_approved: 'info',
+    processed: 'success',
+};
+const STATUS_LABEL: Record<string, string> = {
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    partially_approved: 'Partial',
+    processed: 'Processed',
+};
+const statusTone = (s: string) => STATUS_TONE[s] || 'neutral';
+const statusLabel = (s: string) => STATUS_LABEL[s] || s;
+
+interface Refund {
+    id: string;
+    order_id: string;
+    order_reference?: string;
+    customer_name?: string;
+    destination?: string;
+    total_amount: string | number;
+    status: string;
+    created_at: string;
+    items?: any[];
+}
 
 export default function RefundsPage() {
+    const { can } = usePermissions();
     const queryClient = useQueryClient();
-    const [selectedRefund, setSelectedRefund] = useState<any | null>(null);
-    const [processingItem, setProcessingItem] = useState<{refundId: string, itemId: string} | null>(null);
-    const [action, setAction] = useState<'approved' | 'rejected' | null>(null);
+    const [selectedRefund, setSelectedRefund] = useState<Refund | null>(null);
+    const [processingItem, setProcessingItem] = useState<{ refundId: string; itemId: string } | null>(null);
+    const [action, setAction] = useState<'approved' | 'rejected'>('approved');
     const [notes, setNotes] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved'>('pending');
 
@@ -21,24 +57,23 @@ export default function RefundsPage() {
             if (statusFilter === 'resolved') {
                 data = data.filter((r: any) => r.status !== 'pending');
             }
-            return data;
+            return data as Refund[];
         },
     });
 
     const processItem = useMutation({
-        mutationFn: ({ refundId, itemId, status, notes }: { refundId: string, itemId: string, status: string, notes: string }) => 
+        mutationFn: ({ refundId, itemId, status, notes }: { refundId: string; itemId: string; status: string; notes: string }) =>
             refundApi.processItem(refundId, itemId, { status, admin_notes: notes }),
         onSuccess: (res) => {
             toast.success(`Item ${action} successfully`);
             setProcessingItem(null);
-            setAction(null);
             setNotes('');
             queryClient.invalidateQueries({ queryKey: ['refunds'] });
-            
+
             // Update local state for the selected refund to show immediate feedback
             if (selectedRefund) {
-                const updatedItems = selectedRefund.items.map((it: any) => 
-                    it.id === res.data.id ? res.data : it
+                const updatedItems = (selectedRefund.items || []).map((it: any) =>
+                    it.id === res.data.id ? res.data : it,
                 );
                 setSelectedRefund({ ...selectedRefund, items: updatedItems });
             }
@@ -46,314 +81,292 @@ export default function RefundsPage() {
         onError: (err) => toast.error(getErrorMessage(err)),
     });
 
-    if (isLoading) return <div className="p-8">Loading refund requests...</div>;
+    const refundRef = (r: Refund) => r.order_reference || 'REF-' + r.order_id.slice(0, 8);
 
-    const getStatusStyle = (status: string) => {
-        switch(status) {
-            case 'pending': return { label: 'Pending', icon: Clock, color: 'var(--warning)', bg: 'var(--warning)15' };
-            case 'approved': return { label: 'Approved', icon: CheckCircle, color: 'var(--success)', bg: 'var(--success)15' };
-            case 'rejected': return { label: 'Rejected', icon: XCircle, color: 'var(--danger)', bg: 'var(--danger)15' };
-            case 'partially_approved': return { label: 'Partial', icon: CheckCircle, color: 'var(--primary)', bg: 'var(--primary)15' };
-            default: return { label: status, icon: Clock, color: 'var(--text-muted)', bg: 'var(--bg-elevated)' };
-        }
-    };
+    const columns: Column<Refund>[] = [
+        {
+            key: 'ref',
+            header: 'Order Ref',
+            sortable: true,
+            accessor: (r) => refundRef(r),
+            render: (r) => <span className="font-mono font-semibold text-on-surface">{refundRef(r)}</span>,
+        },
+        {
+            key: 'customer',
+            header: 'Customer',
+            sortable: true,
+            accessor: (r) => r.customer_name || 'Customer',
+            render: (r) => (
+                <div className="flex items-center gap-2">
+                    <span className="flex items-center justify-center h-6 w-6 rounded-full bg-surface-container text-on-surface-variant">
+                        <User size={14} />
+                    </span>
+                    <span>{r.customer_name || 'Customer'}</span>
+                </div>
+            ),
+        },
+        {
+            key: 'destination',
+            header: 'Destination',
+            align: 'center',
+            accessor: (r) => (r.destination === 'wallet' ? 'Wallet' : 'Original'),
+            render: (r) => (
+                <Badge tone={r.destination === 'wallet' ? 'primary' : 'neutral'}>
+                    {r.destination === 'wallet' ? (
+                        <>
+                            <ShoppingBag size={12} /> Wallet
+                        </>
+                    ) : (
+                        <>
+                            <CreditCard size={12} /> Original
+                        </>
+                    )}
+                </Badge>
+            ),
+        },
+        {
+            key: 'total',
+            header: 'Total',
+            align: 'right',
+            sortable: true,
+            accessor: (r) => Number(r.total_amount),
+            render: (r) => (
+                <span className={Number(r.total_amount) > 0 ? 'font-semibold text-success' : 'font-semibold text-on-surface'}>
+                    {gbp(r.total_amount)}
+                </span>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            align: 'center',
+            accessor: (r) => statusLabel(r.status),
+            render: (r) => (
+                <Badge tone={statusTone(r.status)} dot>
+                    {statusLabel(r.status)}
+                </Badge>
+            ),
+        },
+        {
+            key: 'date',
+            header: 'Date',
+            align: 'right',
+            sortable: true,
+            accessor: (r) => r.created_at,
+            render: (r) => new Date(r.created_at).toLocaleDateString(),
+        },
+    ];
 
     return (
-        <div className="p-6">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ background: 'var(--primary)15', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
-                        <Undo2 size={24} color="var(--primary)" />
-                    </div>
-                    <div>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Refund Requests</h2>
-                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Review and process item-level refund claims</p>
-                    </div>
-                </div>
+        <div>
+            <PageHeader
+                title="Refund Requests"
+                subtitle="Review and process item-level refund claims."
+            />
+            <DataTable
+                data={refunds}
+                columns={columns}
+                rowKey={(r) => r.id}
+                loading={isLoading}
+                searchKeys={[(r) => refundRef(r), (r) => r.customer_name]}
+                searchPlaceholder="Search order ref or customer…"
+                exportFilename={can('export_data') ? 'refunds' : undefined}
+                onRowClick={(r) => setSelectedRefund(r)}
+                emptyTitle="No refund requests"
+                emptyMessage="There are no refund requests matching this filter."
+                toolbar={
+                    <Select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="w-44"
+                    >
+                        <option value="pending">Pending</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="all">All</option>
+                    </Select>
+                }
+            />
 
-                <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '100px' }}>
-                    {['pending', 'resolved', 'all'].map(tab => (
-                        <button 
-                            key={tab}
-                            onClick={() => setStatusFilter(tab as any)}
-                            style={{
-                                padding: '8px 20px',
-                                borderRadius: '100px',
-                                border: 'none',
-                                background: statusFilter === tab ? 'var(--primary-200)' : 'transparent',
-                                color: statusFilter === tab ? 'var(--primary-dark)' : 'var(--text-secondary)',
-                                fontWeight: 600,
-                                fontSize: '0.9rem',
-                                cursor: 'pointer',
-                                textTransform: 'capitalize',
-                                transition: 'all 0.2s'
-                            }}
+            {/* Refund detail */}
+            <RefundDetail
+                refund={selectedRefund}
+                onClose={() => setSelectedRefund(null)}
+                onDecide={(itemId) => {
+                    if (!selectedRefund) return;
+                    setProcessingItem({ refundId: selectedRefund.id, itemId });
+                    setAction('approved');
+                    setNotes('');
+                }}
+            />
+
+            {/* Item decision */}
+            <Modal
+                open={!!processingItem}
+                onClose={() => { setProcessingItem(null); setNotes(''); }}
+                title="Review item claim"
+                size="sm"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => { setProcessingItem(null); setNotes(''); }}>Cancel</Button>
+                        <Button
+                            variant={action === 'approved' ? 'success' : 'danger'}
+                            loading={processItem.isPending}
+                            onClick={() =>
+                                processingItem &&
+                                processItem.mutate({ refundId: processingItem.refundId, itemId: processingItem.itemId, status: action, notes })
+                            }
                         >
-                            {tab}
-                        </button>
-                    ))}
+                            Confirm {action === 'approved' ? 'approve' : 'reject'}
+                        </Button>
+                    </>
+                }
+            >
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                    <button
+                        type="button"
+                        onClick={() => setAction('approved')}
+                        className={
+                            'flex flex-col items-center gap-1.5 py-4 rounded-lg border-2 font-semibold transition-colors ' +
+                            (action === 'approved'
+                                ? 'border-success bg-success/10 text-success'
+                                : 'border-outline-variant text-on-surface-variant hover:bg-surface-container')
+                        }
+                    >
+                        <CheckCircle size={22} /> Approve
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setAction('rejected')}
+                        className={
+                            'flex flex-col items-center gap-1.5 py-4 rounded-lg border-2 font-semibold transition-colors ' +
+                            (action === 'rejected'
+                                ? 'border-error bg-error/10 text-error'
+                                : 'border-outline-variant text-on-surface-variant hover:bg-surface-container')
+                        }
+                    >
+                        <XCircle size={22} /> Reject
+                    </button>
                 </div>
-            </div>
-
-            <div className="table-container">
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Order Ref</th>
-                            <th>Customer</th>
-                            <th>Approved Total</th>
-                            <th>Dest.</th>
-                            <th>Items</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {refunds.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-                                    <Clock size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-                                    <div>No refund requests found.</div>
-                                </td>
-                            </tr>
-                        ) : (
-                            refunds.map((refund: any) => {
-                                const status = getStatusStyle(refund.status);
-                                const StatusIcon = status.icon;
-                                return (
-                                    <tr key={refund.id}>
-                                        <td>{new Date(refund.created_at).toLocaleDateString()}</td>
-                                        <td><span className="badge badge-outline">{refund.order_reference || 'REF-'+refund.order_id.slice(0,8)}</span></td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <User size={14} />
-                                                </div>
-                                                {refund.customer_name || 'Customer'}
-                                            </div>
-                                        </td>
-                                        <td style={{ fontWeight: 700, color: refund.total_amount > 0 ? 'var(--success)' : 'inherit' }}>
-                                            £{Number(refund.total_amount).toFixed(2)}
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                {refund.destination === 'wallet' ? <ShoppingBag size={14} /> : <CreditCard size={14} />}
-                                                {refund.destination === 'wallet' ? 'Wallet' : 'Original'}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span style={{ fontSize: '0.85rem' }}>{refund.items?.length || 0} items</span>
-                                        </td>
-                                        <td>
-                                            <div style={{ 
-                                                display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
-                                                color: status.color, background: status.bg, 
-                                                padding: '0.25rem 0.6rem', borderRadius: '1rem',
-                                                fontWeight: 600, fontSize: '0.8rem' 
-                                            }}>
-                                                <StatusIcon size={14} /> {status.label}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <button 
-                                                onClick={() => setSelectedRefund(refund)}
-                                                className="btn btn-sm btn-ghost"
-                                                style={{ gap: '0.5rem' }}
-                                            >
-                                                <Eye size={16} /> Review
-                                            </button>
-                                        </td>
-                                    </tr>
-                                )
-                            })
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Refund Details & Processing Modal */}
-            {selectedRefund && (
-                <div className="modal-overlay" onClick={() => setSelectedRefund(null)}>
-                    <div className="modal" style={{ width: '800px', maxWidth: '95vw', height: '80vh' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <h3 style={{ margin: 0 }}>Refund Claim: {selectedRefund.order_reference || selectedRefund.id.slice(0,8)}</h3>
-                                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                    Requested on {new Date(selectedRefund.created_at).toLocaleString()}
-                                </p>
-                            </div>
-                            <button onClick={() => setSelectedRefund(null)} className="btn btn-ghost">Close</button>
-                        </div>
-
-                        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-                                <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Customer</div>
-                                    <div style={{ fontWeight: 600 }}>{selectedRefund.customer_name || 'System User'}</div>
-                                </div>
-                                <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Method</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-                                        {selectedRefund.destination === 'wallet' ? <ShoppingBag size={18} /> : <CreditCard size={18} />}
-                                        {selectedRefund.destination === 'wallet' ? 'Wallet Credit' : 'Original Payment Method'}
-                                    </div>
-                                </div>
-                                <div style={{ background: 'var(--bg-elevated)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Current Approved Total</div>
-                                    <div style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--success)' }}>£{Number(selectedRefund.total_amount).toFixed(2)}</div>
-                                </div>
-                            </div>
-
-                            <h4 style={{ marginBottom: '1rem' }}>Requested Items ({selectedRefund.items?.length || 0})</h4>
-                            <div className="table-container" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                                <table className="table" style={{ margin: 0 }}>
-                                    <thead style={{ background: 'var(--bg-elevated)' }}>
-                                        <tr>
-                                            <th>Item</th>
-                                            <th>Qty</th>
-                                            <th>Refund Amount</th>
-                                            <th>Reason</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {selectedRefund.items?.map((item: any) => {
-                                            const itemStatus = getStatusStyle(item.status);
-                                            return (
-                                                <tr key={item.id}>
-                                                    <td>
-                                                        <div style={{ fontWeight: 600 }}>{item.product_name || 'Order Item'}</div>
-                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {item.id.slice(0,8)}</div>
-                                                    </td>
-                                                    <td>{item.quantity}</td>
-                                                    <td style={{ fontWeight: 600 }}>£{Number(item.amount).toFixed(2)}</td>
-                                                    <td style={{ fontSize: '0.85rem' }}>
-                                                        <div className="badge badge-outline" style={{ fontSize: '0.7rem' }}>{item.reason.replace('_', ' ')}</div>
-                                                        {item.customer_notes && (
-                                                            <div style={{ marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                                                "{item.customer_notes}"
-                                                            </div>
-                                                        )}
-                                                        {item.evidence?.length > 0 && (
-                                                            <div style={{ marginTop: '8px', display: 'flex', gap: '4px' }}>
-                                                                {item.evidence.map((ev: any, idx: number) => (
-                                                                    <a key={idx} href={ev.file_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
-                                                                        <img src={ev.file_url} alt="Evidence" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--border)' }} />
-                                                                    </a>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td>
-                                                        <div style={{ color: itemStatus.color, display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', fontWeight: 600 }}>
-                                                            <itemStatus.icon size={14} /> {itemStatus.label}
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        {item.status === 'pending' ? (
-                                                            <button 
-                                                                onClick={() => { setProcessingItem({refundId: selectedRefund.id, itemId: item.id}); setAction('approved'); }}
-                                                                className="btn btn-xs btn-primary"
-                                                            >
-                                                                Decide
-                                                            </button>
-                                                        ) : (
-                                                            <button 
-                                                                onClick={() => item.admin_notes && toast(`Notes: ${item.admin_notes}`)}
-                                                                className="btn btn-xs btn-ghost"
-                                                                disabled={!item.admin_notes}
-                                                            >
-                                                                <FileText size={14} />
-                                                            </button>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Individual Item Decision Modal */}
-            {processingItem && action && (
-                <div className="modal-overlay" style={{ zIndex: 1100 }}>
-                    <div className="modal" style={{ width: '450px' }}>
-                        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <AlertTriangle color="var(--warning)" size={24} />
-                            <h3 style={{ margin: 0 }}>Review Item Claim</h3>
-                        </div>
-
-                        <div style={{ padding: '1.5rem' }}>
-                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                                <button 
-                                    onClick={() => setAction('approved')}
-                                    style={{ 
-                                        flex: 1, padding: '1rem', borderRadius: 'var(--radius-md)', 
-                                        border: `2px solid ${action === 'approved' ? 'var(--success)' : 'var(--border)'}`,
-                                        background: action === 'approved' ? 'var(--success)10' : 'transparent',
-                                        color: action === 'approved' ? 'var(--success)' : 'var(--text-muted)',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', fontWeight: 600, cursor: 'pointer'
-                                    }}
-                                >
-                                    <CheckCircle /> Approve
-                                </button>
-                                <button 
-                                    onClick={() => setAction('rejected')}
-                                    style={{ 
-                                        flex: 1, padding: '1rem', borderRadius: 'var(--radius-md)', 
-                                        border: `2px solid ${action === 'rejected' ? 'var(--danger)' : 'var(--border)'}`,
-                                        background: action === 'rejected' ? 'var(--danger)10' : 'transparent',
-                                        color: action === 'rejected' ? 'var(--danger)' : 'var(--text-muted)',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', fontWeight: 600, cursor: 'pointer'
-                                    }}
-                                >
-                                    <XCircle /> Reject
-                                </button>
-                            </div>
-
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600 }}>Decision Note</label>
-                            <textarea 
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                placeholder="Add internal notes about this decision..."
-                                style={{ 
-                                    width: '100%', minHeight: '80px', padding: '0.75rem', 
-                                    borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', 
-                                    border: '1px solid var(--border)', color: 'var(--text-primary)',
-                                    outline: 'none', fontSize: '0.9rem'
-                                }}
-                            />
-
-                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                                <button onClick={() => { setProcessingItem(null); setAction(null); setNotes(''); }} className="btn btn-ghost">Cancel</button>
-                                <button 
-                                    disabled={processItem.isPending}
-                                    onClick={() => processItem.mutate({ 
-                                        refundId: processingItem.refundId, 
-                                        itemId: processingItem.itemId, 
-                                        status: action, 
-                                        notes 
-                                    })}
-                                    className="btn btn-primary"
-                                    style={{ 
-                                        background: action === 'approved' ? 'var(--success)' : 'var(--danger)', 
-                                        borderColor: action === 'approved' ? 'var(--success)' : 'var(--danger)',
-                                        minWidth: '120px'
-                                    }}
-                                >
-                                    {processItem.isPending ? 'Saving...' : `Confirm ${action}`}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+                <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Decision note</label>
+                <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add internal notes about this decision…"
+                />
+            </Modal>
         </div>
+    );
+}
+
+/* ----------------------------- Detail modal ----------------------------- */
+function RefundDetail({
+    refund,
+    onClose,
+    onDecide,
+}: {
+    refund: Refund | null;
+    onClose: () => void;
+    onDecide: (itemId: string) => void;
+}) {
+    return (
+        <Modal
+            open={!!refund}
+            onClose={onClose}
+            title={refund ? `Refund claim: ${refund.order_reference || refund.id.slice(0, 8)}` : 'Refund claim'}
+            size="xl"
+        >
+            {refund && (
+                <div className="space-y-5">
+                    <p className="text-sm text-on-surface-variant -mt-1">
+                        Requested on {new Date(refund.created_at).toLocaleString()}
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="rounded-lg bg-surface-container-low border border-outline-variant p-4">
+                            <div className="text-[11px] uppercase font-bold text-on-surface-variant mb-1">Customer</div>
+                            <div className="font-semibold text-on-surface">{refund.customer_name || 'System User'}</div>
+                        </div>
+                        <div className="rounded-lg bg-surface-container-low border border-outline-variant p-4">
+                            <div className="text-[11px] uppercase font-bold text-on-surface-variant mb-1">Method</div>
+                            <div className="flex items-center gap-2 font-semibold text-on-surface">
+                                {refund.destination === 'wallet' ? <ShoppingBag size={18} /> : <CreditCard size={18} />}
+                                {refund.destination === 'wallet' ? 'Wallet Credit' : 'Original Payment Method'}
+                            </div>
+                        </div>
+                        <div className="rounded-lg bg-surface-container-low border border-outline-variant p-4">
+                            <div className="text-[11px] uppercase font-bold text-on-surface-variant mb-1">Current Approved Total</div>
+                            <div className="font-headline text-xl font-bold text-success">{gbp(refund.total_amount)}</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 className="font-headline font-bold text-on-surface mb-2">
+                            Requested Items ({refund.items?.length || 0})
+                        </h4>
+                        <div className="border border-outline-variant rounded-lg overflow-hidden overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-surface-container-low text-xs uppercase text-on-surface-variant">
+                                        <th className="text-left px-3 py-2">Item</th>
+                                        <th className="px-3 py-2">Qty</th>
+                                        <th className="text-right px-3 py-2">Refund Amount</th>
+                                        <th className="text-left px-3 py-2">Reason</th>
+                                        <th className="px-3 py-2">Status</th>
+                                        <th className="px-3 py-2 w-20"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {refund.items?.map((item: any) => (
+                                        <tr key={item.id} className="border-t border-outline-variant align-top">
+                                            <td className="px-3 py-2">
+                                                <div className="font-semibold text-on-surface">{item.product_name || 'Order Item'}</div>
+                                                <div className="text-xs text-on-surface-variant">ID: {item.id.slice(0, 8)}</div>
+                                            </td>
+                                            <td className="px-3 py-2 text-center text-on-surface">{item.quantity}</td>
+                                            <td className="px-3 py-2 text-right font-semibold text-on-surface">{gbp(item.amount)}</td>
+                                            <td className="px-3 py-2">
+                                                <Badge tone="neutral">{String(item.reason || '').replace('_', ' ')}</Badge>
+                                                {item.customer_notes && (
+                                                    <div className="mt-1 text-xs italic text-on-surface-variant">"{item.customer_notes}"</div>
+                                                )}
+                                                {item.evidence?.length > 0 && (
+                                                    <div className="mt-2 flex gap-1 flex-wrap">
+                                                        {item.evidence.map((ev: any, idx: number) => (
+                                                            <a key={idx} href={ev.file_url} target="_blank" rel="noopener noreferrer">
+                                                                <img
+                                                                    src={ev.file_url}
+                                                                    alt="Evidence"
+                                                                    className="h-10 w-10 object-cover rounded border border-outline-variant"
+                                                                />
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2 text-center">
+                                                <Badge tone={statusTone(item.status)} dot>{statusLabel(item.status)}</Badge>
+                                            </td>
+                                            <td className="px-3 py-2 text-center">
+                                                {item.status === 'pending' ? (
+                                                    <Button size="sm" onClick={() => onDecide(item.id)}>Decide</Button>
+                                                ) : (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        icon={FileText}
+                                                        disabled={!item.admin_notes}
+                                                        onClick={() => item.admin_notes && toast(`Notes: ${item.admin_notes}`)}
+                                                    />
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </Modal>
     );
 }

@@ -69,6 +69,50 @@ export const authApi = {
     createUser: (data: any) => api.post('/auth/users', data),
     listUsers: () => api.get('/auth/users'),
     updateUser: (id: string, data: any) => api.put(`/auth/users/${id}`, data),
+    deleteUser: (id: string) => api.delete(`/auth/users/${id}`),
+};
+
+// --- Roles & Permissions API ---
+export const roleApi = {
+    get: () => api.get('/roles'),
+    save: (roles: Record<string, { capabilities: string[]; hidden_pages: string[] }>) => api.put('/roles', { roles }),
+};
+
+// --- Storefront Content (marketing copy) API ---
+export const contentApi = {
+    get: () => api.get('/content'),
+    save: (values: Record<string, string>) => api.put('/content', { values }),
+};
+
+export interface AnnouncementConfig {
+    enabled: boolean;
+    message: string;
+    link_url: string;
+    link_label: string;
+    variant: 'info' | 'success' | 'warning' | 'promo';
+    dismissible: boolean;
+    starts_at: string | null;
+    ends_at: string | null;
+}
+
+export const announcementApi = {
+    get: () => api.get<AnnouncementConfig>('/announcement'),
+    save: (data: AnnouncementConfig) => api.put<AnnouncementConfig>('/announcement', data),
+};
+
+export interface BrandingConfig {
+    app_name: string;
+    logo_url: string;
+    colors: { primary: string; action: string; accent: string };
+}
+export const brandingApi = {
+    get: () => api.get<BrandingConfig>('/branding'),
+    save: (data: BrandingConfig) => api.put<BrandingConfig>('/branding', data),
+};
+
+export const legalApi = {
+    get: () => api.get('/legal'),
+    save: (slug: string, data: { title: string; body: string }) => api.put(`/legal/${slug}`, data),
 };
 
 // --- Store API ---
@@ -132,6 +176,7 @@ export const auditApi = {
 export const orderApi = {
     list: (params?: any) => api.get('/orders', { params }),
     get: (id: string) => api.get(`/orders/${id}`),
+    dispatch: (storeId?: string) => api.get('/orders/dispatch', { params: { store_id: storeId } }),
     updateStatus: (id: string, status: string) => api.patch(`/orders/${id}/status`, { status }),
     assignDelivery: (id: string, delivery_boy_id: string) => api.patch(`/orders/${id}/assign`, { delivery_boy_id }),
     deliveryList: (params?: any) => api.get('/orders/delivery/my-orders', { params }), // For delivery boys
@@ -148,6 +193,8 @@ export const customerApi = {
 export const deliveryZoneApi = {
     list: (storeId: string) => api.get(`/delivery-zones`, { params: { store_id: storeId } }),
     create: (storeId: string, data: any) => api.post(`/delivery-zones`, data, { params: { store_id: storeId } }),
+    update: (id: string, data: any) => api.put(`/delivery-zones/${id}`, data),
+    delete: (id: string) => api.delete(`/delivery-zones/${id}`),
 };
 
 // --- Promotions API ---
@@ -265,6 +312,30 @@ export const mediaApi = {
     },
 };
 
+// --- Suppliers API ---
+export const supplierApi = {
+    list: () => api.get('/suppliers'),
+    get: (id: string) => api.get(`/suppliers/${id}`),
+    create: (data: any) => api.post('/suppliers', data),
+    update: (id: string, data: any) => api.put(`/suppliers/${id}`, data),
+    delete: (id: string) => api.delete(`/suppliers/${id}`),
+    summary: (id: string) => api.get(`/suppliers/${id}/summary`),
+    payments: (id: string) => api.get(`/suppliers/${id}/payments`),
+    addPayment: (id: string, data: any) => api.post(`/suppliers/${id}/payments`, data),
+};
+
+// --- Purchase Orders API ---
+export const purchaseOrderApi = {
+    list: (params?: any) => api.get('/purchase-orders', { params }),
+    get: (id: string) => api.get(`/purchase-orders/${id}`),
+    create: (data: any) => api.post('/purchase-orders', data),
+    update: (id: string, data: any) => api.put(`/purchase-orders/${id}`, data),
+    receive: (id: string, receipts: { item_id: string; quantity: number }[]) =>
+        api.post(`/purchase-orders/${id}/receive`, { receipts }),
+    cancel: (id: string) => api.post(`/purchase-orders/${id}/cancel`),
+    delete: (id: string) => api.delete(`/purchase-orders/${id}`),
+};
+
 // --- Drivers API Expansion ---
 export const driverApi = {
     list: (storeId?: string) => api.get('/drivers', { params: { store_id: storeId } }),
@@ -276,6 +347,8 @@ export const driverApi = {
         store_id?: string;
         vehicle_type?: string;
     }) => api.post('/drivers', data),
+    update: (id: string, data: { full_name?: string; phone?: string; store_id?: string; vehicle_type?: string; is_active?: boolean }) =>
+        api.put(`/drivers/${id}`, data),
     available: (storeId?: string) => api.get('/drivers/available', { params: { store_id: storeId } }),
     updateAvailability: (data: { is_available: boolean }) => api.post('/drivers/me/availability', data),
 };

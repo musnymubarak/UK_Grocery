@@ -6,12 +6,14 @@ import { Tag, Ticket, Percent, Sparkles, Gift, Clock, ArrowRight, Loader2 } from
 import { motion } from 'motion/react';
 import { couponApi, rewardsApi, catalogApi } from '../services/api';
 import { useCart } from '../CartContext';
+import { useContent } from '../context/ContentContext';
 
 export default function Offers() {
   const [loading, setLoading] = useState(true);
   const [rewards, setRewards] = useState<any>(null);
   const [promoProducts, setPromoProducts] = useState<any[]>([]);
   const { selectedStore } = useCart();
+  const { t } = useContent();
 
   useEffect(() => {
     Promise.all([
@@ -59,8 +61,8 @@ export default function Offers() {
       <div className="max-w-4xl mx-auto px-6 pt-8 pb-32 space-y-10">
         {/* Header Section */}
         <section>
-          <h2 className="text-4xl font-extrabold tracking-tight text-on-surface mb-2">Curated for You</h2>
-          <p className="text-on-surface-variant font-medium">Discover limited-time promotions and your membership rewards.</p>
+          <h2 className="text-4xl font-extrabold tracking-tight text-on-surface mb-2">{t('offers.header_title', 'Curated for You')}</h2>
+          <p className="text-on-surface-variant font-medium">{t('offers.header_subtitle', 'Discover limited-time promotions and your membership rewards.')}</p>
         </section>
 
         {/* Featured Offers */}
@@ -102,8 +104,8 @@ export default function Offers() {
               <Ticket size={24} />
             </div>
             <div>
-              <h3 className="text-2xl font-bold tracking-tight">Your Rewards Progress</h3>
-              <p className="text-on-surface-variant text-sm">Every purchase brings you closer to exclusive tiers.</p>
+              <h3 className="text-2xl font-bold tracking-tight">{t('offers.rewards_title', 'Your Rewards Progress')}</h3>
+              <p className="text-on-surface-variant text-sm">{t('offers.rewards_subtitle', 'Every purchase brings you closer to exclusive tiers.')}</p>
             </div>
           </div>
 
@@ -175,7 +177,7 @@ export default function Offers() {
 
         {/* Coupon List */}
         <section className="space-y-6">
-          <h3 className="text-xl font-bold tracking-tight">Active Coupons</h3>
+          <h3 className="text-xl font-bold tracking-tight">{t('offers.coupons_title', 'Active Coupons')}</h3>
           <div className="grid grid-cols-1 gap-4">
             <div className="border-2 border-dashed border-outline-variant rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 hover:border-primary/50 transition-colors">
                 <div className="flex items-center gap-5">

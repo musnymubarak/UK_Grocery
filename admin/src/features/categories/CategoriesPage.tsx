@@ -1,139 +1,154 @@
 /**
  * Categories management page.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoryApi, getErrorMessage } from '../../services/api';
 import type { Category } from '../../types';
-import { Plus, Edit2, Trash2, Tags } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { PageHeader, Button, FormField, Input, Select } from '../../components/ui';
+import { Modal, ConfirmDialog } from '../../components/ui/Modal';
+import { DataTable, type Column } from '../../components/ui/DataTable';
+import { usePermissions } from '../../features/auth/PermissionContext';
+
+const EMPTY = { name: '', description: '', parent_id: '', sort_order: '0' };
 
 export default function CategoriesPage() {
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [loading, setLoading] = useState(true);
+    const qc = useQueryClient();
+    const { can } = usePermissions();
     const [showModal, setShowModal] = useState(false);
     const [editCategory, setEditCategory] = useState<Category | null>(null);
-    const [form, setForm] = useState({ name: '', description: '', parent_id: '', sort_order: '0' });
+    const [form, setForm] = useState(EMPTY);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
 
-    useEffect(() => { loadCategories(); }, []);
+    const { data: categories = [], isLoading } = useQuery({
+        queryKey: ['categories'],
+        queryFn: async () => (await categoryApi.list()).data as Category[],
+    });
 
-    const loadCategories = async () => {
-        try {
-            const res = await categoryApi.list();
-            setCategories(res.data || []);
-        } catch (err) { console.error(err); } finally { setLoading(false); }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const payload = {
-                name: form.name,
-                description: form.description || undefined,
-                parent_id: form.parent_id || undefined,
-                sort_order: parseInt(form.sort_order) || 0,
-            };
-            if (editCategory) {
-                await categoryApi.update(editCategory.id, payload);
-                toast.success('Category updated');
-            } else {
-                await categoryApi.create(payload);
-                toast.success('Category created');
-            }
+    const saveMut = useMutation({
+        mutationFn: (payload: any) => editCategory ? categoryApi.update(editCategory.id, payload) : categoryApi.create(payload),
+        onSuccess: () => {
+            toast.success(editCategory ? 'Category updated' : 'Category created');
             setShowModal(false);
-            resetForm();
-            loadCategories();
-        } catch (err: any) { toast.error(getErrorMessage(err, 'Failed')); }
-    };
+            qc.invalidateQueries({ queryKey: ['categories'] });
+        },
+        onError: (e) => toast.error(getErrorMessage(e, 'Failed')),
+    });
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this category?')) return;
-        try {
-            await categoryApi.delete(id);
+    const deleteMut = useMutation({
+        mutationFn: (id: string) => categoryApi.delete(id),
+        onSuccess: () => {
             toast.success('Category deleted');
-            loadCategories();
-        } catch (err) { toast.error('Failed to delete'); }
+            setDeleteId(null);
+            qc.invalidateQueries({ queryKey: ['categories'] });
+        },
+        onError: (e) => toast.error(getErrorMessage(e, 'Failed to delete')),
+    });
+
+    const parentName = (id?: string) => categories.find((c) => c.id === id)?.name ?? '—';
+
+    const openCreate = () => { setEditCategory(null); setForm(EMPTY); setShowModal(true); };
+    const openEdit = (cat: Category) => {
+        setEditCategory(cat);
+        setForm({ name: cat.name, description: cat.description || '', parent_id: cat.parent_id || '', sort_order: String(cat.sort_order) });
+        setShowModal(true);
     };
 
-    const resetForm = () => {
-        setEditCategory(null);
-        setForm({ name: '', description: '', parent_id: '', sort_order: '0' });
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        saveMut.mutate({
+            name: form.name,
+            description: form.description || undefined,
+            parent_id: form.parent_id || undefined,
+            sort_order: parseInt(form.sort_order) || 0,
+        });
     };
+
+    const columns: Column<Category>[] = [
+        {
+            key: 'name', header: 'Name', sortable: true, accessor: (c) => c.name, render: (c) => (
+                <div>
+                    <div className="font-semibold text-on-surface">{c.name}</div>
+                    {c.description && <div className="text-xs text-on-surface-variant">{c.description}</div>}
+                </div>
+            ),
+        },
+        { key: 'parent', header: 'Parent', sortable: true, accessor: (c) => parentName(c.parent_id), render: (c) => parentName(c.parent_id) },
+        { key: 'sort_order', header: 'Sort order', align: 'center', sortable: true, accessor: (c) => c.sort_order },
+        {
+            key: 'actions', header: '', align: 'right', accessor: () => '', render: (c) => (
+                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" icon={Edit2} onClick={() => openEdit(c)} />
+                    {can('delete_records') && (
+                        <Button variant="ghost" size="sm" icon={Trash2} onClick={() => setDeleteId(c.id)} className="text-error hover:bg-error/10" />
+                    )}
+                </div>
+            ),
+        },
+    ];
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Tags size={20} /> Categories</h3>
-                <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
-                    <Plus size={16} /> Add Category
-                </button>
-            </div>
+            <PageHeader
+                title="Categories"
+                subtitle="Organise your catalogue into a browsable hierarchy."
+                actions={<Button icon={Plus} onClick={openCreate}>Add category</Button>}
+            />
+            <DataTable
+                data={categories}
+                columns={columns}
+                rowKey={(c) => c.id}
+                loading={isLoading}
+                searchKeys={[(c) => c.name, (c) => c.description]}
+                searchPlaceholder="Search categories…"
+                exportFilename={can('export_data') ? 'categories' : undefined}
+                emptyTitle="No categories yet"
+                emptyMessage="Add your first category to start organising products."
+            />
 
-            <div className="card">
-                <div className="table-container">
-                    <table className="table">
-                        <thead><tr><th>Name</th><th>Description</th><th>Parent</th><th>Order</th><th>Actions</th></tr></thead>
-                        <tbody>
-                            {loading ? (
-                                <tr><td colSpan={5}><div className="loading-spinner"><div className="spinner" /></div></td></tr>
-                            ) : categories.length === 0 ? (
-                                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>No categories</td></tr>
-                            ) : categories.map((cat) => (
-                                <tr key={cat.id}>
-                                    <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{cat.name}</td>
-                                    <td>{cat.description || '—'}</td>
-                                    <td>{categories.find(c => c.id === cat.parent_id)?.name || '—'}</td>
-                                    <td>{cat.sort_order}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            <button className="btn-icon" onClick={() => {
-                                                setEditCategory(cat);
-                                                setForm({ name: cat.name, description: cat.description || '', parent_id: cat.parent_id || '', sort_order: String(cat.sort_order) });
-                                                setShowModal(true);
-                                            }}><Edit2 size={14} /></button>
-                                            <button className="btn-icon" onClick={() => handleDelete(cat.id)}><Trash2 size={14} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
+            <Modal
+                open={showModal}
+                onClose={() => setShowModal(false)}
+                title={editCategory ? 'Edit Category' : 'New Category'}
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+                        <Button onClick={submit} loading={saveMut.isPending}>{editCategory ? 'Update' : 'Create'}</Button>
+                    </>
+                }
+            >
+                <form onSubmit={submit}>
+                    <FormField label="Name" required>
+                        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                    </FormField>
+                    <FormField label="Description">
+                        <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                    </FormField>
+                    <FormField label="Parent category">
+                        <Select value={form.parent_id} onChange={(e) => setForm({ ...form, parent_id: e.target.value })}>
+                            <option value="">None (Top Level)</option>
+                            {categories.filter((c) => c.id !== editCategory?.id).map((cat) => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                        </Select>
+                    </FormField>
+                    <FormField label="Sort order">
+                        <Input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
+                    </FormField>
+                </form>
+            </Modal>
 
-            {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">{editCategory ? 'Edit Category' : 'New Category'}</h3>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label className="form-label">Name *</label>
-                                <input className="form-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Description</label>
-                                <input className="form-input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Parent Category</label>
-                                <select className="form-select" value={form.parent_id} onChange={(e) => setForm({ ...form, parent_id: e.target.value })}>
-                                    <option value="">None (Top Level)</option>
-                                    {categories.filter(c => c.id !== editCategory?.id).map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Sort Order</label>
-                                <input type="number" className="form-input" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} />
-                            </div>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">{editCategory ? 'Update' : 'Create'}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <ConfirmDialog
+                open={!!deleteId}
+                onClose={() => setDeleteId(null)}
+                onConfirm={() => deleteId && deleteMut.mutate(deleteId)}
+                title="Delete category?"
+                message="The category will be removed. Products are kept but lose this category."
+                confirmLabel="Delete"
+                loading={deleteMut.isPending}
+            />
         </div>
     );
 }

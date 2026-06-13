@@ -1,13 +1,44 @@
 /**
  * Inventory management page — stock per store, adjustments, transfers.
+ * Migrated to the design-system DataTable + primitives + Modal.
  */
 import React, { useState, useEffect } from 'react';
 import { inventoryApi, storeApi, getErrorMessage } from '../../services/api';
 import { useAuth } from '../auth/AuthContext';
 import { useAdminStore } from '../auth/AdminStoreContext';
-import { CustomSelect } from '../../components/CustomSelect';
-import { Warehouse, ArrowRightLeft, Plus, Minus, History, Edit2, Image as ImageIcon } from 'lucide-react';
+import { DataTable, type Column } from '../../components/ui/DataTable';
+import {
+    PageHeader,
+    Button,
+    Badge,
+    Card,
+    FormField,
+    Input,
+    Select,
+    EmptyState,
+} from '../../components/ui/primitives';
+import { Modal } from '../../components/ui/Modal';
+import { Warehouse, ArrowRightLeft, Plus, History } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+interface InventoryItem {
+    id: string;
+    product_id: string;
+    product_name?: string;
+    product_sku?: string;
+    product_unit?: string;
+    quantity: number;
+}
+
+interface Movement {
+    id: string;
+    movement_type?: string;
+    quantity: number;
+    reference?: string | null;
+    created_at: string;
+}
+
+const LOW_STOCK_THRESHOLD = 10;
 
 export default function InventoryPage() {
     const { isManager, user } = useAuth();
@@ -17,7 +48,7 @@ export default function InventoryPage() {
     // Default to admin context store if available, else user's store, else empty string
     const defaultStoreId = isAdmin ? (adminSelectedStore?.id || '') : (user?.store_id || '');
 
-    const [inventory, setInventory] = useState<any[]>([]);
+    const [inventory, setInventory] = useState<InventoryItem[]>([]);
     const [stores, setStores] = useState<any[]>([]);
     const [selectedStore, setSelectedStore] = useState(defaultStoreId);
     const [loading, setLoading] = useState(true);
@@ -25,7 +56,7 @@ export default function InventoryPage() {
     const [showTransferModal, setShowTransferModal] = useState(false);
     const [adjustForm, setAdjustForm] = useState({ product_id: '', quantity: '', reason: '', notes: '' });
     const [transferForm, setTransferForm] = useState({ product_id: '', from_store_id: '', to_store_id: '', quantity: '', notes: '' });
-    const [movements, setMovements] = useState<any[]>([]);
+    const [movements, setMovements] = useState<Movement[]>([]);
     const [showMovements, setShowMovements] = useState(false);
 
     useEffect(() => { loadStores(); }, []);
@@ -96,217 +127,282 @@ export default function InventoryPage() {
         } catch (err) { console.error(err); }
     };
 
-    const getStockPercentage = (current: number) => {
-        const threshold = 100; // Assuming 100 as "full" for demo
-        return Math.min((current / threshold) * 100, 100);
+    const stockTone = (qty: number): 'danger' | 'warning' | 'success' => {
+        if (qty <= 0) return 'danger';
+        if (qty <= LOW_STOCK_THRESHOLD) return 'warning';
+        return 'success';
     };
+
+    const columns: Column<InventoryItem>[] = [
+        {
+            key: 'product_name',
+            header: 'Product',
+            sortable: true,
+            accessor: (i) => i.product_name ?? '',
+            render: (i) => <span className="font-semibold text-on-surface">{i.product_name || '—'}</span>,
+        },
+        {
+            key: 'product_sku',
+            header: 'SKU',
+            accessor: (i) => i.product_sku ?? '',
+            render: (i) => <span className="text-on-surface-variant">{i.product_sku || '—'}</span>,
+        },
+        {
+            key: 'quantity',
+            header: 'Current Stock',
+            sortable: true,
+            accessor: (i) => i.quantity ?? 0,
+            render: (i) => {
+                const qty = i.quantity ?? 0;
+                const tone = stockTone(qty);
+                const label = qty <= 0 ? 'Out of stock' : `${qty} ${i.product_unit || 'units'}`;
+                return (
+                    <span className="inline-flex items-center gap-2">
+                        <Badge tone={tone}>{label}</Badge>
+                        {qty > 0 && qty <= LOW_STOCK_THRESHOLD && (
+                            <span className="text-xs font-semibold text-warning">Low stock</span>
+                        )}
+                    </span>
+                );
+            },
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            accessor: (i) => ((i.quantity ?? 0) > 0 ? 'Active' : 'Out of stock'),
+            render: (i) => (
+                <Badge tone={(i.quantity ?? 0) > 0 ? 'success' : 'danger'}>
+                    {(i.quantity ?? 0) > 0 ? 'Active' : 'Out of stock'}
+                </Badge>
+            ),
+        },
+        {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: () => (
+                <Button variant="ghost" size="sm" icon={History} onClick={loadMovements}>
+                    History
+                </Button>
+            ),
+        },
+    ];
+
+    const headerActions = (
+        <>
+            <Button variant="secondary" icon={History} onClick={loadMovements}>History</Button>
+            {!isAdmin && (
+                <Button variant="secondary" icon={ArrowRightLeft} onClick={() => setShowTransferModal(true)}>
+                    Transfer
+                </Button>
+            )}
+            <Button variant="primary" icon={Plus} onClick={() => setShowAdjustModal(true)}>
+                Adjust Stock
+            </Button>
+        </>
+    );
+
+    const storeSelector = (
+        <div className="flex items-center gap-2">
+            <Warehouse size={18} className="text-on-surface-variant" />
+            <Select
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                disabled={isManager}
+                className="w-56"
+                aria-label="Store"
+            >
+                <option value="">Select store…</option>
+                {stores.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+            </Select>
+        </div>
+    );
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div className="input-group">
-                        <Warehouse size={18} color="var(--text-muted)" />
-                        <CustomSelect
-                            options={stores.map((s: any) => ({ value: s.id, label: s.name }))}
-                            value={selectedStore}
-                            onChange={(val) => setSelectedStore(val)}
-                            disabled={isManager}
-                            style={{ width: 220 }}
-                        />
-                    </div>
-                </div>
-                <div style={{ display: 'flex', gap: 12 }}>
-                    <button className="btn btn-secondary" onClick={loadMovements}><History size={16} /> History</button>
-                    {!isAdmin && <button className="btn btn-secondary" onClick={() => setShowTransferModal(true)}><ArrowRightLeft size={16} /> Transfer</button>}
-                    <button className="btn btn-primary" onClick={() => setShowAdjustModal(true)} style={{ padding: '12px 24px' }}>
-                        <Plus size={18} /> Adjust Stock
-                    </button>
-                </div>
-            </div>
+            <PageHeader
+                title="Inventory"
+                subtitle="Stock levels, adjustments and transfers per store."
+                actions={headerActions}
+            />
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>Current Stock</h3>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                        <span className="badge badge-primary" style={{ padding: '6px 14px' }}>All Items</span>
-                        <span className="badge" style={{ padding: '6px 14px', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>Produce</span>
-                        <span className="badge" style={{ padding: '6px 14px', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>Dairy</span>
-                    </div>
-                </div>
-                <div className="table-container" style={{ border: 'none' }}>
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Name</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>Stock Level</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <tr><td colSpan={7}><div className="loading-spinner"><div className="spinner" /></div></td></tr>
-                            ) : inventory.length === 0 ? (
-                                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 60 }}>No inventory records</td></tr>
-                            ) : inventory.map((item: any) => {
-                                const stockPct = getStockPercentage(item.quantity);
-                                const isLow = item.quantity <= 10;
-                                return (
-                                    <tr key={item.id}>
-                                        <td>
-                                            <div style={{ width: 48, height: 48, background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                                                {item.image_url ? (
-                                                    <img src={item.image_url} alt={item.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                ) : (
-                                                    <ImageIcon size={20} style={{ opacity: 0.3 }} />
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.product_name}</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.product_sku}</div>
-                                        </td>
-                                        <td>{item.category || 'General'}</td>
-                                        <td style={{ fontWeight: 600 }}>£{(item.price || 4.99).toFixed(2)}<span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>/unit</span></td>
-                                        <td style={{ width: 200 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                <div style={{ flex: 1, height: 8, background: 'var(--bg-primary)', borderRadius: 4, overflow: 'hidden' }}>
-                                                    <div style={{ 
-                                                        width: `${stockPct}%`, 
-                                                        height: '100%', 
-                                                        background: isLow ? 'var(--danger)' : 'var(--primary)',
-                                                        borderRadius: 4
-                                                    }} />
-                                                </div>
-                                                <div style={{ fontSize: '0.8rem', fontWeight: 600, width: 80 }}>
-                                                    {item.quantity} {item.product_unit || 'units'}
-                                                </div>
-                                            </div>
-                                            {isLow && <div style={{ fontSize: '0.7rem', color: 'var(--danger)', marginTop: 4, fontWeight: 600 }}>Low Stock Warning</div>}
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${item.quantity > 0 ? 'badge-success' : 'badge-danger'}`} style={{ textTransform: 'uppercase', fontStyle: 'normal', borderRadius: 4 }}>
-                                                {item.quantity > 0 ? 'ACTIVE' : 'OUT OF STOCK'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <button className="btn-icon" onClick={() => setShowAdjustModal(true)}>
-                                                <Edit2 size={16} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            {!selectedStore ? (
+                <Card className="p-0">
+                    <EmptyState
+                        icon={Warehouse}
+                        title="Select a store"
+                        message="Choose a store to view and manage its inventory."
+                        action={storeSelector}
+                    />
+                </Card>
+            ) : (
+                <DataTable<InventoryItem>
+                    data={inventory}
+                    columns={columns}
+                    rowKey={(i) => i.id}
+                    loading={loading}
+                    searchKeys={[(i) => i.product_name, (i) => i.product_sku]}
+                    searchPlaceholder="Search by product or SKU…"
+                    exportFilename="inventory"
+                    pageSize={12}
+                    toolbar={storeSelector}
+                    emptyTitle="No inventory records"
+                    emptyMessage="Adjust stock to create inventory records for this store."
+                />
+            )}
 
             {/* Adjust Stock Modal */}
-            {showAdjustModal && (
-                <div className="modal-overlay" onClick={() => setShowAdjustModal(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">Adjust Stock</h3>
-                        </div>
-                        <form onSubmit={handleAdjust}>
-                            <div className="form-group">
-                                <label className="form-label">Product</label>
-                                <select className="form-select" value={adjustForm.product_id} onChange={(e) => setAdjustForm({ ...adjustForm, product_id: e.target.value })} required>
-                                    <option value="">Select product...</option>
-                                    {inventory.map((item: any) => <option key={item.product_id} value={item.product_id}>{item.product_name} (Qty: {item.quantity})</option>)}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Quantity (+/−)</label>
-                                <input type="number" className="form-input" value={adjustForm.quantity} onChange={(e) => setAdjustForm({ ...adjustForm, quantity: e.target.value })} required />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Reason *</label>
-                                <input className="form-input" value={adjustForm.reason} onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })} required />
-                            </div>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowAdjustModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Adjust</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <Modal
+                open={showAdjustModal}
+                onClose={() => setShowAdjustModal(false)}
+                title="Adjust Stock"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setShowAdjustModal(false)}>Cancel</Button>
+                        <Button variant="primary" type="submit" form="adjust-form">Adjust</Button>
+                    </>
+                }
+            >
+                <form id="adjust-form" onSubmit={handleAdjust}>
+                    <FormField label="Product" required>
+                        <Select
+                            value={adjustForm.product_id}
+                            onChange={(e) => setAdjustForm({ ...adjustForm, product_id: e.target.value })}
+                            required
+                        >
+                            <option value="">Select product…</option>
+                            {inventory.map((item) => (
+                                <option key={item.product_id} value={item.product_id}>
+                                    {item.product_name} (Qty: {item.quantity})
+                                </option>
+                            ))}
+                        </Select>
+                    </FormField>
+                    <FormField label="Quantity (+/−)" required>
+                        <Input
+                            type="number"
+                            value={adjustForm.quantity}
+                            onChange={(e) => setAdjustForm({ ...adjustForm, quantity: e.target.value })}
+                            required
+                        />
+                    </FormField>
+                    <FormField label="Reason" required>
+                        <Input
+                            value={adjustForm.reason}
+                            onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })}
+                            required
+                        />
+                    </FormField>
+                    <FormField label="Notes" className="mb-0">
+                        <Input
+                            value={adjustForm.notes}
+                            onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })}
+                        />
+                    </FormField>
+                </form>
+            </Modal>
 
             {/* Transfer Modal */}
-            {showTransferModal && (
-                <div className="modal-overlay" onClick={() => setShowTransferModal(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">Transfer Stock</h3>
-                        </div>
-                        <form onSubmit={handleTransfer}>
-                            <div className="form-group">
-                                <label className="form-label">Product</label>
-                                <select className="form-select" value={transferForm.product_id} onChange={(e) => setTransferForm({ ...transferForm, product_id: e.target.value })} required>
-                                    <option value="">Select product...</option>
-                                    {inventory.map((item: any) => <option key={item.product_id} value={item.product_id}>{item.product_name}</option>)}
-                                </select>
-                            </div>
-                            <div className="input-group">
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">From Store</label>
-                                    <select className="form-select" value={transferForm.from_store_id} onChange={(e) => setTransferForm({ ...transferForm, from_store_id: e.target.value })} required>
-                                        <option value="">Select...</option>
-                                        {stores.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">To Store</label>
-                                    <select className="form-select" value={transferForm.to_store_id} onChange={(e) => setTransferForm({ ...transferForm, to_store_id: e.target.value })} required>
-                                        <option value="">Select...</option>
-                                        {stores.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Quantity</label>
-                                <input type="number" min="1" className="form-input" value={transferForm.quantity} onChange={(e) => setTransferForm({ ...transferForm, quantity: e.target.value })} required />
-                            </div>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowTransferModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Transfer</button>
-                            </div>
-                        </form>
+            <Modal
+                open={showTransferModal}
+                onClose={() => setShowTransferModal(false)}
+                title="Transfer Stock"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setShowTransferModal(false)}>Cancel</Button>
+                        <Button variant="primary" type="submit" form="transfer-form">Transfer</Button>
+                    </>
+                }
+            >
+                <form id="transfer-form" onSubmit={handleTransfer}>
+                    <FormField label="Product" required>
+                        <Select
+                            value={transferForm.product_id}
+                            onChange={(e) => setTransferForm({ ...transferForm, product_id: e.target.value })}
+                            required
+                        >
+                            <option value="">Select product…</option>
+                            {inventory.map((item) => (
+                                <option key={item.product_id} value={item.product_id}>{item.product_name}</option>
+                            ))}
+                        </Select>
+                    </FormField>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField label="From Store" required>
+                            <Select
+                                value={transferForm.from_store_id}
+                                onChange={(e) => setTransferForm({ ...transferForm, from_store_id: e.target.value })}
+                                required
+                            >
+                                <option value="">Select…</option>
+                                {stores.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </Select>
+                        </FormField>
+                        <FormField label="To Store" required>
+                            <Select
+                                value={transferForm.to_store_id}
+                                onChange={(e) => setTransferForm({ ...transferForm, to_store_id: e.target.value })}
+                                required
+                            >
+                                <option value="">Select…</option>
+                                {stores.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </Select>
+                        </FormField>
                     </div>
-                </div>
-            )}
+                    <FormField label="Quantity" required className="mb-0">
+                        <Input
+                            type="number"
+                            min="1"
+                            value={transferForm.quantity}
+                            onChange={(e) => setTransferForm({ ...transferForm, quantity: e.target.value })}
+                            required
+                        />
+                    </FormField>
+                </form>
+            </Modal>
 
             {/* Movement History Modal */}
-            {showMovements && (
-                <div className="modal-overlay" onClick={() => setShowMovements(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 700 }}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">Stock Movement History</h3>
-                        </div>
-                        <div className="table-container">
-                            <table className="table">
-                                <thead><tr><th>Type</th><th>Qty</th><th>Reference</th><th>Date</th></tr></thead>
-                                <tbody>
-                                    {movements.map((m: any) => (
-                                        <tr key={m.id}>
-                                            <td><span className={`badge ${m.quantity > 0 ? 'badge-success' : 'badge-danger'}`}>{m.movement_type}</span></td>
-                                            <td style={{ fontWeight: 600 }}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
-                                            <td>{m.reference || '—'}</td>
-                                            <td>{new Date(m.created_at).toLocaleString()}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+            <Modal
+                open={showMovements}
+                onClose={() => setShowMovements(false)}
+                title="Stock Movement History"
+                size="lg"
+            >
+                {movements.length === 0 ? (
+                    <EmptyState icon={History} title="No movements" message="No stock movements recorded yet." />
+                ) : (
+                    <div className="overflow-x-auto rounded-lg border border-outline-variant">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-surface-container-low">
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-on-surface-variant">Type</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-on-surface-variant">Qty</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-on-surface-variant">Reference</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-on-surface-variant">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {movements.map((m) => (
+                                    <tr key={m.id} className="border-t border-outline-variant">
+                                        <td className="px-4 py-3 text-sm">
+                                            <Badge tone={m.quantity > 0 ? 'success' : 'danger'}>{m.movement_type}</Badge>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm font-semibold text-on-surface">
+                                            {m.quantity > 0 ? '+' : ''}{m.quantity}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-on-surface-variant">{m.reference || '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-on-surface-variant">
+                                            {new Date(m.created_at).toLocaleString()}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 }

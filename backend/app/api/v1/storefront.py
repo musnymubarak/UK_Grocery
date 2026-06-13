@@ -506,6 +506,9 @@ async def get_app_config(
     too old. Driven by PlatformConfig / FeatureFlag rows the admin controls.
     """
     from app.services.config import ConfigService
+    from app.services.content import get_content
+    from app.services.announcement import active_announcement
+    from app.services.branding import get_branding
 
     org = await _get_default_org(db)
     svc = ConfigService(db)
@@ -517,6 +520,9 @@ async def get_app_config(
         return cfg.get(key, default)
 
     return {
+        "content": await get_content(db, org.id),
+        "branding": await get_branding(db, org.id),
+        "announcement": await active_announcement(db, org.id),
         "feature_flags": {f.key: f.is_enabled for f in flags},
         "min_supported_version": {
             "ios": _v("mobile.min_version.ios", "1.0.0"),
@@ -533,3 +539,19 @@ async def get_app_config(
             "android": _v("mobile.update_url.android", "https://play.google.com/store"),
         },
     }
+
+
+@router.get("/legal/{slug}", summary="Legal page body (public)")
+async def get_legal_public(
+    slug: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Admin-authored Privacy/Terms/Cookie body (markdown). `body` is empty when
+    the page hasn't been customised — clients then render their built-in copy."""
+    from app.services.legal import get_legal_page
+
+    org = await _get_default_org(db)
+    page = await get_legal_page(db, org.id, slug)
+    if page is None:
+        raise NotFoundException("Legal page not found")
+    return page

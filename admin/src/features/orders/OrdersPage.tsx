@@ -1,10 +1,52 @@
 import React, { useState } from 'react';
-import { X, CreditCard, User, MapPin, Package, Clock, Phone, Mail, ChevronDown } from 'lucide-react';
+import { CreditCard, User, MapPin, Package, Clock, Phone, Mail } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orderApi } from '../../services/api';
 import { useAdminStore } from '../auth/AdminStoreContext';
 import { CustomSelect } from '../../components/CustomSelect';
+import { DataTable, type Column } from '../../components/ui/DataTable';
+import { PageHeader, Badge, Button, Select } from '../../components/ui/primitives';
+import { Modal } from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
+
+type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'neutral';
+
+const STATUS_TONE: Record<string, BadgeTone> = {
+    placed: 'warning',
+    confirmed: 'neutral',
+    picking: 'info',
+    ready_for_collection: 'info',
+    ready: 'info',
+    out_for_delivery: 'info',
+    delivered: 'success',
+    cancelled: 'danger',
+    rejected: 'danger',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+    placed: 'Placed',
+    confirmed: 'Confirmed',
+    picking: 'Picking',
+    ready_for_collection: 'Ready',
+    ready: 'Ready',
+    out_for_delivery: 'Shipped',
+    delivered: 'Delivered',
+    cancelled: 'Cancelled',
+    rejected: 'Rejected',
+};
+
+function statusLabel(status?: string) {
+    if (!status) return '—';
+    return STATUS_LABEL[status] ?? status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatDate(value?: string) {
+    if (!value) return '—';
+    const d = new Date(value);
+    return isNaN(d.getTime())
+        ? '—'
+        : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
 export default function OrdersPage() {
     const { selectedStore } = useAdminStore();
@@ -13,6 +55,7 @@ export default function OrdersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [rejections, setRejections] = useState<Record<string, number>>({});
+    const [statusFilter, setStatusFilter] = useState('all');
 
     const { data: orders = [], isLoading } = useQuery({
         queryKey: ['orders_list', selectedStore?.id],
@@ -33,7 +76,7 @@ export default function OrdersPage() {
         },
         onError: () => {
             toast.error('Failed to update status');
-        }
+        },
     });
 
     const rejectSubstitutions = useMutation({
@@ -46,24 +89,15 @@ export default function OrdersPage() {
         },
         onError: (err: any) => {
             toast.error(err.response?.data?.detail || 'Failed to reject substitutions');
-        }
-    });
-
-    const [statusFilter, setStatusFilter] = React.useState('all');
-    const [search, setSearch] = React.useState('');
-
-    const filteredOrders = orders.filter((o: any) => {
-        const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
-        const matchesSearch = o.order_number?.toLowerCase().includes(search.toLowerCase()) || 
-                             o.customer?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-                             o.customer_id?.toLowerCase().includes(search.toLowerCase());
-        return matchesStatus && matchesSearch;
+        },
     });
 
     const tabs = [
         { id: 'all', label: 'All Orders' },
         { id: 'placed', label: 'Pending' },
+        { id: 'confirmed', label: 'Confirmed' },
         { id: 'picking', label: 'Processing' },
+        { id: 'ready_for_collection', label: 'Ready' },
         { id: 'out_for_delivery', label: 'Shipped' },
         { id: 'delivered', label: 'Completed' },
         { id: 'cancelled', label: 'Cancelled' },
@@ -79,191 +113,206 @@ export default function OrdersPage() {
         { value: 'cancelled', label: 'Cancelled' },
     ];
 
-    const getPaymentBadge = (status: string, method: string) => {
-        const isPaid = status === 'paid';
-        const isCod = method === 'cod';
-        
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ 
-                    padding: '4px 10px', 
-                    borderRadius: '20px', 
-                    fontSize: '0.7rem', 
-                    fontWeight: 800,
-                    background: isPaid ? '#e6f7ef' : '#fff4e5',
-                    color: isPaid ? '#2e7d32' : '#b25e09',
-                    width: 'fit-content',
-                    textTransform: 'uppercase'
-                }}>
-                    {status || 'Pending'}
-                </span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, marginLeft: 4 }}>
-                    {method?.toUpperCase() || 'COD'}
-                </span>
-            </div>
-        );
-    };
+    const filteredOrders = (orders as any[]).filter(
+        (o) => statusFilter === 'all' || o.status === statusFilter,
+    );
+
+    const columns: Column<any>[] = [
+        {
+            key: 'order_number',
+            header: 'Order Ref',
+            sortable: true,
+            accessor: (o) => o.order_number ?? '',
+            render: (o) => <span className="font-bold text-on-surface">{o.order_number}</span>,
+        },
+        {
+            key: 'customer',
+            header: 'Customer',
+            sortable: true,
+            accessor: (o) => o.customer?.full_name ?? 'Guest',
+            render: (o) => (
+                <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        {o.customer?.full_name?.charAt(0).toUpperCase() || 'C'}
+                    </div>
+                    <div className="min-w-0">
+                        <div className="font-semibold text-on-surface truncate">{o.customer?.full_name || 'Guest'}</div>
+                        <div className="text-xs text-on-surface-variant truncate">{o.customer?.email || 'N/A'}</div>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            sortable: true,
+            align: 'left',
+            accessor: (o) => statusLabel(o.status),
+            render: (o) => (
+                <div className="flex flex-col items-start gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <Badge tone={STATUS_TONE[o.status] ?? 'neutral'}>{statusLabel(o.status)}</Badge>
+                    <CustomSelect
+                        options={statusOptions}
+                        value={o.status}
+                        onChange={(val) => updateStatus.mutate({ id: o.id, status: val })}
+                        style={{ width: '140px' }}
+                    />
+                </div>
+            ),
+        },
+        {
+            key: 'payment',
+            header: 'Payment',
+            accessor: (o) => `${o.payment_method ?? 'cod'} ${o.payment_status ?? 'pending'}`,
+            render: (o) => {
+                const isPaid = o.payment_status === 'paid';
+                return (
+                    <div className="flex flex-col items-start gap-1">
+                        <Badge tone={isPaid ? 'success' : 'warning'}>{isPaid ? 'Paid' : 'Pending'}</Badge>
+                        <span className="text-xs font-semibold uppercase text-on-surface-variant">
+                            {o.payment_method?.toUpperCase() || 'COD'}
+                        </span>
+                    </div>
+                );
+            },
+        },
+        {
+            key: 'total',
+            header: 'Total',
+            sortable: true,
+            align: 'right',
+            accessor: (o) => Number(o.total) || 0,
+            render: (o) => <span className="font-bold text-on-surface">£{Number(o.total).toFixed(2)}</span>,
+        },
+        {
+            key: 'order_type',
+            header: 'Type',
+            sortable: true,
+            accessor: (o) => o.order_type ?? 'delivery',
+            render: (o) => (
+                <Badge tone={o.order_type === 'collection' ? 'info' : 'neutral'}>
+                    {o.order_type === 'collection' ? 'Collection' : 'Delivery'}
+                </Badge>
+            ),
+        },
+        {
+            key: 'created_at',
+            header: 'Placed',
+            sortable: true,
+            align: 'right',
+            accessor: (o) => o.created_at ?? '',
+            render: (o) => <span className="text-sm text-on-surface-variant">{formatDate(o.created_at)}</span>,
+        },
+    ];
 
     if (!selectedStore) {
-        return <div className="p-8">Please select a store to view orders.</div>;
+        return <div className="p-8 text-on-surface-variant">Please select a store to view orders.</div>;
     }
 
     return (
-        <>
-            <div>
-                <div style={{ marginBottom: '2.5rem' }}>
-                <h1 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>Orders</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem' }}>Manage and fulfill customer orders.</p>
-            </div>
+        <div>
+            <PageHeader title="Orders" subtitle="Manage and fulfill customer orders." />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '100px' }}>
-                    {tabs.map(tab => (
-                        <button 
-                            key={tab.id}
-                            onClick={() => setStatusFilter(tab.id)}
-                            style={{
-                                padding: '8px 20px',
-                                borderRadius: '100px',
-                                border: 'none',
-                                background: statusFilter === tab.id ? 'var(--primary-200)' : 'transparent',
-                                color: statusFilter === tab.id ? 'var(--primary-dark)' : 'var(--text-secondary)',
-                                fontWeight: 600,
-                                fontSize: '0.9rem',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
+            <DataTable<any>
+                data={filteredOrders}
+                columns={columns}
+                rowKey={(o) => o.id}
+                loading={isLoading}
+                onRowClick={(o) => {
+                    setSelectedOrder(o);
+                    setIsModalOpen(true);
+                }}
+                searchKeys={[(o) => o.order_number, (o) => o.customer?.full_name, (o) => o.customer_id]}
+                searchPlaceholder="Search by ID or customer…"
+                exportFilename="orders"
+                pageSize={12}
+                emptyTitle="No orders found"
+                emptyMessage="No orders match your current filters."
+                toolbar={
+                    <Select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="w-44"
+                        aria-label="Filter by status"
+                    >
+                        {tabs.map((tab) => (
+                            <option key={tab.id} value={tab.id}>
+                                {tab.label}
+                            </option>
+                        ))}
+                    </Select>
+                }
+            />
 
-                <div style={{ display: 'flex', gap: '16px' }}>
-                    <div style={{ position: 'relative' }}>
-                        <input 
-                            type="text" 
-                            placeholder="Search by ID or customer..." 
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            style={{
-                                padding: '12px 16px',
-                                paddingLeft: '40px',
-                                borderRadius: 'var(--radius-md)',
-                                border: '1px solid var(--border)',
-                                width: '300px',
-                                fontSize: '0.9rem'
-                            }}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div className="table-container" style={{ border: 'none' }}>
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>ORDER ID</th>
-                                <th>DATE</th>
-                                <th>CUSTOMER</th>
-                                <th>TOTAL</th>
-                                <th>PAYMENT</th>
-                                <th>STATUS</th>
-                                <th>ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {isLoading ? (
-                                <tr><td colSpan={7}><div className="loading-spinner"><div className="spinner" /></div></td></tr>
-                            ) : filteredOrders.length === 0 ? (
-                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>No orders found matching your criteria.</td></tr>
-                            ) : filteredOrders.map((order: any) => (
-                                <tr key={order.id}>
-                                    <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{order.order_number}</td>
-                                    <td style={{ fontSize: '0.85rem' }}>{new Date(order.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                                    <td title={`Email: ${order.customer?.email || 'N/A'}\nPhone: ${order.customer?.phone || 'N/A'}`}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'help' }}>
-                                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary-100)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>
-                                                {order.customer?.full_name?.charAt(0).toUpperCase() || 'C'}
-                                            </div>
-                                            <span style={{ fontWeight: 600 }}>{order.customer?.full_name || 'Guest'}</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ fontWeight: 700 }}>£{Number(order.total).toFixed(2)}</td>
-                                    <td>
-                                        {getPaymentBadge(order.payment_status, order.payment_method)}
-                                    </td>
-                                    <td>
-                                        <CustomSelect
-                                            options={statusOptions}
-                                            value={order.status}
-                                            onChange={(val) => updateStatus.mutate({ id: order.id, status: val })}
-                                            style={{ width: '150px' }}
-                                        />
-                                    </td>
-                                    <td>
-                                        <button 
-                                            onClick={() => { setSelectedOrder(order); setIsModalOpen(true); }}
-                                            style={{ color: 'var(--primary)', background: 'none', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
-                                        >
-                                            View Details
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                </div>
-            </div>
-
-        {/* Order Details Modal */}
-        {isModalOpen && selectedOrder && (
-            <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-                <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', padding: 0 }}>
-                    <div className="modal-header" style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-light)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Order {selectedOrder.order_number}</h2>
-                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Placed on {new Date(selectedOrder.created_at).toLocaleString()}</p>
-                            </div>
-                            <button className="btn-icon" onClick={() => setIsModalOpen(false)} style={{ background: 'var(--bg-primary)' }}>
-                                <X size={20} />
-                            </button>
+            {/* Order Details Modal */}
+            <Modal
+                open={isModalOpen && !!selectedOrder}
+                onClose={() => setIsModalOpen(false)}
+                size="xl"
+                title={
+                    selectedOrder ? (
+                        <div>
+                            <span className="font-headline text-lg font-bold text-on-surface">
+                                Order {selectedOrder.order_number}
+                            </span>
+                            <p className="mt-0.5 text-xs font-normal text-on-surface-variant">
+                                Placed on {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString() : '—'}
+                            </p>
                         </div>
-                    </div>
-                    
-                    <div className="modal-body" style={{ padding: '32px', maxHeight: '70vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '32px', marginBottom: '32px' }}>
-                            {/* Customer & Delivery Section */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div className="detail-section">
-                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>
-                                        <User size={18} color="var(--primary)" /> Customer Details
+                    ) : undefined
+                }
+                footer={
+                    selectedOrder ? (
+                        <div className="flex w-full items-center justify-between">
+                            {selectedOrder.status === 'out_for_delivery' &&
+                            selectedOrder.items?.some((i: any) => i.is_substituted) ? (
+                                <Button variant="secondary" onClick={() => setIsRejectModalOpen(true)}>
+                                    Reject Substitutions
+                                </Button>
+                            ) : (
+                                <span />
+                            )}
+                            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
+                                Close Detail
+                            </Button>
+                        </div>
+                    ) : undefined
+                }
+            >
+                {selectedOrder && (
+                    <>
+                        <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-2">
+                            {/* Customer & Delivery */}
+                            <div className="flex flex-col gap-6">
+                                <div>
+                                    <h4 className="mb-3 flex items-center gap-2 text-base font-semibold text-on-surface">
+                                        <User size={18} className="text-primary" /> Customer Details
                                     </h4>
-                                    <div className="card" style={{ padding: '16px', background: 'var(--bg-primary)', border: 'none' }}>
-                                        <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 8 }}>{selectedOrder.customer?.full_name || 'Guest'}</div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 4 }}>
+                                    <div className="rounded-lg bg-surface-container-low p-4">
+                                        <div className="mb-2 text-lg font-bold text-on-surface">
+                                            {selectedOrder.customer?.full_name || 'Guest'}
+                                        </div>
+                                        <div className="mb-1 flex items-center gap-2 text-sm text-on-surface-variant">
                                             <Mail size={14} /> {selectedOrder.customer?.email || 'N/A'}
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                        <div className="flex items-center gap-2 text-sm text-on-surface-variant">
                                             <Phone size={14} /> {selectedOrder.customer?.phone || 'N/A'}
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="detail-section">
-                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>
-                                        <MapPin size={18} color="var(--primary)" /> Delivery Information
+                                <div>
+                                    <h4 className="mb-3 flex items-center gap-2 text-base font-semibold text-on-surface">
+                                        <MapPin size={18} className="text-primary" /> Delivery Information
                                     </h4>
-                                    <div className="card" style={{ padding: '16px', background: 'var(--bg-primary)', border: 'none' }}>
-                                        <div style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>
-                                            <strong>Address:</strong> {selectedOrder.delivery_address || 'Collection from Store'}
+                                    <div className="rounded-lg bg-surface-container-low p-4">
+                                        <div className="text-sm leading-relaxed text-on-surface">
+                                            <strong>Address:</strong>{' '}
+                                            {selectedOrder.delivery_address || 'Collection from Store'}
                                             {selectedOrder.delivery_postcode && <span>, {selectedOrder.delivery_postcode}</span>}
                                         </div>
                                         {selectedOrder.delivery_instructions && (
-                                            <div style={{ marginTop: 12, fontSize: '0.85rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '8px', borderLeft: '3px solid var(--primary-100)', background: '#fff' }}>
+                                            <div className="mt-3 border-l-2 border-primary/40 bg-surface-container-lowest p-2 text-sm italic text-on-surface-variant">
                                                 "{selectedOrder.delivery_instructions}"
                                             </div>
                                         )}
@@ -271,158 +320,190 @@ export default function OrdersPage() {
                                 </div>
                             </div>
 
-                            {/* Payment Section */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div className="detail-section">
-                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>
-                                        <CreditCard size={18} color="var(--primary)" /> Payment Information
+                            {/* Payment & Status */}
+                            <div className="flex flex-col gap-6">
+                                <div>
+                                    <h4 className="mb-3 flex items-center gap-2 text-base font-semibold text-on-surface">
+                                        <CreditCard size={18} className="text-primary" /> Payment Information
                                     </h4>
-                                    <div className="card" style={{ padding: '16px', background: 'var(--bg-primary)', border: 'none' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                            <span style={{ color: 'var(--text-secondary)' }}>Method:</span>
-                                            <span style={{ fontWeight: 700, textTransform: 'uppercase' }}>{selectedOrder.payment_method}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span style={{ color: 'var(--text-secondary)' }}>Status:</span>
-                                            <span style={{ 
-                                                fontWeight: 800, 
-                                                color: selectedOrder.payment_status === 'paid' ? 'var(--primary-dark)' : '#b25e09',
-                                                textTransform: 'uppercase'
-                                            }}>
-                                                {selectedOrder.payment_status}
+                                    <div className="rounded-lg bg-surface-container-low p-4">
+                                        <div className="mb-2 flex justify-between">
+                                            <span className="text-on-surface-variant">Method:</span>
+                                            <span className="font-bold uppercase text-on-surface">
+                                                {selectedOrder.payment_method}
                                             </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-on-surface-variant">Status:</span>
+                                            <Badge tone={selectedOrder.payment_status === 'paid' ? 'success' : 'warning'}>
+                                                {selectedOrder.payment_status === 'paid' ? 'Paid' : 'Pending'}
+                                            </Badge>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="detail-section">
-                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>
-                                        <Clock size={18} color="var(--primary)" /> Order Status
+                                <div>
+                                    <h4 className="mb-3 flex items-center gap-2 text-base font-semibold text-on-surface">
+                                        <Clock size={18} className="text-primary" /> Order Status
                                     </h4>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                                        <CustomSelect
-                                            options={statusOptions}
-                                            value={selectedOrder.status}
-                                            onChange={(val) => updateStatus.mutate({ id: selectedOrder.id, status: val })}
-                                        />
-                                    </div>
+                                    <CustomSelect
+                                        options={statusOptions}
+                                        value={selectedOrder.status}
+                                        onChange={(val) => updateStatus.mutate({ id: selectedOrder.id, status: val })}
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Items Section */}
-                        <div className="detail-section">
-                            <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>
-                                <Package size={18} color="var(--primary)" /> Order Items
+                        {/* Items */}
+                        <div>
+                            <h4 className="mb-3 flex items-center gap-2 text-base font-semibold text-on-surface">
+                                <Package size={18} className="text-primary" /> Order Items
                             </h4>
-                            <div className="table-container" style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
-                                <table className="table" style={{ fontSize: '0.9rem' }}>
+                            <div className="overflow-x-auto rounded-lg border border-outline-variant">
+                                <table className="w-full border-collapse text-sm">
                                     <thead>
-                                        <tr>
-                                            <th>Item</th>
-                                            <th>Qty</th>
-                                            <th>Price</th>
-                                            <th style={{ textAlign: 'right' }}>Total</th>
+                                        <tr className="bg-surface-container-low">
+                                            <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                                                Item
+                                            </th>
+                                            <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                                                Qty
+                                            </th>
+                                            <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                                                Price
+                                            </th>
+                                            <th className="px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                                                Total
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {selectedOrder.items?.map((item: any) => (
-                                            <tr key={item.id}>
-                                                <td>
-                                                    <div style={{ fontWeight: 600 }}>{item.product_name}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SKU: {item.product_sku || 'N/A'}</div>
-                                                    {item.is_substituted && <div style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 700 }}>Substituted</div>}
+                                            <tr key={item.id} className="border-t border-outline-variant">
+                                                <td className="px-4 py-2.5">
+                                                    <div className="font-semibold text-on-surface">{item.product_name}</div>
+                                                    <div className="text-xs text-on-surface-variant">
+                                                        SKU: {item.product_sku || 'N/A'}
+                                                    </div>
+                                                    {item.is_substituted && (
+                                                        <div className="text-xs font-bold text-warning">Substituted</div>
+                                                    )}
                                                 </td>
-                                                <td>{item.quantity}</td>
-                                                <td>£{Number(item.unit_price).toFixed(2)}</td>
-                                                <td style={{ textAlign: 'right', fontWeight: 700 }}>£{Number(item.total).toFixed(2)}</td>
+                                                <td className="px-4 py-2.5 text-on-surface">{item.quantity}</td>
+                                                <td className="px-4 py-2.5 text-on-surface">
+                                                    £{Number(item.unit_price).toFixed(2)}
+                                                </td>
+                                                <td className="px-4 py-2.5 text-right font-bold text-on-surface">
+                                                    £{Number(item.total).toFixed(2)}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
-                                    <tfoot style={{ borderTop: '2px solid var(--border-light)' }}>
+                                    <tfoot className="border-t-2 border-outline-variant">
                                         <tr>
-                                            <td colSpan={3} style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>Delivery Fee</td>
-                                            <td style={{ textAlign: 'right' }}>£{Number(selectedOrder.delivery_fee).toFixed(2)}</td>
+                                            <td colSpan={3} className="px-4 py-2 text-right text-on-surface-variant">
+                                                Delivery Fee
+                                            </td>
+                                            <td className="px-4 py-2 text-right text-on-surface">
+                                                £{Number(selectedOrder.delivery_fee).toFixed(2)}
+                                            </td>
                                         </tr>
                                         <tr>
-                                            <td colSpan={3} style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>Service Fee</td>
-                                            <td style={{ textAlign: 'right' }}>£{Number(selectedOrder.service_fee || 0).toFixed(2)}</td>
+                                            <td colSpan={3} className="px-4 py-2 text-right text-on-surface-variant">
+                                                Service Fee
+                                            </td>
+                                            <td className="px-4 py-2 text-right text-on-surface">
+                                                £{Number(selectedOrder.service_fee || 0).toFixed(2)}
+                                            </td>
                                         </tr>
                                         {Number(selectedOrder.discount) > 0 && (
                                             <tr>
-                                                <td colSpan={3} style={{ textAlign: 'right', color: 'var(--danger)' }}>Discount</td>
-                                                <td style={{ textAlign: 'right', color: 'var(--danger)' }}>-£{Number(selectedOrder.discount).toFixed(2)}</td>
+                                                <td colSpan={3} className="px-4 py-2 text-right text-error">
+                                                    Discount
+                                                </td>
+                                                <td className="px-4 py-2 text-right text-error">
+                                                    -£{Number(selectedOrder.discount).toFixed(2)}
+                                                </td>
                                             </tr>
                                         )}
                                         <tr>
-                                            <td colSpan={3} style={{ textAlign: 'right', fontWeight: 800, fontSize: '1.1rem' }}>Order Total</td>
-                                            <td style={{ textAlign: 'right', fontWeight: 800, fontSize: '1.1rem', color: 'var(--primary-dark)' }}>£{Number(selectedOrder.total).toFixed(2)}</td>
+                                            <td colSpan={3} className="px-4 py-2.5 text-right text-lg font-extrabold text-on-surface">
+                                                Order Total
+                                            </td>
+                                            <td className="px-4 py-2.5 text-right text-lg font-extrabold text-primary">
+                                                £{Number(selectedOrder.total).toFixed(2)}
+                                            </td>
                                         </tr>
                                     </tfoot>
                                 </table>
                             </div>
                         </div>
-                    </div>
+                    </>
+                )}
+            </Modal>
 
-                    <div className="modal-footer" style={{ padding: '24px 32px', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between' }}>
-                        {selectedOrder.status === 'out_for_delivery' && selectedOrder.items?.some((i: any) => i.is_substituted) ? (
-                            <button className="btn btn-primary" onClick={() => setIsRejectModalOpen(true)} style={{ background: 'var(--warning)', color: '#000' }}>
-                                Reject Substitutions
-                            </button>
-                        ) : <div />}
-                        <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Close Detail</button>
-                    </div>
-                </div>
-            </div>
-            )}
-
-            {isRejectModalOpen && selectedOrder && (
-                <div className="modal-overlay" onClick={() => setIsRejectModalOpen(false)}>
-                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-                        <div className="modal-header">
-                            <h2>Record Substitution Rejections</h2>
-                            <button className="btn-icon" onClick={() => setIsRejectModalOpen(false)}><X size={20} /></button>
-                        </div>
-                        <div className="modal-body" style={{ padding: '24px' }}>
-                            <p style={{ marginBottom: 16 }}>Select the quantity of substituted items that the customer rejected at the door.</p>
-                            {selectedOrder.items?.filter((i: any) => i.is_substituted).map((item: any) => (
-                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}>
+            {/* Reject Substitutions Modal */}
+            <Modal
+                open={isRejectModalOpen && !!selectedOrder}
+                onClose={() => setIsRejectModalOpen(false)}
+                size="lg"
+                title="Record Substitution Rejections"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setIsRejectModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="primary"
+                            loading={rejectSubstitutions.isPending}
+                            disabled={rejectSubstitutions.isPending || !Object.values(rejections).some((q) => q > 0)}
+                            onClick={() => {
+                                const payload = Object.entries(rejections)
+                                    .filter(([, qty]) => qty > 0)
+                                    .map(([id, qty]) => ({ order_item_id: id, quantity: qty, notes: 'Rejected at door' }));
+                                rejectSubstitutions.mutate({ id: selectedOrder.id, data: payload });
+                            }}
+                        >
+                            Confirm Rejections
+                        </Button>
+                    </>
+                }
+            >
+                {selectedOrder && (
+                    <>
+                        <p className="mb-4 text-sm text-on-surface-variant">
+                            Select the quantity of substituted items that the customer rejected at the door.
+                        </p>
+                        {selectedOrder.items
+                            ?.filter((i: any) => i.is_substituted)
+                            .map((item: any) => (
+                                <div
+                                    key={item.id}
+                                    className="mb-2 flex items-center justify-between rounded-lg border border-outline-variant p-3"
+                                >
                                     <div>
-                                        <div style={{ fontWeight: 600 }}>{item.product_name}</div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Qty in Order: {item.quantity}</div>
+                                        <div className="font-semibold text-on-surface">{item.product_name}</div>
+                                        <div className="text-sm text-on-surface-variant">Qty in Order: {item.quantity}</div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Reject Qty:</span>
-                                        <input 
-                                            type="number" 
-                                            min="0" 
-                                            max={item.quantity} 
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-semibold text-on-surface">Reject Qty:</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max={item.quantity}
                                             value={rejections[item.id] || 0}
-                                            onChange={(e) => setRejections({ ...rejections, [item.id]: Number(e.target.value) })}
-                                            style={{ width: 60, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)' }}
+                                            onChange={(e) =>
+                                                setRejections({ ...rejections, [item.id]: Number(e.target.value) })
+                                            }
+                                            className="w-16 rounded-md border border-outline-variant bg-surface-container-lowest px-2 py-1 text-on-surface focus:border-action-blue focus:outline-none focus:ring-2 focus:ring-action-blue/20"
                                         />
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                        <div className="modal-footer" style={{ padding: '24px', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                            <button className="btn btn-secondary" onClick={() => setIsRejectModalOpen(false)}>Cancel</button>
-                            <button 
-                                className="btn btn-primary" 
-                                disabled={rejectSubstitutions.isPending || !Object.values(rejections).some(q => q > 0)}
-                                onClick={() => {
-                                    const payload = Object.entries(rejections)
-                                        .filter(([_, qty]) => qty > 0)
-                                        .map(([id, qty]) => ({ order_item_id: id, quantity: qty, notes: "Rejected at door" }));
-                                    rejectSubstitutions.mutate({ id: selectedOrder.id, data: payload });
-                                }}
-                            >
-                                Confirm Rejections
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </>
+                    </>
+                )}
+            </Modal>
+        </div>
     );
 }

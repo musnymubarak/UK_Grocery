@@ -2,7 +2,7 @@
 Pydantic schemas for authentication and user management.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -60,6 +60,8 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    capabilities: List[str] = []
+    hidden_pages: List[str] = []
 
     model_config = {"from_attributes": True}
 

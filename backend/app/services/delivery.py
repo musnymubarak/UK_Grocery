@@ -34,9 +34,46 @@ class DeliveryZoneService:
 
     @staticmethod
     async def get_zones(db: AsyncSession, store_id: UUID) -> List[DeliveryZone]:
-        query = select(DeliveryZone).where(DeliveryZone.store_id == store_id)
+        query = select(DeliveryZone).where(
+            DeliveryZone.store_id == store_id,
+            DeliveryZone.is_deleted == False,
+        )
         result = await db.execute(query)
         return list(result.scalars().all())
+
+    @staticmethod
+    async def update_zone(db: AsyncSession, zone_id: UUID, data: DeliveryZoneUpdate) -> DeliveryZone:
+        zone = await db.get(DeliveryZone, zone_id)
+        if not zone or zone.is_deleted:
+            raise NotFoundException("DeliveryZone", zone_id)
+        upd = data.model_dump(exclude_unset=True)
+        patterns = upd.pop("postcode_patterns", None)
+        for k, v in upd.items():
+            setattr(zone, k, v)
+        if patterns is not None:
+            zone.postcode_patterns = patterns
+            existing = await db.execute(select(PostcodeZoneMapping).where(PostcodeZoneMapping.zone_id == zone.id))
+            for m in existing.scalars().all():
+                await db.delete(m)
+            await db.flush()
+            for p in patterns:
+                db.add(PostcodeZoneMapping(postcode=p, zone_id=zone.id))
+        await db.flush()
+        await db.refresh(zone)
+        return zone
+
+    @staticmethod
+    async def delete_zone(db: AsyncSession, zone_id: UUID) -> DeliveryZone:
+        zone = await db.get(DeliveryZone, zone_id)
+        if not zone or zone.is_deleted:
+            raise NotFoundException("DeliveryZone", zone_id)
+        zone.is_deleted = True
+        zone.is_active = False
+        existing = await db.execute(select(PostcodeZoneMapping).where(PostcodeZoneMapping.zone_id == zone.id))
+        for m in existing.scalars().all():
+            await db.delete(m)
+        await db.flush()
+        return zone
 
     @staticmethod
     async def calculate_fee(db: AsyncSession, data: FeeCalculationRequest) -> FeeCalculationResponse:

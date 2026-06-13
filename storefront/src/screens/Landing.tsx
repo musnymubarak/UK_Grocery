@@ -4,10 +4,12 @@ import { Zap, Store, Tag, MapPin } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useCart } from '../CartContext';
+import { useContent } from '../context/ContentContext';
 
 export default function Landing() {
   const navigate = useNavigate();
   const { selectedStore } = useCart();
+  const { t } = useContent();
   const [postcode, setPostcode] = useState('');
 
   useEffect(() => {
@@ -30,10 +32,10 @@ export default function Landing() {
             {/* Left Column (Text & Search) */}
             <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left w-full px-0">
               <h1 className="font-headline font-extrabold text-[36px] md:text-[56px] leading-[1.1] tracking-tight mb-2 md:mb-4">
-                Local store to door
+                {t('landing.hero_title', 'Local store to door')}
               </h1>
               <p className="font-headline font-bold text-[18px] md:text-[24px] text-blue-200 mb-6 md:mb-8">
-                From as little as 30 minutes
+                {t('landing.hero_subtitle', 'From as little as 30 minutes')}
               </p>
 
               <div className="w-full max-w-lg bg-white rounded-md p-1.5 flex flex-col md:flex-row gap-2 shadow-lg">
@@ -53,7 +55,7 @@ export default function Landing() {
                   onClick={() => navigate('/stores')}
                   className="bg-[#e6203a] hover:bg-[#cc1d33] text-white font-bold text-[16px] py-3.5 px-6 rounded-md transition-colors shadow-sm whitespace-nowrap"
                 >
-                  Search Local Stores
+                  {t('landing.hero_cta', 'Search Local Stores')}
                 </button>
               </div>
             </div>
@@ -89,24 +91,24 @@ export default function Landing() {
           <div className="flex flex-col md:flex-row gap-4 md:gap-6">
             <FeatureCard 
               icon={<Zap size={24} strokeWidth={2.5} />}
-              title="Fast Delivery"
-              desc="Groceries delivered from your local shop in under an hour."
+              title={t('landing.feature_1_title', 'Fast Delivery')}
+              desc={t('landing.feature_1_desc', 'Groceries delivered from your local shop in under an hour.')}
               bg="bg-[#dce8ff]"
               text="text-[#0056b3]"
               delay={0}
             />
             <FeatureCard 
               icon={<Store size={24} strokeWidth={2.5} />}
-              title="Support Local"
-              desc="Shop directly from independent convenience stores in your area."
+              title={t('landing.feature_2_title', 'Support Local')}
+              desc={t('landing.feature_2_desc', 'Shop directly from independent convenience stores in your area.')}
               bg="bg-[#ffdad6]"
               text="text-[#e6203a]"
               delay={0.08}
             />
             <FeatureCard 
               icon={<Tag size={24} strokeWidth={2.5} />}
-              title="In-Store Prices"
-              desc="Pay exactly what you would in-store, with fair delivery fees."
+              title={t('landing.feature_3_title', 'In-Store Prices')}
+              desc={t('landing.feature_3_desc', 'Pay exactly what you would in-store, with fair delivery fees.')}
               bg="bg-[#dce8ff]"
               text="text-[#0056b3]"
               delay={0.16}
@@ -117,7 +119,7 @@ export default function Landing() {
         {/* Additional Bottom Section */}
         <section className="py-4 px-4 pb-8 md:pb-12 w-full max-w-[90rem] mx-auto">
           <div className="flex justify-between items-end mb-4">
-            <h2 className="font-headline font-bold text-[22px] md:text-[28px] text-text-main">Shop Everyday Essentials</h2>
+            <h2 className="font-headline font-bold text-[22px] md:text-[28px] text-text-main">{t('landing.section_title', 'Shop Everyday Essentials')}</h2>
             <button className="text-[#0056b3] font-semibold text-sm flex items-center gap-1 hover:underline mb-1">
               View all <span aria-hidden="true">&rarr;</span>
             </button>

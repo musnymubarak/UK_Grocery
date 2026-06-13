@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
 import { useAdminStore } from '../features/auth/AdminStoreContext';
@@ -6,280 +6,197 @@ import { storeApi } from '../services/api';
 import { Store as StoreType } from '../types';
 import toast from 'react-hot-toast';
 import {
-    LayoutDashboard,
-    Package,
-    Warehouse,
-    BarChart3,
-    Users,
-    LogOut,
-    Tags,
-    MapPin,
-    Store as StoreIcon,
-    ChevronDown,
-    FileSearch,
-    ShoppingBag,
-    Users2,
-    Truck,
-    Ticket,
-    Tag,
-    Megaphone,
-    Settings,
-    Star,
-    Webhook,
-    Image,
-    LayoutGrid,
-    MessageSquare,
-    RotateCcw,
-    ShieldAlert,
-    Plus,
-    HelpCircle
+    Menu, PanelLeftClose, PanelLeft, Search, Sun, Moon, ChevronDown,
+    LogOut, Store as StoreIcon, HelpCircle, X,
 } from 'lucide-react';
-
-const navItems = [
-    { label: 'Dashboard', section: 'Main', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'cashier'] },
-    { label: 'Orders', section: 'Main', path: '/orders', icon: ShoppingBag, roles: ['admin', 'manager', 'cashier'] },
-    { label: 'Customers', section: 'Main', path: '/customers', icon: Users2, roles: ['admin', 'manager'] },
-    { label: 'Notifications', section: 'Main', path: '/notifications', icon: Megaphone, roles: ['admin', 'manager'] },
-    { label: 'My Deliveries', section: 'Delivery', path: '/dashboard', icon: Truck, roles: ['delivery_boy'] }, // We route delivery boys to dashboard for now
-    { label: 'Drivers', section: 'Operations', path: '/drivers', icon: Truck, roles: ['admin', 'manager'] },
-    { label: 'Delivery Zones', section: 'Operations', path: '/delivery-zones', icon: MapPin, roles: ['admin', 'manager'] },
-    { label: 'Coupons', section: 'Operations', path: '/coupons', icon: Ticket, roles: ['admin', 'manager'] },
-    { label: 'Promotions', section: 'Operations', path: '/promotions', icon: Tag, roles: ['admin', 'manager'] },
-    { label: 'Rewards', section: 'Operations', path: '/rewards', icon: Star, roles: ['admin', 'manager'] },
-    { label: 'Products', section: 'Catalog', path: '/products', icon: Package, roles: ['admin', 'manager'] },
-    { label: 'Categories', section: 'Catalog', path: '/categories', icon: Tags, roles: ['admin', 'manager'] },
-    { label: 'Inventory', section: 'Operations', path: '/inventory', icon: Warehouse, roles: ['admin', 'manager'] },
-    { label: 'Reports', section: 'Analytics', path: '/reports', icon: BarChart3, roles: ['admin', 'manager'] },
-    { label: 'Stores', section: 'Admin', path: '/stores', icon: StoreIcon, roles: ['admin'] },
-    { label: 'Users', section: 'Admin', path: '/users', icon: Users, roles: ['admin'] },
-    { label: 'Audit Logs', section: 'Admin', path: '/audit', icon: FileSearch, roles: ['admin', 'manager'] },
-    { label: 'Banners', section: 'Admin', path: '/banners', icon: Image, roles: ['admin', 'manager'] },
-    { label: 'Home Layout', section: 'Admin', path: '/home-layout', icon: LayoutGrid, roles: ['admin', 'manager'] },
-    { label: 'Webhooks', section: 'Admin', path: '/webhooks', icon: Webhook, roles: ['admin'] },
-    { label: 'Reviews', section: 'Admin', path: '/reviews', icon: MessageSquare, roles: ['admin', 'manager'] },
-    { label: 'Refunds', section: 'Admin', path: '/refunds', icon: RotateCcw, roles: ['admin', 'manager'] },
-    { label: 'System Health', section: 'Admin', path: '/system', icon: ShieldAlert, roles: ['admin'] },
-    { label: 'Settings', section: 'Admin', path: '/settings', icon: Settings, roles: ['admin'] },
-];
+import { navItems } from '../config/nav';
+import { usePermissions } from '../features/auth/PermissionContext';
+import { useTheme } from '../hooks/useTheme';
+import { cn } from '../lib/cn';
+import CommandPalette from './CommandPalette';
+import NotificationsMenu from './NotificationsMenu';
 
 export default function Layout() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const { theme, toggle: toggleTheme } = useTheme();
 
-    // Admin Store Selection
     const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
     const { selectedStore, setSelectedStore } = useAdminStore();
     const [stores, setStores] = useState<StoreType[]>([]);
-    const [showStoreDropdown, setShowStoreDropdown] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [storeOpen, setStoreOpen] = useState(false);
+    const [userOpen, setUserOpen] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => localStorage.getItem('pos_sidebar_collapsed') === '1');
 
-    // Fetch stores for admin dropdown
-    const [storesError, setStoresError] = useState<string | null>(null);
+    const storeRef = useRef<HTMLDivElement>(null);
+    const userRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => { localStorage.setItem('pos_sidebar_collapsed', collapsed ? '1' : '0'); }, [collapsed]);
+
     useEffect(() => {
-        if (isAdmin) {
-            storeApi.list().then(res => {
-                const data = res.data;
-                const list = Array.isArray(data) ? data : (data?.items ?? []);
-                setStores(list);
-                if (list.length === 0) setStoresError('No stores in your organization');
-            }).catch(err => {
-                setStoresError(err?.response?.status ? `HTTP ${err.response.status}` : (err?.message ?? 'fetch failed'));
-            });
-        }
+        if (!isAdmin) return;
+        storeApi.list().then((res) => {
+            const data = res.data;
+            setStores(Array.isArray(data) ? data : data?.items ?? []);
+        }).catch(() => undefined);
     }, [isAdmin]);
 
-    // Close dropdown on outside click
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setShowStoreDropdown(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        const onClick = (e: MouseEvent) => {
+            if (storeRef.current && !storeRef.current.contains(e.target as Node)) setStoreOpen(false);
+            if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
+        };
+        document.addEventListener('mousedown', onClick);
+        return () => document.removeEventListener('mousedown', onClick);
     }, []);
 
-    const handleStoreChange = (store: StoreType) => {
-        setSelectedStore({ id: store.id, name: store.name });
-        setShowStoreDropdown(false);
-        toast.success(`Switched to ${store.name}`);
-    };
+    // Close mobile drawer on route change
+    useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
-    const filteredNav = navItems.filter((item) =>
-        user ? item.roles.includes(user.role) : false
-    );
-
-    const sections = [...new Set(filteredNav.map((item) => item.section))];
+    const { isHidden } = usePermissions();
+    const role = user?.role ?? '';
+    const filteredNav = navItems.filter((item) => item.roles.includes(role) && !isHidden(item.path));
+    const sections = [...new Set(filteredNav.map((i) => i.section))];
+    const pageTitle = navItems.find((n) => n.path === location.pathname)?.label
+        ?? (location.pathname.startsWith('/customers/') ? 'Customer' : 'Daily Grocer');
 
     return (
-        <div className="app-layout">
-            <aside className="sidebar">
-                <div className="sidebar-brand" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div className="brand-icon">
-                            <StoreIcon size={20} />
-                        </div>
-                        <div>
-                            <h1>{selectedStore ? selectedStore.name : 'Main Branch'}</h1>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>Premium Curator</div>
-                        </div>
+        <div className="min-h-screen bg-background text-on-surface font-body">
+            {mobileOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileOpen(false)} />}
+
+            {/* Sidebar (navy brand surface) */}
+            <aside
+                data-collapsed={collapsed}
+                className={cn(
+                    'admin-sidebar fixed top-0 left-0 z-50 h-screen flex flex-col text-white',
+                    mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+                )}
+            >
+                {/* Brand */}
+                <div className="flex items-center gap-3 h-16 px-4 border-b border-white/10 shrink-0">
+                    <div className="h-9 w-9 shrink-0 rounded-lg bg-white/10 ring-1 ring-white/15 text-white flex items-center justify-center">
+                        <StoreIcon size={18} />
                     </div>
+                    <div className={cn('min-w-0', collapsed && 'lg:hidden')}>
+                        <div className="font-headline font-extrabold text-white leading-tight truncate">{selectedStore ? selectedStore.name : 'Daily Grocer'}</div>
+                        <div className="text-[11px] text-white/50">Admin Portal</div>
+                    </div>
+                    <button className="ml-auto lg:hidden text-white/70" onClick={() => setMobileOpen(false)} aria-label="Close menu"><X size={20} /></button>
+                </div>
 
-                    {isAdmin && (
-                        <div className="admin-store-selector" ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
-                            <button
-                                onClick={() => setShowStoreDropdown(!showStoreDropdown)}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    width: '100%',
-                                    padding: '8px 12px',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid var(--border)',
-                                    background: 'var(--bg-secondary)',
-                                    color: 'var(--text-primary)',
-                                    cursor: 'pointer',
-                                    fontSize: '0.85rem'
-                                }}
-                            >
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <StoreIcon size={14} />
-                                    {selectedStore ? selectedStore.name : 'Switch Store'}
-                                </span>
-                                <ChevronDown size={14} />
+                {/* Store switcher (admins) */}
+                {isAdmin && stores.length > 0 && (
+                    <div className={cn('px-3 pt-3', collapsed && 'lg:hidden')} ref={storeRef}>
+                        <div className="relative">
+                            <button onClick={() => setStoreOpen((o) => !o)} className="w-full flex items-center justify-between gap-2 px-3 h-9 rounded-md border border-white/10 bg-white/5 text-sm text-white hover:bg-white/10 transition-colors">
+                                <span className="flex items-center gap-2 truncate"><StoreIcon size={14} className="text-white/70" />{selectedStore ? selectedStore.name : 'All stores'}</span>
+                                <ChevronDown size={14} className="text-white/60" />
                             </button>
-
-                            {showStoreDropdown && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    left: 0,
-                                    right: 0,
-                                    marginTop: 4,
-                                    background: 'var(--bg-card, #fff)',
-                                    border: '1px solid var(--border)',
-                                    borderRadius: 'var(--radius-md)',
-                                    boxShadow: 'var(--shadow-lg)',
-                                    zIndex: 1000,
-                                    maxHeight: '240px',
-                                    overflowY: 'auto'
-                                }}>
-                                    {stores.length === 0 ? (
-                                        <div style={{
-                                            padding: '12px',
-                                            fontSize: '0.8rem',
-                                            color: 'var(--text-secondary, #6b7280)',
-                                            textAlign: 'center'
-                                        }}>
-                                            {storesError ? `No stores: ${storesError}` : 'Loading…'}
-                                        </div>
-                                    ) : (
-                                        stores.map(store => (
-                                            <button
-                                                key={store.id}
-                                                onClick={() => handleStoreChange(store)}
-                                                style={{
-                                                    display: 'block',
-                                                    width: '100%',
-                                                    textAlign: 'left',
-                                                    padding: '10px 12px',
-                                                    border: 'none',
-                                                    background: selectedStore?.id === store.id ? 'var(--primary-50)' : 'transparent',
-                                                    color: selectedStore?.id === store.id ? 'var(--primary)' : 'var(--text-primary)',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.85rem'
-                                                }}
-                                            >
-                                                {store.name}
-                                            </button>
-                                        ))
-                                    )}
+                            {storeOpen && (
+                                <div className="absolute left-0 right-0 mt-1 z-20 max-h-60 overflow-y-auto bg-surface-container-lowest border border-outline-variant rounded-md shadow-2xl">
+                                    <button onClick={() => { setSelectedStore(null); setStoreOpen(false); }} className="block w-full text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container">All stores</button>
+                                    {stores.map((s) => (
+                                        <button key={s.id} onClick={() => { setSelectedStore({ id: s.id, name: s.name }); setStoreOpen(false); toast.success(`Switched to ${s.name}`); }}
+                                            className={cn('block w-full text-left px-3 py-2 text-sm hover:bg-surface-container', selectedStore?.id === s.id ? 'text-primary font-semibold bg-primary/5' : 'text-on-surface')}>
+                                            {s.name}
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
 
-                <nav className="sidebar-nav">
+                {/* Nav */}
+                <nav className="flex-1 overflow-y-auto px-3 py-3">
                     {sections.map((section) => (
-                        <div key={section}>
-                            <div className="sidebar-section-title">{section}</div>
-                            {filteredNav
-                                .filter((item) => item.section === section)
-                                .map((item) => {
-                                    const Icon = item.icon;
-                                    return (
-                                        <button
-                                            key={item.label}
-                                            className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-                                            onClick={() => navigate(item.path)}
-                                        >
-                                            <Icon size={20} />
-                                            {item.label}
-                                        </button>
-                                    );
-                                })}
+                        <div key={section} className="mb-1">
+                            <div className={cn('px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white/35', collapsed && 'lg:hidden')}>{section}</div>
+                            {filteredNav.filter((i) => i.section === section).map((item) => {
+                                const Icon = item.icon;
+                                const active = location.pathname === item.path;
+                                return (
+                                    <button key={item.label} onClick={() => navigate(item.path)} title={collapsed ? item.label : undefined}
+                                        className={cn(
+                                            'relative w-full flex items-center gap-3 px-3 h-10 rounded-md text-sm transition-colors mb-0.5',
+                                            active ? 'bg-white/10 text-white font-semibold' : 'text-white/65 hover:bg-white/[0.07] hover:text-white',
+                                            collapsed && 'lg:justify-center lg:px-0',
+                                        )}>
+                                        {active && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-action-red" />}
+                                        <Icon size={19} className={active ? 'text-white' : 'text-white/70'} />
+                                        <span className={cn(collapsed && 'lg:hidden')}>{item.label}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     ))}
                 </nav>
 
-                <div className="sidebar-footer">
-                    <button 
-                        className="btn btn-primary" 
-                        style={{ width: '100%', marginBottom: 24, justifyContent: 'center', padding: '12px' }}
-                        onClick={() => toast.success('New Shipment flow coming soon')}
-                    >
-                        <Plus size={18} />
-                        New Shipment
+                {/* Footer */}
+                <div className="border-t border-white/10 p-3 shrink-0">
+                    <button onClick={() => toast('Support: support@dailygrocer.co.uk')} title="Support"
+                        className={cn('w-full flex items-center gap-3 px-3 h-10 rounded-md text-sm font-medium text-white/65 hover:bg-white/[0.07] hover:text-white', collapsed && 'lg:justify-center lg:px-0')}>
+                        <HelpCircle size={19} /><span className={cn(collapsed && 'lg:hidden')}>Support</span>
                     </button>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <button className="nav-item" onClick={() => toast.success('Support center loading...')}>
-                            <HelpCircle size={20} />
-                            Support
-                        </button>
-                        <button className="nav-item" onClick={logout}>
-                            <LogOut size={20} />
-                            Sign Out
-                        </button>
-                    </div>
+                    <button onClick={logout} title="Sign out"
+                        className={cn('w-full flex items-center gap-3 px-3 h-10 rounded-md text-sm font-medium text-white/65 hover:bg-action-red/20 hover:text-white', collapsed && 'lg:justify-center lg:px-0')}>
+                        <LogOut size={19} /><span className={cn(collapsed && 'lg:hidden')}>Sign out</span>
+                    </button>
                 </div>
             </aside>
 
-            <main className="main-content">
-                <header className="top-header">
-                    <div className="header-left">
-                        <h2 className="page-title" style={{ fontSize: '1.75rem', fontWeight: 800 }}>
-                            {navItems.find((n) => n.path === location.pathname)?.label || 'Admin Portal'}
-                        </h2>
-                    </div>
+            {/* Main */}
+            <div data-collapsed={collapsed} className="admin-main flex flex-col min-h-screen">
+                <header className="sticky top-0 z-30 h-16 flex items-center gap-2 px-4 lg:px-6 border-b border-outline-variant backdrop-blur"
+                    style={{ background: 'color-mix(in srgb, var(--bg-secondary) 82%, transparent)' }}>
+                    <button className="lg:hidden text-on-surface-variant p-1" onClick={() => setMobileOpen(true)} aria-label="Open menu"><Menu size={22} /></button>
+                    <button className="hidden lg:inline-flex text-on-surface-variant p-1 hover:text-on-surface" onClick={() => setCollapsed((c) => !c)} aria-label="Toggle sidebar">
+                        {collapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
+                    </button>
+                    <h1 className="font-headline text-lg font-extrabold text-on-surface truncate">{pageTitle}</h1>
 
-                    <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ position: 'relative' }}>
-                            <input 
-                                type="text" 
-                                placeholder="Search..." 
-                                style={{
-                                    padding: '8px 16px',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: '1px solid var(--border)',
-                                    background: 'var(--bg-primary)',
-                                    width: '240px',
-                                    fontSize: '0.85rem'
-                                }}
-                            />
-                        </div>
-                        <div className="user-avatar" style={{ width: 40, height: 40, cursor: 'pointer' }}>
-                            {user?.full_name?.charAt(0).toUpperCase()}
+                    <div className="ml-auto flex items-center gap-2">
+                        <button onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+                            className="inline-flex items-center gap-2 h-9 px-3 rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container text-sm">
+                            <Search size={16} />
+                            <span className="hidden md:inline">Search</span>
+                            <kbd className="hidden md:inline text-[10px] font-semibold border border-outline-variant rounded px-1 ml-1">⌘K</kbd>
+                        </button>
+                        <NotificationsMenu />
+                        <button onClick={toggleTheme} aria-label="Toggle theme"
+                            className="inline-flex items-center justify-center h-9 w-9 rounded-md text-on-surface-variant border border-outline-variant bg-surface-container-lowest hover:bg-surface-container hover:text-on-surface">
+                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                        </button>
+
+                        {/* User menu */}
+                        <div className="relative" ref={userRef}>
+                            <button onClick={() => setUserOpen((o) => !o)} className="flex items-center gap-2 pl-1 pr-2 h-9 rounded-md hover:bg-surface-container">
+                                <span className="h-7 w-7 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold">{user?.full_name?.charAt(0).toUpperCase() ?? 'U'}</span>
+                                <ChevronDown size={14} className="text-on-surface-variant hidden sm:inline" />
+                            </button>
+                            {userOpen && (
+                                <div className="absolute right-0 mt-2 w-56 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-2xl z-[1000] overflow-hidden">
+                                    <div className="px-4 py-3 border-b border-outline-variant">
+                                        <div className="text-sm font-semibold text-on-surface truncate">{user?.full_name}</div>
+                                        <div className="text-xs text-on-surface-variant capitalize">{user?.role}</div>
+                                    </div>
+                                    <button onClick={logout} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container">
+                                        <LogOut size={16} /> Sign out
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </header>
-                <div className="page-content">
+
+                <main className="flex-1 p-4 lg:p-6">
                     <Outlet />
-                </div>
-            </main>
+                </main>
+            </div>
+
+            <CommandPalette role={role} />
         </div>
     );
 }

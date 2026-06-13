@@ -28,6 +28,14 @@ class DriverCreate(BaseModel):
     vehicle_type: Optional[str] = None  # e.g. "bike", "car", "van"
 
 
+class DriverUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    phone: Optional[str] = None
+    store_id: Optional[UUID] = None
+    vehicle_type: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 @router.post("/me/availability")
 async def update_my_availability(
     data: AvailabilityUpdate,
@@ -79,4 +87,25 @@ async def create_driver(
         phone=data.phone,
         store_id=data.store_id,
         vehicle_type=data.vehicle_type,
+    )
+
+
+@router.put("/{driver_id}")
+async def update_driver(
+    driver_id: UUID,
+    data: DriverUpdate,
+    org_id: UUID = Depends(get_org_context),
+    current_user: User = Depends(require_role(["admin", "manager"])),
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Admin edits a driver's name, phone, store, vehicle, or active flag."""
+    service = DriverService(db)
+    return await service.update_driver(
+        org_id=org_id,
+        user_id=driver_id,
+        full_name=data.full_name,
+        phone=data.phone,
+        store_id=data.store_id,
+        vehicle_type=data.vehicle_type,
+        is_active=data.is_active,
     )

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../state/auth_provider.dart';
+import '../../state/content_provider.dart';
 import '../../state/store_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -66,6 +67,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     // Re-listen to AuthProvider and StoreProvider so we retry _maybeAdvance once bootstrap flips.
     context.watch<AuthProvider>();
     context.watch<StoreProvider>();
+    final t = context.watch<ContentProvider>().t;
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAdvance());
     return Scaffold(
       body: Container(
@@ -102,7 +104,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Daily Grocer',
+                        t('app.name', 'Daily Grocer'),
                         style: Theme.of(context).textTheme.displaySmall?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
@@ -110,7 +112,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Premium groceries · delivered',
+                        t('app.tagline', 'Premium groceries · delivered'),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Colors.white.withValues(alpha: 0.75),
                               letterSpacing: 0.5,

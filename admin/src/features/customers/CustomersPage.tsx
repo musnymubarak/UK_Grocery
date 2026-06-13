@@ -1,12 +1,40 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
 import { customerApi } from '../../services/api';
+import { DataTable, type Column } from '../../components/ui/DataTable';
+import { PageHeader, Badge } from '../../components/ui/primitives';
+
+interface Customer {
+    id: string;
+    full_name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    membership_tier?: string | null;
+    is_active?: boolean;
+    created_at: string;
+}
+
+const TIER_TONE: Record<string, 'primary' | 'info' | 'neutral'> = {
+    vip: 'primary',
+    premium: 'info',
+    standard: 'neutral',
+};
+
+function tierLabel(tier?: string | null) {
+    const t = (tier || 'standard').toLowerCase();
+    return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function formatDate(value?: string | null) {
+    if (!value) return '—';
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+}
 
 export default function CustomersPage() {
     const navigate = useNavigate();
-    const { data: customers = [], isLoading } = useQuery({
+    const { data: customers = [], isLoading } = useQuery<Customer[]>({
         queryKey: ['customers'],
         queryFn: async () => {
             const res = await customerApi.list();
@@ -14,60 +42,70 @@ export default function CustomersPage() {
         },
     });
 
-    return (
-        <div className="card">
-            <div className="card-header">
-                <h3 className="card-title">Customers Database</h3>
-            </div>
+    const columns: Column<Customer>[] = [
+        {
+            key: 'full_name',
+            header: 'Name',
+            sortable: true,
+            accessor: (c) => c.full_name ?? '',
+            render: (c) => <span className="font-semibold text-on-surface">{c.full_name || '—'}</span>,
+        },
+        {
+            key: 'email',
+            header: 'Email',
+            sortable: true,
+            accessor: (c) => c.email ?? '',
+            render: (c) => c.email || '—',
+        },
+        {
+            key: 'phone',
+            header: 'Phone',
+            accessor: (c) => c.phone ?? '',
+            render: (c) => c.phone || 'N/A',
+        },
+        {
+            key: 'membership_tier',
+            header: 'Tier',
+            sortable: true,
+            accessor: (c) => tierLabel(c.membership_tier),
+            render: (c) => {
+                const tier = (c.membership_tier || 'standard').toLowerCase();
+                return <Badge tone={TIER_TONE[tier] ?? 'neutral'}>{tierLabel(tier)}</Badge>;
+            },
+        },
+        {
+            key: 'is_active',
+            header: 'Status',
+            accessor: (c) => (c.is_active ? 'Active' : 'Inactive'),
+            render: (c) => (
+                <Badge tone={c.is_active ? 'success' : 'danger'}>{c.is_active ? 'Active' : 'Inactive'}</Badge>
+            ),
+        },
+        {
+            key: 'created_at',
+            header: 'Joined',
+            sortable: true,
+            accessor: (c) => c.created_at ?? '',
+            render: (c) => formatDate(c.created_at),
+        },
+    ];
 
-            {isLoading ? (
-                <div>Loading...</div>
-            ) : (
-                <div className="table-container">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Tier</th>
-                                <th>Status</th>
-                                <th>Joined</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {customers.map((c: any) => (
-                                <tr
-                                    key={c.id}
-                                    onClick={() => navigate(`/customers/${c.id}`)}
-                                    style={{ cursor: 'pointer' }}
-                                    title="View customer details"
-                                >
-                                    <td><strong>{c.full_name}</strong></td>
-                                    <td>{c.email}</td>
-                                    <td>{c.phone || 'N/A'}</td>
-                                    <td style={{ textTransform: 'capitalize' }}>{c.membership_tier || 'standard'}</td>
-                                    <td>
-                                        <span className={`badge badge-${c.is_active ? 'success' : 'danger'}`}>
-                                            {c.is_active ? 'Active' : 'Inactive'}
-                                        </span>
-                                    </td>
-                                    <td>{new Date(c.created_at).toLocaleDateString()}</td>
-                                    <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
-                                        <ChevronRight size={16} />
-                                    </td>
-                                </tr>
-                            ))}
-                            {customers.length === 0 && (
-                                <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center' }}>No customers found</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+    return (
+        <div>
+            <PageHeader title="Customers" subtitle="Browse and manage your customer database." />
+            <DataTable<Customer>
+                data={customers}
+                columns={columns}
+                rowKey={(c) => c.id}
+                loading={isLoading}
+                onRowClick={(c) => navigate(`/customers/${c.id}`)}
+                searchKeys={[(c) => c.full_name, (c) => c.email, (c) => c.phone]}
+                searchPlaceholder="Search customers…"
+                exportFilename="customers"
+                pageSize={12}
+                emptyTitle="No customers yet"
+                emptyMessage="Customers will appear here once they register or place an order."
+            />
         </div>
     );
 }

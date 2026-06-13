@@ -8,6 +8,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <title>Daily Grocer Admin Portal</title>
+    <script>
+      // Apply persisted theme before paint to avoid a flash of the wrong mode.
+      (function () {
+        try {
+          var t = localStorage.getItem('pos_theme');
+          if (t === 'dark') document.documentElement.classList.add('dark');
+          document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

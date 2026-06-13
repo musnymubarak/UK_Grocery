@@ -1,5 +1,6 @@
 import React from 'react';
 import Layout from '../components/Layout';
+import LegalPageView from '../components/LegalPageView';
 import { motion } from 'motion/react';
 import { Database, Info, Settings, ShieldCheck, HelpCircle } from 'lucide-react';
 
@@ -29,7 +30,7 @@ const LegalSection = ({ title, icon, children }: LegalSectionProps) => (
   </motion.div>
 );
 
-export default function CookiePolicy() {
+function CookieFallback() {
   return (
     <Layout title="Cookies & Local Storage" showBack>
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16 pb-32">
@@ -114,4 +115,8 @@ export default function CookiePolicy() {
       </div>
     </Layout>
   );
+}
+
+export default function CookiePolicy() {
+  return <LegalPageView slug="cookies" defaultTitle="Cookie Policy" fallback={<CookieFallback />} />;
 }

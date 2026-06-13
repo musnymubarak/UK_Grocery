@@ -9,13 +9,13 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_async_session
-from app.core.dependencies import require_role, get_org_context
+from app.core.dependencies import require_role, get_org_context, require_capability
 from app.models.user import User
 from app.services.report import ReportService
 
 router = APIRouter(prefix="/exports", tags=["Exports"])
 
-@router.get("/sales")
+@router.get("/sales", dependencies=[Depends(require_capability("export_data"))])
 async def export_sales_csv(
     store_id: Optional[UUID] = None,
     date_from: Optional[datetime] = None,

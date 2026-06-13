@@ -21,6 +21,8 @@ from app.models.notification import Notification
 from app.models.review import Review
 from app.models.banner import Banner
 from app.models.home_section import HomeSection
+from app.models.supplier import Supplier, SupplierPayment
+from app.models.purchase_order import PurchaseOrder, PurchaseOrderItem
 from app.models.refresh_token import RefreshToken
 from app.models.driver import DriverProfile
 from app.models.promotion import Promotion
@@ -56,6 +58,10 @@ __all__ = [
     "Review",
     "Banner",
     "HomeSection",
+    "Supplier",
+    "SupplierPayment",
+    "PurchaseOrder",
+    "PurchaseOrderItem",
     "RefreshToken",
     "DriverProfile",
     "Promotion",

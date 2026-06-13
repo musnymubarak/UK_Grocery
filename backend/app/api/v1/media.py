@@ -13,7 +13,7 @@ from app.services.uploads import save_image_upload
 router = APIRouter(prefix="/media", tags=["Media (CMS)"])
 
 # Restrict the destination folder to a safe allow-list (no path traversal).
-ALLOWED_SUBDIRS = {"home", "banners", "sections"}
+ALLOWED_SUBDIRS = {"home", "banners", "sections", "branding"}
 
 
 @router.post("/image", summary="Upload a CMS image")

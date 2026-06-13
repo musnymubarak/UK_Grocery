@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
+import { PermissionProvider } from './features/auth/PermissionContext';
 import { AdminStoreProvider } from './features/auth/AdminStoreContext';
 import Layout from './components/Layout';
 import LoginPage from './features/auth/LoginPage';
@@ -19,6 +20,7 @@ import StoresPage from './features/stores/StoresPage';
 import UsersPage from './features/users/UsersPage';
 import AuditLogPage from './features/audit/AuditLogPage';
 import OrdersPage from './features/orders/OrdersPage';
+import DispatchBoardPage from './features/dispatch/DispatchBoardPage';
 import CustomersPage from './features/customers/CustomersPage';
 import CustomerDetailPage from './features/customers/CustomerDetailPage';
 import DriversPage from './features/drivers/DriversPage';
@@ -35,6 +37,13 @@ import HomeLayoutPage from './features/home-layout/HomeLayoutPage';
 import ReviewsPage from './features/reviews/ReviewsPage';
 import RefundsPage from './features/refunds/RefundsPage';
 import SystemHealthPage from './features/system/SystemHealthPage';
+import SuppliersPage from './features/suppliers/SuppliersPage';
+import PurchaseOrdersPage from './features/purchase-orders/PurchaseOrdersPage';
+import RolePermissionsPage from './features/roles/RolePermissionsPage';
+import ContentEditorPage from './features/content/ContentEditorPage';
+import AnnouncementBarPage from './features/announcements/AnnouncementBarPage';
+import BrandingPage from './features/branding/BrandingPage';
+import LegalPagesPage from './features/legal/LegalPagesPage';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -68,6 +77,7 @@ function AppRoutes() {
             >
                 <Route path="/dashboard" element={user?.role === 'delivery_boy' ? <DeliveryBoyDashboard /> : <DashboardPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/dispatch" element={<DispatchBoardPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/customers/:id" element={<CustomerDetailPage />} />
                 <Route path="/drivers" element={<DriversPage />} />
@@ -78,6 +88,8 @@ function AppRoutes() {
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/coupons" element={<CouponsPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
+                <Route path="/suppliers" element={<SuppliersPage />} />
+                <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/stores" element={<StoresPage />} />
                 <Route path="/users" element={<UsersPage />} />
@@ -90,6 +102,11 @@ function AppRoutes() {
                 <Route path="/reviews" element={<ReviewsPage />} />
                 <Route path="/refunds" element={<RefundsPage />} />
                 <Route path="/system" element={<SystemHealthPage />} />
+                <Route path="/roles" element={<RolePermissionsPage />} />
+                <Route path="/content" element={<ContentEditorPage />} />
+                <Route path="/announcement" element={<AnnouncementBarPage />} />
+                <Route path="/branding" element={<BrandingPage />} />
+                <Route path="/legal" element={<LegalPagesPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -100,9 +117,10 @@ export default function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <AuthProvider>
-                <AdminStoreProvider>
-                    <BrowserRouter>
-                        <AppRoutes />
+                <PermissionProvider>
+                    <AdminStoreProvider>
+                        <BrowserRouter>
+                            <AppRoutes />
                         <Toaster
                             position="top-right"
                             toastOptions={{
@@ -114,8 +132,9 @@ export default function App() {
                                 },
                             }}
                         />
-                    </BrowserRouter>
-                </AdminStoreProvider>
+                        </BrowserRouter>
+                    </AdminStoreProvider>
+                </PermissionProvider>
             </AuthProvider>
         </QueryClientProvider>
     );

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_db, get_current_user, require_role, get_org_context
+from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, require_capability
 from app.services.auth import AuthService
 from app.services.audit import AuditService
 from app.constants.audit_actions import AuditAction
@@ -105,12 +105,21 @@ async def logout(
 @router.get("/me", response_model=UserResponse, summary="Current user")
 async def get_current_user_info(
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Get current authenticated user."""
+    """Get current authenticated user, with their resolved capabilities."""
+    from app.services.rbac import get_rbac_config, caps_for_role
+    try:
+        cfg = await get_rbac_config(db, current_user.organization_id)
+        caps, hidden = caps_for_role(cfg, current_user.role)
+    except Exception:
+        caps, hidden = [], []
+    current_user.capabilities = caps
+    current_user.hidden_pages = hidden
     return current_user
 
 
-@router.post("/users", response_model=UserResponse, summary="Create user")
+@router.post("/users", response_model=UserResponse, summary="Create user", dependencies=[Depends(require_capability("manage_users"))])
 async def create_user(
     data: UserCreate,
     request: Request,
@@ -123,7 +132,7 @@ async def create_user(
     return await service.register_user(data, org_id, current_user=current_user, request=request)
 
 
-@router.get("/users", response_model=List[UserResponse], summary="List users")
+@router.get("/users", response_model=List[UserResponse], summary="List users", dependencies=[Depends(require_capability("manage_users"))])
 async def list_users(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["admin"])),
@@ -139,7 +148,33 @@ async def list_users(
     return result.scalars().all()
 
 
-@router.put("/users/{user_id}", response_model=UserResponse, summary="Update user")
+@router.delete("/users/{user_id}", status_code=204, summary="Delete user", dependencies=[Depends(require_capability("manage_users")), Depends(require_capability("delete_records"))])
+async def delete_user(
+    user_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(["admin"])),
+    org_id: UUID = Depends(get_org_context),
+):
+    """Soft-delete a staff user (admin only). Cannot delete yourself."""
+    if user_id == current_user.id:
+        raise ForbiddenException("You cannot delete your own account")
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.organization_id == org_id, User.is_deleted == False)
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise NotFoundException("User", user_id)
+    user.is_deleted = True
+    user.is_active = False
+    await db.flush()
+    await AuditService(db).log(
+        action=AuditAction.USER_DEACTIVATED, user=current_user, organization_id=org_id,
+        entity_type="User", entity_id=user.id, notes="User deleted", request=request,
+    )
+
+
+@router.put("/users/{user_id}", response_model=UserResponse, summary="Update user", dependencies=[Depends(require_capability("manage_users"))])
 async def update_user(
     user_id: UUID,
     data: UserUpdate,

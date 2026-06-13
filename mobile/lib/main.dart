@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import 'app.dart';
 import 'state/auth_provider.dart';
+import 'state/branding_provider.dart';
 import 'state/cart_provider.dart';
+import 'state/content_provider.dart';
 import 'state/home_layout_provider.dart';
 import 'state/notifications_provider.dart';
 import 'state/store_provider.dart';
@@ -30,6 +32,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => HomeLayoutProvider()),
         ChangeNotifierProvider(create: (_) => NotificationsProvider()),
+        ChangeNotifierProvider(create: (_) => ContentProvider()),
+        ChangeNotifierProvider(create: (_) => BrandingProvider()),
       ],
       child: const DailyGrocerApp(),
     ),

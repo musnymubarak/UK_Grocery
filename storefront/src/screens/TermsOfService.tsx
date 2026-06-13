@@ -1,5 +1,6 @@
 import React from 'react';
 import Layout from '../components/Layout';
+import LegalPageView from '../components/LegalPageView';
 import { motion } from 'motion/react';
 import { Scale, ShoppingBag, Truck, AlertCircle, Ban, RefreshCw } from 'lucide-react';
 
@@ -29,7 +30,7 @@ const LegalSection = ({ title, icon, children }: LegalSectionProps) => (
   </motion.div>
 );
 
-export default function TermsOfService() {
+function TermsFallback() {
   return (
     <Layout title="Terms of Service" showBack>
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16 pb-32">
@@ -95,4 +96,8 @@ export default function TermsOfService() {
       </div>
     </Layout>
   );
+}
+
+export default function TermsOfService() {
+  return <LegalPageView slug="terms" defaultTitle="Terms of Service" fallback={<TermsFallback />} />;
 }

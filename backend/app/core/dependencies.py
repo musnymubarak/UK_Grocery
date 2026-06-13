@@ -123,6 +123,39 @@ def require_role(allowed_roles: List[str]):
     return role_checker
 
 
+def require_capability(capability: str):
+    """Dependency factory: require the current user's role to hold `capability`
+    in the org's RBAC config (PlatformConfig key `rbac_capabilities`).
+
+    super_admin / admin always pass — this mirrors the admin UI backstop and
+    guarantees an admin can never lock themselves out of the tools that edit the
+    capability map itself. All other roles are checked against their granted caps,
+    so grants made in the admin role editor are now enforced server-side, not just
+    hidden in the UI.
+    """
+
+    async def cap_checker(
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_session),
+    ) -> User:
+        if current_user.role in ("super_admin", "admin"):
+            return current_user
+        if not current_user.organization_id:
+            raise ForbiddenException("User is not associated with any organization")
+
+        from app.services.rbac import get_rbac_config, caps_for_role
+
+        config = await get_rbac_config(db, current_user.organization_id)
+        caps, _ = caps_for_role(config, current_user.role)
+        if capability not in caps:
+            raise ForbiddenException(
+                f"Role '{current_user.role}' lacks the required capability: {capability}"
+            )
+        return current_user
+
+    return cap_checker
+
+
 async def get_org_context(
     current_user: User = Depends(get_current_user),
 ) -> UUID:

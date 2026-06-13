@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_async_session
-from app.core.dependencies import get_current_customer, get_current_user, require_role
+from app.core.dependencies import get_current_customer, get_current_user, require_role, require_capability
 from app.models.customer import Customer
 from app.models.user import User
 from app.services.gdpr import GDPRService
@@ -36,7 +36,7 @@ async def forget_me(
     await service.anonymize_customer(customer.id)
     return None
 
-@router.post("/admin/anonymize/{customer_id}", summary="Admin-initiated anonymization")
+@router.post("/admin/anonymize/{customer_id}", summary="Admin-initiated anonymization", dependencies=[Depends(require_capability("delete_records"))])
 async def admin_anonymize(
     customer_id: str,
     admin: User = Depends(require_role(["admin", "super_admin"])),

@@ -2,8 +2,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingBasket, Zap, Store, Tag, Menu, ReceiptText, User, ShoppingCart, Info, LayoutGrid, Search } from 'lucide-react';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useContent } from '../context/ContentContext';
 import { notificationApi } from '../services/api';
 import Modal from './Modal';
+import AnnouncementBar from './AnnouncementBar';
 import React, { useState, useEffect } from 'react';
 
 interface LayoutProps {
@@ -26,6 +28,7 @@ interface LayoutProps {
 export default function Layout({ children, title = 'Daily Grocer', showBack = false, dark = false, fullWidth = false }: LayoutProps) {
   const { totalItems, selectedStore } = useCart();
   const { isAuthenticated } = useAuth();
+  const { t, branding } = useContent();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -91,6 +94,8 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
   return (
     <div className="min-h-screen bg-background flex justify-center pb-16 md:pb-0">
       <div className="w-full bg-background flex flex-col">
+        {/* Admin-controlled announcement strip (scrolls away; header stays sticky) */}
+        <AnnouncementBar />
         {/* Top App Bar — Desktop & Mobile */}
         <header className="sticky top-0 z-50 bg-white border-b border-outline-variant w-full h-16 md:h-20 flex justify-center">
           <div className="w-full max-w-[90rem] flex justify-between items-center px-4 gap-4">
@@ -105,7 +110,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
                 </button>
               )}
               <Link to={selectedStore ? '/browse' : '/'} className="flex items-center cursor-pointer shrink-0">
-                <img src="/logo_playful.png" alt="Daily Grocer" className="h-10 md:h-14 w-auto object-contain" />
+                <img src={branding.logo_url || '/logo_playful.png'} alt={branding.app_name} className="h-10 md:h-14 w-auto object-contain" />
               </Link>
 
               {/* Store Details Selector Block (Snappy Shopper Style) */}
@@ -133,7 +138,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
                       onClick={() => navigate('/stores')} 
                       className="text-[11px] font-semibold text-on-surface-variant hover:text-action-blue transition-colors flex items-center gap-0.5 leading-none mt-0.5"
                     >
-                      <span>Delivery in 25 to 40 Mins</span>
+                      <span>{t('layout.delivery_time_message', 'Delivery in 25 to 40 Mins')}</span>
                       <span className="text-[9px] font-bold">&gt;</span>
                     </button>
                   </div>
@@ -162,7 +167,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
                   onChange={handleNavSearchChange}
                   onFocus={handleNavSearchFocus}
                   autoFocus={location.pathname === '/search'}
-                  placeholder="Search for products..."
+                  placeholder={t('layout.search_placeholder', 'Search for products...')}
                   className="w-full bg-[#f5f6fa] border border-outline-variant/50 rounded-full py-2.5 pl-10 pr-4 text-sm text-text-main outline-none focus:border-action-blue focus:ring-1 focus:ring-action-blue/30 placeholder:text-outline transition-all"
                 />
               </form>
@@ -202,7 +207,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
           <footer className="hidden md:block mt-16 border-t border-outline-variant px-6 py-8 bg-surface-container-lowest text-center">
             <div className="flex flex-col items-center gap-3">
               <div className="font-headline font-bold text-sm text-primary tracking-tight">
-                DAILY GROCER
+                {t('layout.footer_company_name', 'DAILY GROCER')}
               </div>
               <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-[11px] font-semibold text-on-surface-variant">
                 <Link to="/privacy" className="hover:text-action-blue transition-colors">Privacy Policy</Link>
@@ -210,7 +215,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
                 <Link to="/cookies" className="hover:text-action-blue transition-colors">Cookies Policy</Link>
               </div>
               <p className="text-[10px] text-on-surface-variant max-w-xs leading-relaxed">
-                © 2026 Daily Grocer Ltd. Registered in England & Wales. Delivery partners operating Challenge 25 policy.
+                {t('layout.footer_copyright', '© 2026 Daily Grocer Ltd. Registered in England & Wales.')} Delivery partners operating Challenge 25 policy.
               </p>
             </div>
           </footer>
@@ -221,31 +226,31 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
               <BottomNavLink
                 to="/stores"
                 icon={<Store size={22} strokeWidth={2.5} />}
-                label="Stores"
+                label={t('layout.nav_stores', 'Stores')}
                 active={location.pathname === '/stores'}
               />
               <BottomNavLink
                 to="/browse"
                 icon={<LayoutGrid size={22} strokeWidth={2.5} />}
-                label="Menu"
+                label={t('layout.nav_menu', 'Menu')}
                 active={location.pathname === '/browse' || location.pathname.startsWith('/aisle')}
               />
               <BottomNavLink
                 to="/history"
                 icon={<ReceiptText size={22} strokeWidth={2.5} />}
-                label="Orders"
+                label={t('layout.nav_orders', 'Orders')}
                 active={location.pathname === '/history' || location.pathname === '/orders' || location.pathname.startsWith('/tracking')}
               />
               <BottomNavLink
                 to={isAuthenticated ? '/profile' : '/login'}
                 icon={<User size={22} strokeWidth={2.5} />}
-                label="Account"
+                label={t('layout.nav_account', 'Account')}
                 active={location.pathname === '/profile' || location.pathname === '/login'}
               />
               <BottomNavLink
                 to="/cart"
                 icon={<ShoppingCart size={22} strokeWidth={2.5} />}
-                label="Cart"
+                label={t('layout.nav_cart', 'Cart')}
                 active={location.pathname === '/cart'}
                 badge={totalItems}
               />

@@ -8,6 +8,7 @@ from app.core.database import get_async_session
 from app.core.dependencies import get_current_user, require_role, get_store_scope, enforce_store_access
 from app.models.user import User
 from app.models.store import Store
+from app.models.delivery_zone import DeliveryZone
 from app.schemas.delivery_zone import DeliveryZoneCreate, DeliveryZoneResponse, DeliveryZoneUpdate, FeeCalculationRequest, FeeCalculationResponse
 from app.services.delivery import DeliveryZoneService
 
@@ -35,6 +36,35 @@ async def create_zone(
     if store_scope:
         enforce_store_access(store_id, store_scope)
     return await DeliveryZoneService.create_zone(db, store_id, data)
+
+@router.put("/delivery-zones/{zone_id}", response_model=DeliveryZoneResponse)
+async def update_zone(
+    zone_id: UUID,
+    data: DeliveryZoneUpdate,
+    store_scope: Optional[UUID] = Depends(get_store_scope),
+    current_user: User = Depends(require_role(["admin", "manager"])),
+    db: AsyncSession = Depends(get_async_session)
+):
+    if store_scope:
+        z = await db.get(DeliveryZone, zone_id)
+        if z:
+            enforce_store_access(z.store_id, store_scope)
+    return await DeliveryZoneService.update_zone(db, zone_id, data)
+
+
+@router.delete("/delivery-zones/{zone_id}", status_code=204)
+async def delete_zone(
+    zone_id: UUID,
+    store_scope: Optional[UUID] = Depends(get_store_scope),
+    current_user: User = Depends(require_role(["admin", "manager"])),
+    db: AsyncSession = Depends(get_async_session)
+):
+    if store_scope:
+        z = await db.get(DeliveryZone, zone_id)
+        if z:
+            enforce_store_access(z.store_id, store_scope)
+    await DeliveryZoneService.delete_zone(db, zone_id)
+
 
 @router.post("/delivery/calculate-fee", response_model=FeeCalculationResponse)
 async def calculate_fee(
