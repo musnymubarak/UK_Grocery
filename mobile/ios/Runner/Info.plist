@@ -8,6 +8,8 @@
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We use your location to find the nearest Daily Grocer store.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We use your location to find the nearest Daily Grocer store.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
