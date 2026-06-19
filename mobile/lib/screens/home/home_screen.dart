@@ -716,13 +716,14 @@ class _CategoryTile extends StatelessWidget {
             // (no more tiny circle floating in whitespace).
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(4),
                 child: _image(),
               ),
             ),
             // Footer — label on the left, neutral chevron on the right.
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              height: 54,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: const BoxDecoration(
                 border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
               ),
