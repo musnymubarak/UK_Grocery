@@ -77,3 +77,8 @@ class Token(BaseModel):
 
 class GoogleLogin(BaseModel):
     id_token: str
+
+class AppleLogin(BaseModel):
+    identity_token: str
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None

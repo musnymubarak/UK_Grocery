@@ -17,8 +17,10 @@ from app.models.customer import Customer, CustomerAddress
 from app.schemas.customer import (
     CustomerCreate, CustomerResponse, CustomerUpdate, 
     CustomerAddressCreate, CustomerAddressResponse,
-    CustomerLogin, Token, GoogleLogin
+    CustomerLogin, Token, GoogleLogin, AppleLogin
 )
+import httpx
+from jose import jwt
 from app.schemas.referral import ApplyReferralRequest, ReferralResponse, ReferralCodeResponse
 from app.schemas.auth import RefreshRequest, LogoutRequest
 from app.services.customer import CustomerService
@@ -139,6 +141,76 @@ async def google_login_customer(
     except ValueError:
         # Invalid token
         raise UnauthorizedException("Invalid Google token")
+
+@router.post("/apple", response_model=Token)
+async def apple_login_customer(
+    request: Request,
+    data: AppleLogin,
+    db: AsyncSession = Depends(get_async_session)
+):
+    """Authenticate customer via Apple Identity Token."""
+    try:
+        # Fetch Apple's public keys
+        async with httpx.AsyncClient() as client:
+            resp = await client.get("https://appleid.apple.com/auth/keys")
+            jwks = resp.json()
+            
+        unverified_header = jwt.get_unverified_header(data.identity_token)
+        kid = unverified_header.get('kid')
+        
+        rsa_key = next((key for key in jwks['keys'] if key['kid'] == kid), None)
+        if not rsa_key:
+            raise ValueError("Invalid Apple token signature")
+            
+        # Verify the token
+        payload = jwt.decode(
+            data.identity_token,
+            rsa_key,
+            algorithms=['RS256'],
+            audience="uk.co.dailygrocer",
+            issuer='https://appleid.apple.com'
+        )
+        
+        # Apple payload uses "sub" as the unique user id, and typically includes "email"
+        email = payload.get("email") or data.email
+        if not email:
+            raise ValueError("Email not provided by Apple or client")
+            
+        name = data.full_name or email.split('@')[0]
+        
+        # Check if customer exists
+        from app.services.customer import CustomerService
+        customer = await CustomerService.get_customer_by_email(db, email)
+        
+        if not customer:
+            # Create new customer
+            from app.models.organization import Organization
+            from sqlalchemy import select as sa_select
+            result = await db.execute(sa_select(Organization).limit(1))
+            org = result.scalar_one_or_none()
+            
+            from app.schemas.customer import CustomerCreate
+            import secrets
+            import string
+            
+            random_pw = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(20))
+            
+            new_customer_data = CustomerCreate(
+                email=email,
+                full_name=name,
+                password=random_pw
+            )
+            customer = await CustomerService.create_customer(db, org_id=org.id, data=new_customer_data)
+        
+        token_service = TokenService(db)
+        device_info = request.headers.get("user-agent")
+        return await token_service.issue_token_pair(
+            customer_id=customer.id,
+            device_info=device_info
+        )
+        
+    except Exception as e:
+        raise UnauthorizedException(f"Invalid Apple token: {str(e)}")
 
 
 @router.post("/refresh", summary="Rotate customer refresh token")

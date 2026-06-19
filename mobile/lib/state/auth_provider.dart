@@ -65,6 +65,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> appleSignIn(String identityToken, {String? email, String? fullName}) async {
+    await Api.instance.auth.appleLogin(identityToken, email, fullName);
+    _customer = await Api.instance.auth.me();
+    notifyListeners();
+  }
+
   Future<void> signOut() async {
     await Api.instance.auth.logout();
     _customer = null;
