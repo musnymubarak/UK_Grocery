@@ -491,7 +491,7 @@ class _CategoryGridSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final categories = section.categories;
     if (categories.isEmpty) return const SizedBox.shrink();
-    final columns = section.columns.clamp(2, 4).toInt();
+    final columns = 2;
 
     return Padding(
       padding: _hPad.add(const EdgeInsets.only(bottom: AppSpacing.lg)),
@@ -507,7 +507,7 @@ class _CategoryGridSection extends StatelessWidget {
               crossAxisCount: columns,
               mainAxisSpacing: AppSpacing.base,
               crossAxisSpacing: AppSpacing.base,
-              childAspectRatio: 0.85,
+              childAspectRatio: columns == 4 ? 0.65 : (columns == 3 ? 0.75 : 0.85),
             ),
             itemCount: categories.length,
             itemBuilder: (_, i) => _CategoryGridTile(category: categories[i]),
@@ -543,12 +543,13 @@ class _CategoryGridTile extends StatelessWidget {
           children: [
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(4),
                 child: _image(),
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              height: 54,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: const BoxDecoration(
                 border: Border(top: BorderSide(color: AppColors.neutral300)),
               ),
