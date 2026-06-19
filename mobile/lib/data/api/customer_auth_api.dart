@@ -51,6 +51,20 @@ class CustomerAuthApi {
     await _persistTokens(data);
   }
 
+  Future<void> appleLogin(String identityToken, String? email, String? fullName) async {
+    final data = await _client.request<Map<String, dynamic>>(
+      () => _client.raw.post(
+        '/customers/apple',
+        data: {
+          'identity_token': identityToken,
+          if (email != null && email.isNotEmpty) 'email': email,
+          if (fullName != null && fullName.isNotEmpty) 'full_name': fullName,
+        },
+      ),
+    );
+    await _persistTokens(data);
+  }
+
   Future<Customer> me() async {
     final data = await _client.request<Map<String, dynamic>>(
       () => _client.raw.get('/customers/me'),

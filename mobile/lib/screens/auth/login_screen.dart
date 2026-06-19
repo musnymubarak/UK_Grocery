@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/router/app_router.dart';
@@ -137,15 +138,56 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _handleAppleLogin() async {
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      if (credential.identityToken != null && mounted) {
+        setState(() => _loading = true);
+        final email = credential.email;
+        final fullName = [credential.givenName, credential.familyName]
+            .where((n) => n != null && n.isNotEmpty)
+            .join(' ');
+            
+        await context.read<AuthProvider>().appleSignIn(
+          credential.identityToken!,
+          email: email,
+          fullName: fullName.isEmpty ? null : fullName,
+        );
+
+        if (!mounted) return;
+        final redirect = widget.redirect;
+        if (redirect != null && redirect.isNotEmpty) {
+          Navigator.of(context).pushReplacementNamed(redirect);
+        } else {
+          Navigator.of(context).pushNamedAndRemoveUntil(AppRouter.shell, (_) => false);
+        }
+      }
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code != AuthorizationErrorCode.canceled && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Apple Login failed: ${e.message}')));
+      }
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Apple Login failed: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Widget _buildSocialButtons() {
     return Column(
       children: [
         OutlinedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Facebook login coming soon')));
-          },
-          icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
-          label: const Text('Login with Facebook', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 14)),
+          onPressed: _loading ? null : _handleAppleLogin,
+          icon: const Icon(Icons.apple, color: Colors.black, size: 24),
+          label: const Text('Login with Apple', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 14)),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
             side: const BorderSide(color: Color(0xFFE2E8F0)),

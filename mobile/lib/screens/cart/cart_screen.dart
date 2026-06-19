@@ -133,7 +133,7 @@ class CartScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomSheet: empty ? null : _CartFooter(),
+      bottomSheet: empty ? null : _CartFooter(embedded: embedded),
     );
   }
 }
@@ -189,6 +189,9 @@ class _MiniStepper extends StatelessWidget {
 }
 
 class _CartFooter extends StatelessWidget {
+  const _CartFooter({this.embedded = false});
+  final bool embedded;
+
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
@@ -248,6 +251,7 @@ class _CartFooter extends StatelessWidget {
               variant: PremiumButtonVariant.accent,
               onPressed: () => Navigator.of(context).pushNamed(AppRouter.checkout),
             ),
+            if (embedded) const SizedBox(height: 80),
           ],
         ),
       ),
