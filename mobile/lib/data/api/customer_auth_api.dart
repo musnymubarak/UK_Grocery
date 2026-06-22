@@ -85,6 +85,13 @@ class CustomerAuthApi {
     await _client.tokens.clear();
   }
 
+  Future<void> deleteAccount() async {
+    await _client.request<void>(
+      () => _client.raw.delete('/customers/me'),
+    );
+    await _client.tokens.clear();
+  }
+
   Future<void> _persistTokens(Map<String, dynamic> data) async {
     final token = (data['access_token'] ?? data['token']) as String?;
     if (token == null || token.isEmpty) {

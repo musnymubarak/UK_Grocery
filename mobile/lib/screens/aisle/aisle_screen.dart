@@ -1,15 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/router/app_router.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/api/api_registry.dart';
 import '../../data/models/product.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/premium_app_bar.dart';
 import '../../widgets/premium_button.dart';
-import '../../widgets/product_card.dart';
+import '../../widgets/product_list_tile.dart';
 import '../../widgets/skeleton.dart';
 
 class AisleScreen extends StatefulWidget {
@@ -22,15 +24,14 @@ class AisleScreen extends StatefulWidget {
 }
 
 class _AisleScreenState extends State<AisleScreen> {
-  String _sort = 'Popular';
-  final _filters = const ['All', 'On offer'];
-  String _active = 'All';
-
   static const _pageSize = 24;
   final _scrollCtrl = ScrollController();
+  final _searchCtrl = TextEditingController();
+  Timer? _debounce;
 
   List<Product>? _products;
   String? _error;
+  String _searchQuery = '';
   bool _loading = true;
   bool _loadingMore = false;
   bool _hasMore = true;
@@ -44,9 +45,21 @@ class _AisleScreenState extends State<AisleScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.dispose();
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted && _searchQuery != query) {
+        setState(() => _searchQuery = query);
+        _load();
+      }
+    });
   }
 
   void _onScroll() {
@@ -70,6 +83,7 @@ class _AisleScreenState extends State<AisleScreen> {
       final list = await Api.instance.catalog.getProducts(
         categoryId: widget.categoryId,
         storeId: storeId,
+        search: _searchQuery,
         skip: 0,
         limit: _pageSize,
       );
@@ -104,6 +118,7 @@ class _AisleScreenState extends State<AisleScreen> {
       final next = await Api.instance.catalog.getProducts(
         categoryId: widget.categoryId,
         storeId: storeId,
+        search: _searchQuery,
         skip: _products!.length,
         limit: _pageSize,
       );
@@ -119,98 +134,73 @@ class _AisleScreenState extends State<AisleScreen> {
     }
   }
 
-  List<Product> get _filtered {
-    final all = _products ?? const <Product>[];
-    if (_active == 'On offer') return all.where((p) => p.hasPromo).toList();
-    return all;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final storeName = context.watch<StoreProvider>().selected?.name ?? 'Navalanka Super City';
+    
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        titleSpacing: 0,
+        title: Text(
+          storeName.length > 30 ? '${storeName.substring(0, 30)}...' : storeName,
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 16),
+        ),
+
+      ),
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PremiumAppBar(
-              title: widget.title ?? 'Aisle',
-              actions: const [
-                CircleIconButton(icon: Icons.search_rounded),
-                CircleIconButton(icon: Icons.tune_rounded),
-              ],
-            ),
+
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 8, AppSpacing.lg, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _loading ? 'Loading…' : '${_filtered.length} items',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _openSort,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                        border: Border.all(color: theme.colorScheme.outlineVariant),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.swap_vert_rounded, size: 16),
-                          const SizedBox(width: 6),
-                          Text(_sort, style: theme.textTheme.labelMedium),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(
-              height: 44,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 6),
-                itemBuilder: (_, i) {
-                  final f = _filters[i];
-                  final selected = f == _active;
-                  return GestureDetector(
-                    onTap: () => setState(() => _active = f),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOutCubic,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: selected ? theme.colorScheme.primary : theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                        border: Border.all(
-                          color: selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          f,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: selected ? Colors.white : theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search_rounded, color: theme.colorScheme.onSurfaceVariant, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchCtrl,
+                        onChanged: _onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Search in $storeName',
+                          hintStyle: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 14,
                           ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 14,
                         ),
                       ),
                     ),
-                  );
-                },
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemCount: _filters.length,
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 4),
+
+            const SizedBox(height: 16),
             Expanded(child: _body()),
           ],
         ),
@@ -220,18 +210,13 @@ class _AisleScreenState extends State<AisleScreen> {
 
   Widget _body() {
     if (_loading) {
-      return GridView.builder(
+      return ListView.separated(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxl),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.66,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
         itemCount: 6,
+        separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (_, __) => Skeleton(
-          height: 240,
+          height: 120,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         ),
       );
@@ -244,39 +229,27 @@ class _AisleScreenState extends State<AisleScreen> {
         action: PremiumButton(label: 'Retry', icon: Icons.refresh_rounded, onPressed: _load),
       );
     }
-    final products = _filtered;
+    final products = _products ?? const [];
     if (products.isEmpty) {
       return const EmptyState(
         icon: Icons.inventory_2_outlined,
         title: 'Nothing here yet',
-        message: 'Try a different filter or check back tomorrow for fresh stock.',
+        message: 'Check back tomorrow for fresh stock.',
       );
     }
     return RefreshIndicator(
       onRefresh: _load,
       color: Theme.of(context).colorScheme.primary,
-      child: CustomScrollView(
+      child: ListView.separated(
         controller: _scrollCtrl,
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.66,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => ProductCard(product: products[i]),
-                childCount: products.length,
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xxl),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: products.length + 1,
+        separatorBuilder: (_, __) => const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+        itemBuilder: (_, i) {
+          if (i == products.length) {
+            return Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Center(
                 child: _loadingMore
                     ? const SizedBox(
@@ -291,46 +264,11 @@ class _AisleScreenState extends State<AisleScreen> {
                           )
                         : const SizedBox.shrink(),
               ),
-            ),
-          ),
-        ],
+            );
+          }
+          return ProductListTile(product: products[i]);
+        },
       ),
-    );
-  }
-
-  void _openSort() {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (_) {
-        final options = ['Popular', 'Price: low to high', 'Price: high to low', 'Newest'];
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Sort by', style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 8),
-                ...options.map(
-                  (o) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(o),
-                    trailing: _sort == o
-                        ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
-                        : null,
-                    onTap: () {
-                      setState(() => _sort = o);
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

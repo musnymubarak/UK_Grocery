@@ -49,10 +49,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     if (context.read<AuthProvider>().isBootstrapping) return;
     _navigated = true;
     final hasStore = context.read<StoreProvider>().hasStore;
-    if (hasStore) {
+    final isAuth = context.read<AuthProvider>().isAuthenticated;
+    if (isAuth && hasStore) {
       Navigator.of(context).pushReplacementNamed(AppRouter.shell);
     } else {
-      Navigator.of(context).pushReplacementNamed(AppRouter.landing);
+      Navigator.of(context).pushReplacementNamed(AppRouter.stores);
     }
   }
 

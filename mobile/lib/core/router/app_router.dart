@@ -71,7 +71,7 @@ class AppRouter {
         return _slide(ProductDetailsScreen(productId: args['id'] as String), s);
       case search:
         final args = s.arguments as Map<String, dynamic>? ?? {};
-        return _slide(SearchScreen(initialQuery: args['query'] as String?), s);
+        return _slide(SearchScreen(initialQuery: args['query'] as String?, categoryId: args['categoryId'] as String?), s);
       case offers:
         return _slide(const OffersScreen(), s);
       case checkout:

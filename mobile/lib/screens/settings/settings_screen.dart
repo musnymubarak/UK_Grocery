@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../state/auth_provider.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/premium_app_bar.dart';
+import '../../widgets/premium_button.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -78,6 +82,16 @@ class SettingsScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text('Account', style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 10),
+                  _SettingsTile(
+                    icon: Icons.delete_forever_rounded,
+                    title: 'Delete account',
+                    caption: 'Permanently remove your account and data',
+                    isDanger: true,
+                    onTap: () => _confirmDeleteAccount(context),
+                  ),
                 ],
               ),
             ),
@@ -86,7 +100,77 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
-}
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final theme = Theme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+            boxShadow: AppShadows.elevated(context),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Delete account?', style: theme.textTheme.titleLarge),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'This action is permanent and cannot be undone. '
+                'All your orders, addresses, and profile data will be removed.',
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Expanded(
+                    child: PremiumButton(
+                      label: 'Cancel',
+                      variant: PremiumButtonVariant.ghost,
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: PremiumButton(
+                      label: 'Delete',
+                      variant: PremiumButtonVariant.accent,
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await context.read<AuthProvider>().deleteAccount();
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRouter.stores,
+            (_) => false,
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete account: $e')),
+          );
+        }
+      }
+    }
+  }
 
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
@@ -94,11 +178,13 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.caption,
     this.onTap,
+    this.isDanger = false,
   });
   final IconData icon;
   final String title;
   final String caption;
   final VoidCallback? onTap;
+  final bool isDanger;
 
   @override
   Widget build(BuildContext context) {
@@ -119,10 +205,12 @@ class _SettingsTile extends StatelessWidget {
               height: 40,
               width: 40,
               decoration: BoxDecoration(
-                color: t.colorScheme.primary.withValues(alpha: 0.12),
+                color: isDanger
+                    ? AppColors.red500.withValues(alpha: 0.12)
+                    : t.colorScheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
-              child: Icon(icon, color: t.colorScheme.primary, size: 20),
+              child: Icon(icon, color: isDanger ? AppColors.red500 : t.colorScheme.primary, size: 20),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(

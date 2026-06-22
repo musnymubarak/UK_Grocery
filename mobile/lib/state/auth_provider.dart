@@ -76,4 +76,10 @@ class AuthProvider extends ChangeNotifier {
     _customer = null;
     notifyListeners();
   }
+
+  Future<void> deleteAccount() async {
+    await Api.instance.auth.deleteAccount();
+    _customer = null;
+    notifyListeners();
+  }
 }

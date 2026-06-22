@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_shadows.dart';
@@ -242,6 +244,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           child: Icon(p.icon, size: 160, color: Colors.white.withValues(alpha: 0.95)),
                         ),
                       ),
+                      if (p.imageUrl != null && p.imageUrl!.trim().isNotEmpty)
+                        Positioned.fill(
+                          child: CachedNetworkImage(
+                            imageUrl: ApiConfig.resolveUploadUrl(p.imageUrl),
+                            fit: BoxFit.cover,
+                            fadeInDuration: const Duration(milliseconds: 220),
+                            fadeOutDuration: const Duration(milliseconds: 120),
+                            placeholder: (_, __) => const SizedBox.shrink(),
+                            errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                          ),
+                        ),
                       Align(
                         alignment: Alignment.bottomLeft,
                         child: Padding(
@@ -278,11 +291,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXxl)),
                   ),
                   transform: Matrix4.translationValues(0, -28, 0),
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.lg),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xxxl, AppSpacing.lg, AppSpacing.lg),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -295,11 +309,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: scheme.primary,
                                 fontWeight: FontWeight.w800,
+                                height: 1.0, // Center text vertically within the container
                               ),
                             ),
                           ),
                           const Spacer(),
-                          Text(p.unit, style: theme.textTheme.bodySmall),
+                          Text(
+                            p.unit, 
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              height: 1.0, // Center text vertically
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.md),
