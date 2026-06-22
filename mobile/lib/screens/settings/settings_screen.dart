@@ -171,6 +171,7 @@ class SettingsScreen extends StatelessWidget {
       }
     }
   }
+}
 
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
