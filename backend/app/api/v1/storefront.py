@@ -76,7 +76,7 @@ def serialize_product(p, qty=0, category_name=None) -> dict:
 
 
 @router.get("/products", summary="Browse products (public)")
-@cached("storefront:products:{category_id}:{store_id}:{skip}:{limit}", ttl=60)
+@cached("storefront:products:{category_id}:{store_id}:{search}:{skip}:{limit}", ttl=60)
 async def list_products(
     category_id: Optional[UUID] = None,
     store_id: Optional[UUID] = None,
