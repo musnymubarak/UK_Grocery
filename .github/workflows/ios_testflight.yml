@@ -76,6 +76,7 @@ jobs:
           API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           API_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: |
+          set -e
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$API_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
           xcrun altool --upload-app --type ios --file "build/ios/ipa/dailygrocer_mobile.ipa" --apiKey "$API_KEY_ID" --apiIssuer "$API_ISSUER_ID"
