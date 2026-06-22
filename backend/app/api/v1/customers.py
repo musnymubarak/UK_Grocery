@@ -279,6 +279,15 @@ async def set_my_default_address(
     """Set a specific address as default for the current customer."""
     return await CustomerService.set_default_address(db, current_customer.id, address_id)
 
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, summary="Delete customer account")
+async def delete_my_account(
+    current_customer: Customer = Depends(get_current_customer),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Permanently delete the current customer's account and all associated data."""
+    await CustomerService.delete_customer(db, current_customer.id)
+    await db.commit()
+
 
 @router.get("/me/referral-code", response_model=ReferralCodeResponse)
 async def get_my_referral_code(

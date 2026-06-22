@@ -135,3 +135,13 @@ class CustomerService:
             
         await db.flush()
         return target_address
+
+    @staticmethod
+    async def delete_customer(db: AsyncSession, customer_id: UUID) -> None:
+        """Permanently delete a customer and all their addresses."""
+        customer = await CustomerService.get_customer(db, customer_id)
+        # Delete all addresses first
+        for addr in customer.addresses:
+            await db.delete(addr)
+        await db.delete(customer)
+        await db.flush()
