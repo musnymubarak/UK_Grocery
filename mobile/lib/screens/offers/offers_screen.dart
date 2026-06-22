@@ -7,6 +7,7 @@ import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/api/api_registry.dart';
 import '../../data/models/product.dart';
+import '../../state/auth_provider.dart';
 import '../../state/content_provider.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
@@ -65,18 +66,45 @@ class _OffersScreenState extends State<OffersScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = context.watch<ContentProvider>().t;
+    final auth = context.watch<AuthProvider>();
+
+    if (!auth.isAuthenticated) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+        ),
+        body: SafeArea(
+          child: EmptyState(
+            icon: Icons.local_offer_outlined,
+            title: 'Sign in to view offers',
+            message: 'Members get access to exclusive discounts, coupons, and rewards.',
+            action: PremiumButton(
+              label: 'Sign In',
+              icon: Icons.login_rounded,
+              onPressed: () => Navigator.of(context).pushNamed('/login'),
+            ),
+          ),
+        ),
+      );
+    }
+
     const coupons = [
       _Coupon(
         code: 'WELCOME10',
         title: '10% off your first order',
         caption: 'Min spend £15 · Ends Sunday',
-        fill: AppColors.blue900,
+        fill: AppColors.blue600,
       ),
       _Coupon(
         code: 'BLOOM10',
         title: '£10 off — members only',
         caption: 'On orders over £40',
-        fill: AppColors.red600,
+        fill: AppColors.red500,
       ),
       _Coupon(
         code: 'FREEDEL',
@@ -87,7 +115,16 @@ class _OffersScreenState extends State<OffersScreen> {
     ];
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: RefreshIndicator(
           onRefresh: _load,
           color: theme.colorScheme.primary,
@@ -180,7 +217,7 @@ class _RewardsHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.blue900,
+        color: AppColors.blue600,
         borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
       ),
       child: Column(

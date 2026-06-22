@@ -32,14 +32,12 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
   double? _lng;
   List<dynamic> _suggestions = [];
   bool _showSuggestions = false;
+  bool _hasSearched = false;
   Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
-    _searchCtrl.text = 'SW1A 2AA';
-    _lat = 51.5034;
-    _lng = -0.1276;
   }
 
   @override
@@ -94,6 +92,7 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
             _searchCtrl.text = data['result']['postcode'] as String;
             _suggestions = [];
             _showSuggestions = false;
+            _hasSearched = true;
           });
           _toast('Located: ${data['result']['postcode']}');
         }
@@ -152,6 +151,7 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
         _searchCtrl.text = postcodeText;
         _suggestions = [];
         _showSuggestions = false;
+        _hasSearched = true;
       });
       _toast('Sorted by distance from $postcodeText');
     } catch (e) {
@@ -169,8 +169,22 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
   }
 
   List<_StoreDecorator> _getProcessedStores(List<StoreLocation> rawStores) {
-    final lat = _lat ?? 51.5034;
-    final lng = _lng ?? -0.1276;
+    // If user hasn't searched yet, show all stores as deliverable (no graying)
+    if (!_hasSearched || _lat == null || _lng == null) {
+      final list = rawStores.map((s) {
+        return _StoreDecorator(
+          store: s,
+          distance: 0,
+          deliveryFeeStr: '£1.99',
+          deliveryFeeNum: 1.99,
+          isDeliverable: true,
+        );
+      }).toList();
+      return list;
+    }
+
+    final lat = _lat!;
+    final lng = _lng!;
 
     final list = rawStores.map((s) {
       double dist = 0.5;
@@ -406,6 +420,7 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
                                   _searchCtrl.text = label;
                                   _suggestions = [];
                                   _showSuggestions = false;
+                                  _hasSearched = true;
                                 });
                               }
                             },
@@ -573,16 +588,16 @@ class _StoreCard extends StatelessWidget {
   Widget _logo(String name) {
     final n = name.toLowerCase();
     if (n.contains('family shopper')) {
-      return Image.asset('assets/family_shopper.webp', fit: BoxFit.contain);
+      return Image.asset('assets/family_shopper.webp', fit: BoxFit.cover);
     }
     if (n.contains('go local')) {
-      return Image.asset('assets/golocal.png', fit: BoxFit.contain);
+      return Image.asset('assets/golocal.png', fit: BoxFit.cover);
     }
     if (n.contains('premier')) {
-      return Image.asset('assets/premier.png', fit: BoxFit.contain);
+      return Image.asset('assets/premier.png', fit: BoxFit.cover);
     }
     if (n.contains('stocksfield')) {
-      return Image.asset('assets/Stocksfield.png', fit: BoxFit.contain);
+      return Image.asset('assets/Stocksfield.png', fit: BoxFit.cover);
     }
     return Container(
       color: Colors.blue.shade50,
@@ -625,11 +640,9 @@ class _StoreCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: scheme.outlineVariant),
                 ),
-                padding: const EdgeInsets.all(8),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   child: ColorFiltered(
                     colorFilter: active
                         ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)

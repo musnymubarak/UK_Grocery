@@ -19,11 +19,14 @@ import '../../widgets/product_card.dart';
 import '../../widgets/skeleton.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, this.embedded = false, this.initialQuery});
+  const SearchScreen({super.key, this.embedded = false, this.initialQuery, this.categoryId});
   final bool embedded;
 
   /// Seed the search with a query (e.g. from a home-layout `search` action).
   final String? initialQuery;
+
+  /// Restrict the search to a specific category.
+  final String? categoryId;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -42,7 +45,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Category>? _categories;
 
   static const _pageSize = 24;
-  final _trending = const ['Avocado', 'Sourdough', 'Olive oil', 'Eggs', 'Salmon', 'Coffee'];
+
 
   @override
   void initState() {
@@ -105,6 +108,7 @@ class _SearchScreenState extends State<SearchScreen> {
     try {
       final list = await Api.instance.catalog.getProducts(
         search: term,
+        categoryId: widget.categoryId,
         storeId: storeId,
         skip: 0,
         limit: _pageSize,
@@ -144,6 +148,7 @@ class _SearchScreenState extends State<SearchScreen> {
     try {
       final next = await Api.instance.catalog.getProducts(
         search: term,
+        categoryId: widget.categoryId,
         storeId: storeId,
         skip: _results.length,
         limit: _pageSize,
@@ -163,6 +168,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final storeName = context.watch<StoreProvider>().selected?.name ?? 'Navalanka Super City';
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -176,13 +182,42 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
-              child: PremiumTextField(
-                label: 'What are you craving?',
-                hint: 'Try “sourdough” or “olive oil”',
-                icon: Icons.search_rounded,
-                controller: _ctrl,
-                autofocus: !widget.embedded,
-                onChanged: _onChanged,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search_rounded, color: theme.colorScheme.onSurfaceVariant, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _ctrl,
+                        autofocus: !widget.embedded,
+                        onChanged: _onChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Search in $storeName',
+                          hintStyle: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -346,45 +381,8 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: AppSpacing.xl),
         ],
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Text('Trending searches', style: theme.textTheme.titleSmall),
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _trending
-                .map(
-                  (t) => GestureDetector(
-                    onTap: () {
-                      _ctrl.text = t;
-                      _onChanged(t);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                        border: Border.all(color: theme.colorScheme.outlineVariant),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.trending_up_rounded, size: 14, color: theme.colorScheme.primary),
-                          const SizedBox(width: 6),
-                          Text(t, style: theme.textTheme.labelMedium),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-        if (cats.isNotEmpty) ...[
+
+        if (widget.categoryId == null && cats.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xl),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
