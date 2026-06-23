@@ -35,6 +35,7 @@ services:
       - DEBUG=${DEBUG:-False}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:5173}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,nginx}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     volumes:
       - ./backend/uploads:/app/uploads
     depends_on:
