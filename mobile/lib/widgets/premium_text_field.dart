@@ -77,7 +77,7 @@ class _PremiumTextFieldState extends State<PremiumTextField> {
             border: Border.all(
               color: hasError
                   ? scheme.error
-                  : (focused ? scheme.primary : scheme.outline),
+                  : (focused ? scheme.primary : scheme.outlineVariant),
               width: focused || hasError ? 1.5 : 1,
             ),
             boxShadow: focused
@@ -103,9 +103,13 @@ class _PremiumTextFieldState extends State<PremiumTextField> {
             style: theme.textTheme.bodyLarge,
             decoration: InputDecoration(
               hintText: widget.hint,
+              filled: false,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
               prefixIcon: widget.icon == null
                   ? null
                   : Icon(widget.icon, size: 20, color: scheme.onSurfaceVariant),

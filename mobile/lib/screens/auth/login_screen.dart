@@ -33,7 +33,79 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _firstName.addListener(_onTextChanged);
+    _lastName.addListener(_onTextChanged);
+    _email.addListener(_onTextChanged);
+    _password.addListener(_onTextChanged);
+    _confirmPassword.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  bool get _isSignupValid {
+    final email = _email.text.trim();
+    final password = _password.text;
+    final confirmPassword = _confirmPassword.text;
+    final firstName = _firstName.text.trim();
+    final lastName = _lastName.text.trim();
+
+    if (firstName.isEmpty ||
+        lastName.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
+      return false;
+    }
+
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+    if (!emailRegex.hasMatch(email)) {
+      return false;
+    }
+
+    if (password.length < 8) {
+      return false;
+    }
+
+    if (password != confirmPassword) {
+      return false;
+    }
+
+    if (!_agree) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool get _isLoginValid {
+    final email = _email.text.trim();
+    final password = _password.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      return false;
+    }
+
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+    if (!emailRegex.hasMatch(email)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @override
   void dispose() {
+    _firstName.removeListener(_onTextChanged);
+    _lastName.removeListener(_onTextChanged);
+    _email.removeListener(_onTextChanged);
+    _password.removeListener(_onTextChanged);
+    _confirmPassword.removeListener(_onTextChanged);
     _firstName.dispose();
     _lastName.dispose();
     _phone.dispose();
@@ -73,6 +145,17 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _password.text,
           phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
         );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account created successfully! Please log in.')),
+        );
+        setState(() {
+          _password.clear();
+          _confirmPassword.clear();
+          _signup = false;
+          _loading = false;
+        });
+        return;
       } else {
         await auth.signIn(email: _email.text.trim(), password: _password.text);
       }
@@ -282,10 +365,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 8),
         ElevatedButton(
-          onPressed: _loading ? null : _submit,
+          onPressed: (_loading || !_isLoginValid) ? null : _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF005EB8),
             foregroundColor: Colors.white,
+            disabledBackgroundColor: const Color(0xFFE2E8F0),
+            disabledForegroundColor: const Color(0xFF94A3B8),
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -294,7 +379,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: _loading 
             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : const Text('Login', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            : const Text('Login', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ),
         const SizedBox(height: 16),
         _buildSocialButtons(),
@@ -493,10 +578,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 24),
         ElevatedButton(
-          onPressed: _loading ? null : _submit,
+          onPressed: (_loading || !_isSignupValid) ? null : _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF005EB8),
             foregroundColor: Colors.white,
+            disabledBackgroundColor: const Color(0xFFE2E8F0),
+            disabledForegroundColor: const Color(0xFF94A3B8),
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -505,7 +592,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: _loading 
             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : const Text('Create Account', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            : const Text('Create Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ),
         const SizedBox(height: 16),
         _buildSocialButtons(),

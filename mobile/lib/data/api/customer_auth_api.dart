@@ -27,7 +27,7 @@ class CustomerAuthApi {
     required String password,
     String? phone,
   }) async {
-    final data = await _client.request<Map<String, dynamic>>(
+    await _client.request<Map<String, dynamic>>(
       () => _client.raw.post(
         '/customers/register',
         data: {
@@ -38,7 +38,6 @@ class CustomerAuthApi {
         },
       ),
     );
-    await _persistTokens(data);
   }
 
   Future<void> googleLogin(String idToken) async {

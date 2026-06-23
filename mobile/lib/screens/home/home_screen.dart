@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               width: double.infinity,
               height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
@@ -259,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _logo(ThemeData theme, BrandingConfig branding) {
     final asset = Image.asset(
       'assets/logo_playful.png',
-      height: 32,
+      height: 30,
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) => Text(
         branding.appName,
@@ -274,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (url.isEmpty) return asset;
     return CachedNetworkImage(
       imageUrl: url,
-      height: 32,
+      height: 30,
       fit: BoxFit.contain,
       placeholder: (_, __) => asset,
       errorWidget: (_, __, ___) => asset,
