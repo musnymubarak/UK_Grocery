@@ -1,10 +1,18 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../core/network/api_client.dart';
 import '../data/api/api_registry.dart';
 import '../data/models/customer.dart';
 
 class AuthProvider extends ChangeNotifier {
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: Platform.isIOS ? '288235605762-mmbm7t44m69mcs7g5humomfrve4eb5e4.apps.googleusercontent.com' : null,
+    serverClientId: '288235605762-sgum0h750di3nd4jbi62v7quladv5j34.apps.googleusercontent.com',
+    scopes: ['email'],
+  );
+
   AuthProvider() {
     ApiClient.instance.onAuthExpired.listen((_) {
       _customer = null;
@@ -65,6 +73,19 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> signInWithGoogle() async {
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      throw Exception('Google Sign-In was cancelled by the user.');
+    }
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final String? idToken = googleAuth.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw Exception('Failed to obtain Google ID Token.');
+    }
+    await googleSignIn(idToken);
+  }
+
   Future<void> appleSignIn(String identityToken, {String? email, String? fullName}) async {
     await Api.instance.auth.appleLogin(identityToken, email, fullName);
     _customer = await Api.instance.auth.me();
@@ -74,12 +95,18 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signOut() async {
     await Api.instance.auth.logout();
     _customer = null;
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
     notifyListeners();
   }
 
   Future<void> deleteAccount() async {
     await Api.instance.auth.deleteAccount();
     _customer = null;
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
     notifyListeners();
   }
 }
