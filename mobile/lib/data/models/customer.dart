@@ -29,6 +29,13 @@ class Customer {
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
+  static double? _parseDoubleOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
   factory Customer.fromJson(Map<String, dynamic> json) {
     final addrRaw = json['addresses'] as List<dynamic>? ?? const [];
     return Customer(
@@ -41,7 +48,7 @@ class Customer {
           .map(DeliveryAddress.fromJson)
           .toList(),
       ordersCount: json['orders_count'] as int? ?? 0,
-      totalSaved: (json['total_saved'] as num?)?.toDouble() ?? 0.0,
+      totalSaved: _parseDoubleOrNull(json['total_saved']) ?? 0.0,
       points: json['points'] as int? ?? 0,
     );
   }
