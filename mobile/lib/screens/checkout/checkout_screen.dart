@@ -246,7 +246,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final auth = context.watch<AuthProvider>();
     final store = context.watch<StoreProvider>().selected;
     final defaultFee = store?.defaultDeliveryFee ?? 2.99;
-    final delivery = _serverFee ?? defaultFee;
+    final baseDelivery = _serverFee ?? defaultFee;
+    final delivery = cart.subtotal > 40 ? 0.0 : baseDelivery;
     final rawTotal = cart.subtotal + delivery - _appliedDiscount;
     final total = rawTotal < 0 ? 0.0 : rawTotal;
     final addresses = auth.customer?.addresses ?? const <DeliveryAddress>[];
