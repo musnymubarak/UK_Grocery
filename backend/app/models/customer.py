@@ -4,6 +4,7 @@ Customer model — B2C users who purchase products.
 from sqlalchemy import Column, String, ForeignKey, Boolean, Text, Numeric, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from decimal import Decimal
 
 from app.core.database import Base, TimestampMixin
 
