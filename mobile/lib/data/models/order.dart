@@ -33,6 +33,15 @@ OrderStatus _parseStatus(String? raw) {
   }
 }
 
+double? _parseDoubleOrNull(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
+double _parseDouble(dynamic value) => _parseDoubleOrNull(value) ?? 0.0;
+
 class OrderLine {
   const OrderLine({
     required this.product,
@@ -51,10 +60,10 @@ class OrderLine {
   factory OrderLine.fromJson(Map<String, dynamic> json) {
     return OrderLine(
       product: null,
-      qty: (json['quantity'] as num?)?.toInt() ?? 1,
+      qty: _parseDoubleOrNull(json['quantity'])?.toInt() ?? 1,
       productName: json['product_name'] as String? ?? json['name'] as String?,
-      unitPrice: (json['unit_price'] as num?)?.toDouble() ??
-          (json['price'] as num?)?.toDouble(),
+      unitPrice: _parseDoubleOrNull(json['unit_price']) ??
+          _parseDoubleOrNull(json['price']),
     );
   }
 }
@@ -104,11 +113,11 @@ class OrderSummary {
           .whereType<Map<String, dynamic>>()
           .map(OrderLine.fromJson)
           .toList(),
-      deliveryFee: (json['delivery_fee'] as num?)?.toDouble() ?? 0,
-      tip: (json['tip_amount'] as num?)?.toDouble() ?? 0,
-      discount: (json['discount'] as num?)?.toDouble() ?? 0,
-      subtotalOverride: (json['subtotal'] as num?)?.toDouble(),
-      totalOverride: (json['total'] as num?)?.toDouble(),
+      deliveryFee: _parseDouble(json['delivery_fee']),
+      tip: _parseDouble(json['tip_amount']),
+      discount: _parseDouble(json['discount']),
+      subtotalOverride: _parseDoubleOrNull(json['subtotal']),
+      totalOverride: _parseDoubleOrNull(json['total']),
     );
   }
 }
