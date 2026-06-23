@@ -133,6 +133,23 @@ class _UnauthenticatedLoginViewState extends State<_UnauthenticatedLoginView> {
     }
   }
 
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _loading = true);
+    try {
+      await context.read<AuthProvider>().signInWithGoogle();
+    } catch (e) {
+      if (!mounted) return;
+      final errorMsg = e.toString();
+      if (!errorMsg.contains('cancelled') && !errorMsg.contains('sign_in_canceled')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Login failed: ${errorMsg.replaceAll('Exception: ', '')}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Future<void> _handleAppleLogin() async {
     try {
       final credential = await SignInWithApple.getAppleIDCredential(
@@ -313,9 +330,7 @@ class _UnauthenticatedLoginViewState extends State<_UnauthenticatedLoginView> {
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Google login coming soon')));
-              },
+              onPressed: _loading ? null : _handleGoogleLogin,
               icon: Image.asset('assets/google_g.png', height: 22, errorBuilder: (_,__,___) => const Icon(Icons.g_mobiledata_rounded, color: Colors.red)),
               label: Text('Login with Google', style: theme.textTheme.labelLarge?.copyWith(color: const Color(0xFF0F172A), fontWeight: FontWeight.w700)),
               style: OutlinedButton.styleFrom(

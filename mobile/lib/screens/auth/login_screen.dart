@@ -138,6 +138,30 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _loading = true);
+    try {
+      await context.read<AuthProvider>().signInWithGoogle();
+      if (!mounted) return;
+      final redirect = widget.redirect;
+      if (redirect != null && redirect.isNotEmpty) {
+        Navigator.of(context).pushReplacementNamed(redirect);
+      } else {
+        Navigator.of(context).pushNamedAndRemoveUntil(AppRouter.shell, (_) => false);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errorMsg = e.toString();
+      if (!errorMsg.contains('cancelled') && !errorMsg.contains('sign_in_canceled')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Login failed: ${errorMsg.replaceAll('Exception: ', '')}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Future<void> _handleAppleLogin() async {
     try {
       final credential = await SignInWithApple.getAppleIDCredential(
@@ -197,9 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 16),
         OutlinedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Google login coming soon')));
-          },
+          onPressed: _loading ? null : _handleGoogleLogin,
           icon: Image.asset('assets/google_g.png', height: 22, errorBuilder: (_,__,___) => const Icon(Icons.g_mobiledata_rounded, color: Colors.red)),
           label: const Text('Login with Google', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 14)),
           style: OutlinedButton.styleFrom(
@@ -212,6 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
+
 
   Widget _buildLoginForm(ThemeData theme) {
     return Column(
