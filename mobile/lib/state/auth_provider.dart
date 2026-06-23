@@ -64,8 +64,6 @@ class AuthProvider extends ChangeNotifier {
       password: password,
       phone: phone,
     );
-    _customer = await Api.instance.auth.me();
-    notifyListeners();
   }
 
   Future<void> googleSignIn(String idToken) async {

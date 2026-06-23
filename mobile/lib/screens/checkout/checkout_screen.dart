@@ -322,7 +322,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           },
                           child: _SelectableCard(
                             selected: a.id == _address?.id,
-                            leading: _SquareIcon(icon: a.label == 'Home' ? Icons.home_rounded : Icons.work_rounded),
+                            leading: _SquareIcon(
+                              icon: a.label == 'Home' ? Icons.home_rounded : Icons.work_rounded,
+                              selected: a.id == _address?.id,
+                            ),
                             title: '${a.label} · ${a.postcode}',
                             subtitle: '${a.line1}, ${a.line2}, ${a.city}',
                             trailing: a.isDefault ? const _MutedTag(label: 'Default') : null,
@@ -370,7 +373,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 10),
                   _SelectableCard(
                     selected: _payment == 'card',
-                    leading: const _SquareIcon(icon: Icons.credit_card_rounded),
+                    leading: _SquareIcon(
+                      icon: Icons.credit_card_rounded,
+                      selected: _payment == 'card',
+                    ),
                     title: 'Card payment',
                     subtitle: 'Pay securely on confirmation',
                     onTap: () => setState(() => _payment = 'card'),
@@ -378,7 +384,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 10),
                   _SelectableCard(
                     selected: _payment == 'wallet',
-                    leading: const _SquareIcon(icon: Icons.account_balance_wallet_rounded),
+                    leading: _SquareIcon(
+                      icon: Icons.account_balance_wallet_rounded,
+                      selected: _payment == 'wallet',
+                    ),
                     title: 'Daily Grocer Wallet',
                     subtitle: 'Use your wallet balance',
                     onTap: () => setState(() => _payment = 'wallet'),
@@ -386,7 +395,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 10),
                   _SelectableCard(
                     selected: _payment == 'cod',
-                    leading: const _SquareIcon(icon: Icons.payments_rounded),
+                    leading: _SquareIcon(
+                      icon: Icons.payments_rounded,
+                      selected: _payment == 'cod',
+                    ),
                     title: 'Cash on delivery',
                     subtitle: 'Pay your driver at the door',
                     onTap: () => setState(() => _payment = 'cod'),
@@ -646,19 +658,26 @@ class _SelectableCard extends StatelessWidget {
 }
 
 class _SquareIcon extends StatelessWidget {
-  const _SquareIcon({required this.icon});
+  const _SquareIcon({required this.icon, required this.selected});
   final IconData icon;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final t = Theme.of(context);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
       height: 40,
       width: 40,
       decoration: BoxDecoration(
-        color: AppColors.blue900,
+        color: selected ? t.colorScheme.primary : t.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Icon(icon, color: Colors.white, size: 20),
+      child: Icon(
+        icon,
+        color: selected ? Colors.white : t.colorScheme.onSurfaceVariant,
+        size: 20,
+      ),
     );
   }
 }
