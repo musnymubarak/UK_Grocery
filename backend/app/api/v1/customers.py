@@ -138,8 +138,10 @@ async def google_login_customer(
             device_info=device_info
         )
         
-    except ValueError:
+    except ValueError as e:
         # Invalid token
+        import logging
+        logging.error(f"Google login ValueError: {str(e)}")
         raise UnauthorizedException("Invalid Google token")
 
 @router.post("/apple", response_model=Token)
