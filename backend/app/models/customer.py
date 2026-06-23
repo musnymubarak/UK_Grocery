@@ -42,6 +42,24 @@ class Customer(TimestampMixin, Base):
     addresses = relationship("CustomerAddress", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
     orders = relationship("Order", back_populates="customer", lazy="selectin")
 
+    @property
+    def orders_count(self) -> int:
+        # SQLAlchemy returns None for unloaded relationships in some edge cases,
+        # but with selectinload it should be a list.
+        if getattr(self, "orders", None) is not None:
+            return len(self.orders)
+        return 0
+
+    @property
+    def total_saved(self) -> Decimal:
+        if getattr(self, "orders", None) is not None:
+            return sum(order.discount_amount for order in self.orders if order.discount_amount)
+        return Decimal("0.0")
+
+    @property
+    def points(self) -> int:
+        return int(self.lifetime_value * 10)
+
     def __repr__(self):
         return f"<Customer(id={self.id}, email='{self.email}')>"
 

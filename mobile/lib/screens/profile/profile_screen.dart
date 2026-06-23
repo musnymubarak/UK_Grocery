@@ -35,13 +35,13 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
             _SignedInHero(name: auth.displayName, email: auth.email, initials: auth.initials),
             const SizedBox(height: AppSpacing.xl),
-            const Row(
+            Row(
               children: [
-                Expanded(child: _Stat(label: 'Orders', value: '12')),
-                SizedBox(width: 10),
-                Expanded(child: _Stat(label: 'Saved', value: '£48')),
-                SizedBox(width: 10),
-                Expanded(child: _Stat(label: 'Points', value: '720')),
+                Expanded(child: _Stat(label: 'Orders', value: '${auth.customer?.ordersCount ?? 0}')),
+                const SizedBox(width: 10),
+                Expanded(child: _Stat(label: 'Saved', value: '£${(auth.customer?.totalSaved ?? 0.0).toStringAsFixed(0)}')),
+                const SizedBox(width: 10),
+                Expanded(child: _Stat(label: 'Points', value: '${auth.customer?.points ?? 0}')),
               ],
             ),
             const SizedBox(height: AppSpacing.xl),

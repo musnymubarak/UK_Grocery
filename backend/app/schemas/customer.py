@@ -61,6 +61,11 @@ class CustomerResponse(CustomerBase):
     referral_code: Optional[str] = None
     referred_by: Optional[UUID] = None
     addresses: List[CustomerAddressResponse] = []
+    
+    # Computed stats
+    orders_count: int = 0
+    total_saved: Decimal = Decimal("0.0")
+    points: int = 0
 
     class Config:
         from_attributes = True

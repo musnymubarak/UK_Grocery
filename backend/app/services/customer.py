@@ -32,7 +32,10 @@ class CustomerService:
 
     @staticmethod
     async def get_customer(db: AsyncSession, customer_id: UUID) -> Customer:
-        stmt = select(Customer).where(Customer.id == customer_id).options(selectinload(Customer.addresses))
+        stmt = select(Customer).where(Customer.id == customer_id).options(
+            selectinload(Customer.addresses),
+            selectinload(Customer.orders)
+        )
         result = await db.execute(stmt)
         customer = result.scalar_one_or_none()
         if not customer:

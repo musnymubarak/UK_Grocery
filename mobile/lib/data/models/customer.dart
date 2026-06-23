@@ -7,6 +7,9 @@ class Customer {
     required this.fullName,
     this.phone,
     this.addresses = const [],
+    this.ordersCount = 0,
+    this.totalSaved = 0.0,
+    this.points = 0,
   });
 
   final String id;
@@ -14,6 +17,9 @@ class Customer {
   final String fullName;
   final String? phone;
   final List<DeliveryAddress> addresses;
+  final int ordersCount;
+  final double totalSaved;
+  final int points;
 
   String get initials {
     final n = fullName.trim();
@@ -34,6 +40,9 @@ class Customer {
           .whereType<Map<String, dynamic>>()
           .map(DeliveryAddress.fromJson)
           .toList(),
+      ordersCount: json['orders_count'] as int? ?? 0,
+      totalSaved: (json['total_saved'] as num?)?.toDouble() ?? 0.0,
+      points: json['points'] as int? ?? 0,
     );
   }
 
@@ -44,6 +53,9 @@ class Customer {
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
       addresses: addresses ?? this.addresses,
+      ordersCount: ordersCount,
+      totalSaved: totalSaved,
+      points: points,
     );
   }
 }
