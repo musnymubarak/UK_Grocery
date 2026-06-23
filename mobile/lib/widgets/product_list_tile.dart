@@ -121,7 +121,9 @@ class ProductListTile extends StatelessWidget {
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: _AddSquareButton(product: product, qty: qty),
+                    child: qty > 0
+                        ? _QtyStepper(product: product, qty: qty)
+                        : _AddSquareButton(product: product),
                   ),
                 ],
               ),
@@ -134,46 +136,112 @@ class ProductListTile extends StatelessWidget {
 }
 
 class _AddSquareButton extends StatelessWidget {
-  const _AddSquareButton({required this.product, required this.qty});
+  const _AddSquareButton({required this.product});
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final cart = context.read<CartProvider>();
+
+    return Semantics(
+      button: true,
+      label: 'Add ${product.name} to cart',
+      child: AnimatedPress(
+        onTap: () => cart.add(product),
+        scale: 0.9,
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.success,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.add_rounded,
+            size: 20,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QtyStepper extends StatelessWidget {
+  const _QtyStepper({required this.product, required this.qty});
   final Product product;
   final int qty;
 
   @override
   Widget build(BuildContext context) {
     final cart = context.read<CartProvider>();
-    final isAdded = qty > 0;
 
     return Semantics(
-      button: true,
-      label: isAdded ? 'Remove ${product.name}' : 'Add ${product.name} to cart',
-      child: AnimatedPress(
-        onTap: () {
-          if (isAdded) {
-            cart.remove(product.id);
-          } else {
-            cart.add(product);
-          }
-        },
-        scale: 0.9,
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE0C097)), // Light brownish/golden border
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+      label: '${product.name}, $qty in cart',
+      child: Container(
+        height: 32,
+        decoration: BoxDecoration(
+          color: AppColors.success,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _StepperIconButton(
+              icon: Icons.remove_rounded,
+              label: 'Decrease quantity',
+              onTap: () => cart.remove(product.id),
+            ),
+            Container(
+              alignment: Alignment.center,
+              constraints: const BoxConstraints(minWidth: 20),
+              child: Text(
+                '$qty',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ],
-          ),
+            ),
+            _StepperIconButton(
+              icon: Icons.add_rounded,
+              label: 'Increase quantity',
+              onTap: () => cart.add(product),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StepperIconButton extends StatelessWidget {
+  const _StepperIconButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: AnimatedPress(
+        onTap: onTap,
+        scale: 0.8,
+        child: SizedBox(
+          width: 28,
+          height: 32,
           child: Icon(
-            isAdded ? Icons.remove_rounded : Icons.add_rounded,
-            size: 20,
-            color: const Color(0xFFB07920), // Brownish cross
+            icon,
+            size: 16,
+            color: Colors.white,
           ),
         ),
       ),
