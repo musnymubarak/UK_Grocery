@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -48,6 +50,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _promoError;
   String? _promoSuccess;
   bool _validatingPromo = false;
+
+  // Address Autocomplete
+  List<dynamic> _suggestions = [];
+  bool _showSuggestions = false;
+  Timer? _debounceTimer;
+  bool _locatingAddress = false;
 
   @override
   void initState() {
@@ -102,11 +110,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _promoCtrl.dispose();
     _addressCtrl.dispose();
     _postcodeCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
+  }
+
+  void _onAddressSearchChanged(String val) {
+    if (val.trim().length < 3) {
+      setState(() {
+        _suggestions = [];
+        _showSuggestions = false;
+      });
+      return;
+    }
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      setState(() => _locatingAddress = true);
+      try {
+        final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent('$val, UK')}&countrycodes=gb&format=json&addressdetails=1&limit=5',
+        );
+        final res = await Dio().getUri(url, options: Options(headers: {
+          'User-Agent': 'DailyGrocerMobile/1.0',
+        }));
+        if (res.statusCode == 200 && mounted) {
+          setState(() {
+            _suggestions = res.data as List<dynamic>;
+            _showSuggestions = true;
+          });
+        }
+      } catch (_) {
+      } finally {
+        if (mounted) setState(() => _locatingAddress = false);
+      }
+    });
   }
 
   Future<void> _applyPromo() async {
@@ -327,23 +367,94 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 10),
                   if (_newAddress) ...[
-                    PremiumTextField(
-                      label: 'Postcode',
-                      hint: 'e.g. SW1A 1AA',
-                      controller: _postcodeCtrl,
-                      icon: Icons.markunread_mailbox_outlined,
-                      textInputAction: TextInputAction.next,
-                      onChanged: (v) {
-                        if (v.trim().length >= 5) _recalcFee();
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.base),
-                    PremiumTextField(
-                      label: 'Street address',
-                      hint: '123 Conservatory Lane',
-                      controller: _addressCtrl,
-                      icon: Icons.home_outlined,
-                      textInputAction: TextInputAction.next,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        PremiumTextField(
+                          label: 'Postcode',
+                          hint: 'e.g. SW1A 1AA',
+                          controller: _postcodeCtrl,
+                          icon: Icons.markunread_mailbox_outlined,
+                          textInputAction: TextInputAction.next,
+                          onChanged: (v) {
+                            if (v.trim().length >= 5) _recalcFee();
+                            _onAddressSearchChanged(v);
+                          },
+                        ),
+                        const SizedBox(height: AppSpacing.base),
+                        PremiumTextField(
+                          label: 'Street address',
+                          hint: '123 Conservatory Lane',
+                          controller: _addressCtrl,
+                          icon: Icons.home_outlined,
+                          textInputAction: TextInputAction.next,
+                          onChanged: _onAddressSearchChanged,
+                        ),
+                        if (_suggestions.isNotEmpty && _showSuggestions)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Material(
+                              elevation: 2,
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white,
+                              child: Container(
+                                constraints: const BoxConstraints(maxHeight: 220),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  padding: EdgeInsets.zero,
+                                  itemCount: _suggestions.length,
+                                  itemBuilder: (context, idx) {
+                                    final item = _suggestions[idx];
+                                    final addr = item['address'] ?? {};
+                                    final parts = <String>[];
+                                    if (addr['road'] != null) parts.add(addr['road'] as String);
+                                    if (addr['suburb'] != null) parts.add(addr['suburb'] as String);
+                                    if (addr['city'] != null || addr['town'] != null || addr['village'] != null) {
+                                      parts.add((addr['city'] ?? addr['town'] ?? addr['village']) as String);
+                                    }
+                                    if (addr['postcode'] != null) parts.add(addr['postcode'] as String);
+                                    final label = parts.isNotEmpty ? parts.join(', ') : (item['display_name'] as String? ?? '');
+
+                                    return ListTile(
+                                      leading: const Icon(Icons.place_outlined, color: Color(0xFF005EB8), size: 16),
+                                      title: Text(
+                                        label,
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      dense: true,
+                                      onTap: () {
+                                        setState(() {
+                                          if (addr['postcode'] != null) {
+                                            _postcodeCtrl.text = addr['postcode'] as String;
+                                          }
+                                          final streetParts = <String>[];
+                                          if (addr['house_number'] != null) streetParts.add(addr['house_number'] as String);
+                                          if (addr['road'] != null) streetParts.add(addr['road'] as String);
+                                          
+                                          if (streetParts.isNotEmpty) {
+                                            _addressCtrl.text = streetParts.join(' ');
+                                          } else {
+                                            _addressCtrl.text = label;
+                                          }
+
+                                          _suggestions = [];
+                                          _showSuggestions = false;
+                                        });
+                                        _recalcFee();
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ] else
                     ...addresses.map(
