@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
+import 'package:flutter/foundation.dart';
+import 'dart:io';
+
 import 'app.dart';
 import 'state/auth_provider.dart';
 import 'state/branding_provider.dart';
@@ -25,9 +28,11 @@ Future<void> main() async {
     ),
   );
 
-  Stripe.publishableKey = 'pk_test_51Tn08LRt4m9309WQYxo8Ztt4txTwYIVnZIHQyZQd3cRcEnh4ivxh2meSqlnA2wVU6XuK8ohndznZwcVDNHXM2oF500hSDuhqHj';
-  Stripe.urlScheme = 'dailygrocer';
-  await Stripe.instance.applySettings();
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    Stripe.publishableKey = 'pk_test_51Tn08LRt4m9309WQYxo8Ztt4txTwYIVnZIHQyZQd3cRcEnh4ivxh2meSqlnA2wVU6XuK8ohndznZwcVDNHXM2oF500hSDuhqHj';
+    Stripe.urlScheme = 'dailygrocer';
+    await Stripe.instance.applySettings();
+  }
 
   runApp(
     MultiProvider(

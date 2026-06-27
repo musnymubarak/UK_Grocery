@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io';
 
 import '../../core/network/api_exception.dart';
 import '../../core/router/app_router.dart';
@@ -517,17 +519,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: AppSpacing.xl),
                   const _SectionTitle(label: 'Payment', icon: Icons.credit_card_rounded),
                   const SizedBox(height: 10),
-                  _SelectableCard(
-                    selected: _payment == 'card',
-                    leading: _SquareIcon(
-                      icon: Icons.credit_card_rounded,
+                  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) ...[
+                    _SelectableCard(
                       selected: _payment == 'card',
+                      leading: _SquareIcon(
+                        icon: Icons.credit_card_rounded,
+                        selected: _payment == 'card',
+                      ),
+                      title: 'Card payment',
+                      subtitle: 'Pay securely on confirmation',
+                      onTap: () => setState(() => _payment = 'card'),
                     ),
-                    title: 'Card payment',
-                    subtitle: 'Pay securely on confirmation',
-                    onTap: () => setState(() => _payment = 'card'),
-                  ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 10),
+                  ],
                   _SelectableCard(
                     selected: _payment == 'wallet',
                     leading: _SquareIcon(
