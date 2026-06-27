@@ -261,6 +261,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           paymentSheetParameters: SetupPaymentSheetParameters(
             paymentIntentClientSecret: clientSecret,
             merchantDisplayName: 'Daily Grocer',
+            returnURL: 'dailygrocer://stripe-redirect',
             style: ThemeMode.light,
           ),
         );
