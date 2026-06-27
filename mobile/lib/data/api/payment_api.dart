@@ -5,10 +5,10 @@ class PaymentApi {
   final ApiClient _client;
 
   Future<String> createPaymentIntent({required double amount}) async {
-    final res = await _client.post(
+    final data = await _client.request<Map<String, dynamic>>(() => _client.raw.post(
       '/payments/create-payment-intent',
       data: {'amount': amount, 'currency': 'gbp'},
-    );
-    return res.data['client_secret'] as String;
+    ));
+    return data['client_secret'] as String;
   }
 }
