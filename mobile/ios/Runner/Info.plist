@@ -10,6 +10,8 @@
 	<string>We use your location to find the nearest Daily Grocer store.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We use your location to find the nearest Daily Grocer store.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to scan your payment card details for faster checkout.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
