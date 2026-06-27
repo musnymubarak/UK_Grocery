@@ -26,7 +26,6 @@ Future<void> main() async {
   );
 
   Stripe.publishableKey = 'pk_test_51Tn08LRt4m9309WQYxo8Ztt4txTwYIVnZIHQyZQd3cRcEnh4ivxh2meSqlnA2wVU6XuK8ohndznZwcVDNHXM2oF500hSDuhqHj';
-  Stripe.merchantIdentifier = 'uk.co.dailygrocer';
   await Stripe.instance.applySettings();
 
   runApp(
