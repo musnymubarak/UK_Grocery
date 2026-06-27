@@ -32,3 +32,28 @@ class PaymentService:
             )
             resp.raise_for_status()
             return resp.json()
+
+    async def create_payment_intent(
+        self, amount_pence: int, currency: str = "gbp", metadata: dict = None
+    ) -> dict:
+        if not self.api_key:
+            logger.warning("No Stripe API key configured, mocking payment intent.")
+            return {"client_secret": "pi_mocked_secret", "id": "pi_mocked"}
+
+        async with httpx.AsyncClient() as client:
+            data = {
+                "amount": amount_pence,
+                "currency": currency,
+                "automatic_payment_methods[enabled]": "true",
+            }
+            if metadata:
+                for k, v in metadata.items():
+                    data[f"metadata[{k}]"] = v
+            
+            resp = await client.post(
+                f"{self.STRIPE_BASE}/payment_intents",
+                auth=(self.api_key, ""),
+                data=data
+            )
+            resp.raise_for_status()
+            return resp.json()
