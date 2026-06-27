@@ -17,6 +17,7 @@ import '../../widgets/animated_press.dart';
 import '../../widgets/premium_app_bar.dart';
 import '../../widgets/premium_button.dart';
 import '../../widgets/premium_text_field.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -205,7 +206,39 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
     if (cart.items.isEmpty) return;
 
+    final defaultFee = store.defaultDeliveryFee ?? 2.99;
+    final baseDelivery = _serverFee ?? defaultFee;
+    final delivery = cart.subtotal > 40 ? 0.0 : baseDelivery;
+    final rawTotal = cart.subtotal + delivery - _appliedDiscount;
+    final total = rawTotal < 0 ? 0.0 : rawTotal;
+
     setState(() => _processing = true);
+
+    if (_payment == 'card') {
+      try {
+        final clientSecret = await Api.instance.payments.createPaymentIntent(amount: total);
+        await Stripe.instance.initPaymentSheet(
+          paymentSheetParameters: SetupPaymentSheetParameters(
+            paymentIntentClientSecret: clientSecret,
+            merchantDisplayName: 'Daily Grocer',
+            style: ThemeMode.light,
+          ),
+        );
+        await Stripe.instance.presentPaymentSheet();
+      } on StripeException catch (e) {
+        if (!mounted) return;
+        setState(() => _processing = false);
+        final msg = e.error.localizedMessage ?? 'Payment cancelled or failed.';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        return;
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _processing = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to initialize payment.')));
+        return;
+      }
+    }
+
     try {
       final order = await Api.instance.orders.checkout(
         storeId: store.id,

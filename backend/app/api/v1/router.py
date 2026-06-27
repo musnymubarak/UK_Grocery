@@ -37,6 +37,7 @@ from app.api.v1.analytics import router as analytics_router
 from app.api.v1.drivers import router as driver_router
 from app.api.v1.webhooks import router as webhook_router
 from app.api.v1.gdpr import router as gdpr_router
+from app.api.v1.payments import router as payments_router
 
 from app.api.v1.health import router as health_router
 
@@ -80,3 +81,4 @@ api_router.include_router(analytics_router)
 api_router.include_router(driver_router)
 api_router.include_router(webhook_router)
 api_router.include_router(gdpr_router)
+api_router.include_router(payments_router)

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 import 'app.dart';
 import 'state/auth_provider.dart';
@@ -11,7 +12,7 @@ import 'state/home_layout_provider.dart';
 import 'state/notifications_provider.dart';
 import 'state/store_provider.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -23,6 +24,10 @@ void main() {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
+
+  Stripe.publishableKey = 'pk_test_51Tn08LRt4m9309WQYxo8Ztt4txTwYIVnZIHQyZQd3cRcEnh4ivxh2meSqlnA2wVU6XuK8ohndznZwcVDNHXM2oF500hSDuhqHj';
+  Stripe.merchantIdentifier = 'uk.co.dailygrocer';
+  await Stripe.instance.applySettings();
 
   runApp(
     MultiProvider(

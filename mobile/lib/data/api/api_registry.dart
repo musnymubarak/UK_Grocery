@@ -5,6 +5,7 @@ import 'customer_auth_api.dart';
 import 'notification_api.dart';
 import 'order_api.dart';
 import 'refund_api.dart';
+import 'payment_api.dart';
 
 /// One place to access every API service. Use `Api.instance.catalog.…`.
 class Api {
@@ -14,7 +15,8 @@ class Api {
         auth = CustomerAuthApi(client),
         orders = OrderApi(client),
         notifications = NotificationApi(client),
-        refunds = RefundApi(client);
+        refunds = RefundApi(client),
+        payments = PaymentApi(client);
 
   static final Api instance = Api._(ApiClient.instance);
 
@@ -24,4 +26,5 @@ class Api {
   final OrderApi orders;
   final NotificationApi notifications;
   final RefundApi refunds;
+  final PaymentApi payments;
 }
