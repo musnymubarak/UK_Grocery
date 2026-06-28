@@ -33,16 +33,22 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Generate Debug Keystore
+      - name: Decode Android Keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          mkdir -p ~/.android
-          keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
 
-      - name: Get Keystore SHA-1 Fingerprint
+      - name: Create key.properties
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "=== Android Debug Keystore SHA-1 Fingerprint ==="
-          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android | grep SHA1
-          echo "================================================"
+          echo "storePassword=$ANDROID_KEYSTORE_PASSWORD" > android/key.properties
+          echo "keyPassword=$ANDROID_KEY_PASSWORD" >> android/key.properties
+          echo "keyAlias=$ANDROID_KEY_ALIAS" >> android/key.properties
+          echo "storeFile=upload-keystore.jks" >> android/key.properties
 
       - name: Build Release APK
         run: flutter build apk --release
