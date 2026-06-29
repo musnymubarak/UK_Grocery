@@ -30,6 +30,7 @@ Future<void> main() async {
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     Stripe.publishableKey = 'pk_test_51Tn08LRt4m9309WQYxo8Ztt4txTwYIVnZIHQyZQd3cRcEnh4ivxh2meSqlnA2wVU6XuK8ohndznZwcVDNHXM2oF500hSDuhqHj';
+    Stripe.merchantIdentifier = 'merchant.uk.co.dailygrocer';
     Stripe.urlScheme = 'dailygrocer';
     await Stripe.instance.applySettings();
   }

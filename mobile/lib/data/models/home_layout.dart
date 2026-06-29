@@ -101,7 +101,6 @@ class HomeSection {
   }
 }
 
-/// A single banner/promo/hero item inside a section's `items` list.
 class SectionItem {
   const SectionItem({
     this.imageUrl,
@@ -109,6 +108,12 @@ class SectionItem {
     this.subtitle,
     this.badge,
     this.action,
+    this.designType = 'image',
+    this.bgColor,
+    this.textColor,
+    this.buttonText,
+    this.buttonColor,
+    this.iconName,
   });
 
   final String? imageUrl;
@@ -116,6 +121,12 @@ class SectionItem {
   final String? subtitle;
   final String? badge;
   final SectionAction? action;
+  final String designType;
+  final String? bgColor;
+  final String? textColor;
+  final String? buttonText;
+  final String? buttonColor;
+  final String? iconName;
 
   factory SectionItem.fromJson(Map<String, dynamic> json) {
     final actionRaw = json['action'];
@@ -127,6 +138,12 @@ class SectionItem {
       action: actionRaw is Map<String, dynamic>
           ? SectionAction.fromJson(actionRaw)
           : null,
+      designType: json['design_type'] as String? ?? 'image',
+      bgColor: json['bg_color'] as String?,
+      textColor: json['text_color'] as String?,
+      buttonText: json['button_text'] as String?,
+      buttonColor: json['button_color'] as String?,
+      iconName: json['icon_name'] as String?,
     );
   }
 }

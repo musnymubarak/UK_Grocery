@@ -276,13 +276,7 @@ class _HeroSliderSectionState extends State<_HeroSliderSection> {
                   final item = items[i];
                   return GestureDetector(
                     onTap: () => ActionRouter.navigate(context, item.action),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        _sectionImage(item.imageUrl),
-                        _ItemOverlay(item: item),
-                      ],
-                    ),
+                    child: _SlideContent(item: item),
                   );
                 },
               ),
@@ -340,13 +334,7 @@ class _BannerStripSection extends StatelessWidget {
           child: SizedBox(
             width: width,
             height: 120,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _sectionImage(item.imageUrl),
-                _ItemOverlay(item: item),
-              ],
-            ),
+            child: _SlideContent(item: item),
           ),
         ),
       );
@@ -609,4 +597,154 @@ class _CategoryGridTile extends StatelessWidget {
         filterQuality: FilterQuality.high,
         errorBuilder: (_, __, ___) => Icon(category.icon, size: 40),
       );
+}
+
+// ---------------------------------------------------------------------------
+// shared components
+// ---------------------------------------------------------------------------
+
+class _SlideContent extends StatelessWidget {
+  const _SlideContent({required this.item});
+  final SectionItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    if (item.designType == 'solid_card') {
+      return _SolidBannerCard(item: item);
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _sectionImage(item.imageUrl),
+        _ItemOverlay(item: item),
+      ],
+    );
+  }
+}
+
+class _SolidBannerCard extends StatelessWidget {
+  const _SolidBannerCard({required this.item});
+  final SectionItem item;
+
+  Color _parseColor(String? hex, Color fallback) {
+    if (hex == null || hex.isEmpty) return fallback;
+    final buffer = StringBuffer();
+    if (hex.length == 6 || hex.length == 7) buffer.write('ff');
+    buffer.write(hex.replaceFirst('#', ''));
+    try {
+      return Color(int.parse(buffer.toString(), radix: 16));
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  IconData? _parseIcon(String? name) {
+    switch (name?.toLowerCase()) {
+      case 'star': return Icons.star_rounded;
+      case 'bike': return Icons.pedal_bike_rounded;
+      case 'moped': return Icons.moped_rounded;
+      case 'delivery': return Icons.local_shipping_rounded;
+      case 'tag': return Icons.local_offer_rounded;
+      case 'rewards': return Icons.card_giftcard_rounded;
+      default: return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = _parseColor(item.bgColor, AppColors.blue900);
+    final textColor = _parseColor(item.textColor, Colors.white);
+    final btnColor = _parseColor(item.buttonColor, AppColors.red500);
+    final iconData = _parseIcon(item.iconName);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(color: bgColor),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (iconData != null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: textColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(iconData, color: textColor, size: 28),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (item.badge?.isNotEmpty ?? false) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      item.badge!,
+                      style: TextStyle(
+                        color: bgColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (item.title?.isNotEmpty ?? false)
+                  Text(
+                    item.title!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                if (item.subtitle?.isNotEmpty ?? false) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    item.subtitle!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: textColor.withValues(alpha: 0.9),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (item.buttonText?.isNotEmpty ?? false) ...[
+            const SizedBox(width: AppSpacing.md),
+            IgnorePointer(
+              child: ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: btnColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  item.buttonText!,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }

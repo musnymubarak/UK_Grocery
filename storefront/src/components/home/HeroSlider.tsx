@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import SmartTransparentImage from '../SmartTransparentImage';
+import SolidBannerCard from './SolidBannerCard';
 import { useSectionAction } from '../../hooks/useSectionAction';
 import type { HomeSection, SectionItem } from '../../types';
 
@@ -47,24 +48,30 @@ const HeroSlider: React.FC<Props> = ({ section }) => {
             className="absolute inset-0 cursor-pointer"
             onClick={() => onAction(active.action)}
           >
-            {active.image_url && (
-              <SmartTransparentImage
-                src={active.image_url}
-                alt={active.title || 'Banner'}
-                className="w-full h-full"
-              />
-            )}
-            {(active.title || active.subtitle) && (
-              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/50 via-black/10 to-transparent p-4 md:p-6">
-                {active.title && (
-                  <h2 className="text-on-primary text-[20px] md:text-2xl lg:text-headline-lg-mobile font-extrabold tracking-tight">
-                    {active.title}
-                  </h2>
+            {active.design_type === 'solid_card' ? (
+              <SolidBannerCard item={active} />
+            ) : (
+              <>
+                {active.image_url && (
+                  <SmartTransparentImage
+                    src={active.image_url}
+                    alt={active.title || 'Banner'}
+                    className="w-full h-full"
+                  />
                 )}
-                {active.subtitle && (
-                  <p className="text-on-primary/90 text-sm md:text-body-md mt-1">{active.subtitle}</p>
+                {(active.title || active.subtitle) && (
+                  <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/50 via-black/10 to-transparent p-4 md:p-6">
+                    {active.title && (
+                      <h2 className="text-on-primary text-[20px] md:text-2xl lg:text-headline-lg-mobile font-extrabold tracking-tight">
+                        {active.title}
+                      </h2>
+                    )}
+                    {active.subtitle && (
+                      <p className="text-on-primary/90 text-sm md:text-body-md mt-1">{active.subtitle}</p>
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
           </motion.div>
         </AnimatePresence>

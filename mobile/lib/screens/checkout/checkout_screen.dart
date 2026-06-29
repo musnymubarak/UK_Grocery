@@ -301,14 +301,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           // if Stripe tries to present a modal while the keyboard is animating down.
           await Future.delayed(const Duration(milliseconds: 500));
 
-          if (_selectedCardId != null && status == 'requires_action') {
-            final paymentIntent = await Stripe.instance.handleNextAction(clientSecret);
+          if (_payment == 'platform') {
+            final cartItems = [
+              if (Platform.isIOS)
+                ApplePayCartSummaryItem.immediate(
+                  label: 'Daily Grocer',
+                  amount: total.toStringAsFixed(2),
+                )
+            ];
+
+            final paymentIntent = await Stripe.instance.confirmPlatformPayPaymentIntent(
+              clientSecret: clientSecret,
+              confirmParams: Platform.isIOS
+                  ? PlatformPayConfirmParams.applePay(
+                      applePay: ApplePayParams(
+                        cartItems: cartItems.cast<ApplePayCartSummaryItem>(),
+                        merchantCountryCode: 'GB',
+                        currencyCode: 'GBP',
+                      ),
+                    )
+                  : const PlatformPayConfirmParams.googlePay(
+                      googlePay: GooglePayParams(
+                        testEnv: true,
+                        merchantName: 'Daily Grocer',
+                        merchantCountryCode: 'GB',
+                        currencyCode: 'GBP',
+                      ),
+                    ),
+            );
+
             if (paymentIntent.status != PaymentIntentsStatus.Succeeded) {
               throw Exception('Payment failed. Status: ${paymentIntent.status}');
             }
+          } else if (_selectedCardId != null && status == 'requires_action') {
+            final paymentIntent = await Stripe.instance.handleNextAction(paymentIntentClientSecret: clientSecret);
+            if (paymentIntent.status != PaymentIntentsStatus.Succeeded) {
+              throw Exception('3D Secure failed. Status: ${paymentIntent.status}');
+            }
           } else {
             final customer = Provider.of<AuthProvider>(context, listen: false).customer;
-            
+
             final paymentIntent = await Stripe.instance.confirmPayment(
               paymentIntentClientSecret: clientSecret,
               data: PaymentMethodParams.card(
@@ -606,18 +638,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: AppSpacing.xl),
                   const _SectionTitle(label: 'Payment', icon: Icons.credit_card_rounded),
                   const SizedBox(height: 10),
-                  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) ...[
-                    _SelectableCard(
-                      selected: _payment == 'online',
-                      leading: _SquareIcon(
-                        icon: Icons.credit_card_rounded,
-                        selected: _payment == 'online',
+                    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) ...[
+                      _SelectableCard(
+                        selected: _payment == 'platform',
+                        leading: _SquareIcon(
+                          icon: Platform.isIOS ? Icons.apple : Icons.g_mobiledata_rounded,
+                          selected: _payment == 'platform',
+                        ),
+                        title: Platform.isIOS ? 'Apple Pay' : 'Google Pay',
+                        subtitle: 'Fast, secure checkout',
+                        onTap: () => setState(() => _payment = 'platform'),
                       ),
-                      title: 'Card payment',
-                      subtitle: 'Pay securely on confirmation',
-                      onTap: () => setState(() => _payment = 'online'),
-                    ),
-                    if (_payment == 'online') ...[
+                      _SelectableCard(
+                        selected: _payment == 'online',
+                        leading: _SquareIcon(
+                          icon: Icons.credit_card_rounded,
+                          selected: _payment == 'online',
+                        ),
+                        title: 'Card payment',
+                        subtitle: 'Pay securely on confirmation',
+                        onTap: () => setState(() => _payment = 'online'),
+                      ),
+                      if (_payment == 'online') ...[
                       if (_savedCards.isNotEmpty)
                         ..._savedCards.map((c) {
                           final cardData = c['card'] ?? {};
