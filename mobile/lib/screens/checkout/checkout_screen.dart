@@ -296,6 +296,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final status = paymentData['status']!;
 
         if (status != 'succeeded') {
+          // IMPORTANT: Wait for keyboard dismissal and layout shifts to finish!
+          // iOS will crash with "authenticationPresentingViewController is not in the window hierarchy"
+          // if Stripe tries to present a modal while the keyboard is animating down.
+          await Future.delayed(const Duration(milliseconds: 500));
+
           if (_selectedCardId != null && status == 'requires_action') {
             final paymentIntent = await Stripe.instance.handleNextAction(clientSecret);
             if (paymentIntent.status != PaymentIntentsStatus.Succeeded) {
