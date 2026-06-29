@@ -36,6 +36,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _payment = 'cod';
   bool _processing = false;
   bool _newAddress = false;
+  CardFieldInputDetails? _card;
 
   final _addressCtrl = TextEditingController();
   final _postcodeCtrl = TextEditingController();
@@ -267,19 +268,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final clientSecret = paymentData['clientSecret']!;
         stripePaymentIntentId = paymentData['paymentIntentId']!;
 
-        await Stripe.instance.initPaymentSheet(
-          paymentSheetParameters: SetupPaymentSheetParameters(
-            paymentIntentClientSecret: clientSecret,
-            merchantDisplayName: 'Daily Grocer',
+        final paymentIntent = await Stripe.instance.confirmPayment(
+          paymentIntentClientSecret: clientSecret,
+          data: const PaymentMethodParams.card(
+            paymentMethodData: PaymentMethodData(),
           ),
         );
 
-        // Give iOS time to stabilize its view controller hierarchy
-        await Future.delayed(const Duration(milliseconds: 1000));
-
-        await Stripe.instance.presentPaymentSheet().timeout(const Duration(seconds: 60), onTimeout: () {
-          throw Exception('presentPaymentSheet timed out. Please try again.');
-        });
+        if (paymentIntent.status != PaymentIntentsStatus.Succeeded) {
+          throw Exception('Payment failed. Status: ${paymentIntent.status}');
+        }
       } on ApiException catch (e) {
         if (!mounted) return;
         setState(() => _processing = false);
@@ -311,6 +309,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ],
           ),
         );
+        return;
       }
     }
 
@@ -364,7 +363,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final belowMin = minOrder > 0 && cart.subtotal < minOrder;
     final storeClosed = store != null && !store.isOpen;
     final gated = belowMin || storeClosed || !_deliverable || cart.items.isEmpty;
-    final blockOrder = _processing || (auth.isAuthenticated && gated);
+    final isCardIncomplete = _payment == 'online' && (_card == null || !_card!.complete);
+    final blockOrder = _processing || (auth.isAuthenticated && gated) || isCardIncomplete;
 
     return Scaffold(
       body: SafeArea(
@@ -563,6 +563,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       subtitle: 'Pay securely on confirmation',
                       onTap: () => setState(() => _payment = 'online'),
                     ),
+                    if (_payment == 'online')
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: theme.colorScheme.outlineVariant),
+                        ),
+                        child: CardField(
+                          enablePostalCode: true,
+                          onCardChanged: (card) {
+                            setState(() => _card = card);
+                          },
+                        ),
+                      ),
                     const SizedBox(height: 10),
                   ],
                   _SelectableCard(
