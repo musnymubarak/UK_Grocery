@@ -57,3 +57,16 @@ class PaymentService:
             )
             resp.raise_for_status()
             return resp.json()
+
+    async def retrieve_payment_intent(self, intent_id: str) -> dict:
+        if not self.api_key:
+            logger.warning("No Stripe API key configured, mocking payment intent retrieval.")
+            return {"status": "succeeded", "charges": {"data": [{"id": "ch_mocked"}]}}
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{self.STRIPE_BASE}/payment_intents/{intent_id}",
+                auth=(self.api_key, "")
+            )
+            resp.raise_for_status()
+            return resp.json()

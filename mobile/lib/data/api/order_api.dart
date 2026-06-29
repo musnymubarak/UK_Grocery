@@ -27,6 +27,7 @@ class OrderApi {
     String? couponCode,
     String? notes,
     bool ageConfirmed = false,
+    String? stripePaymentIntentId,
   }) async {
     final data = await _client.request<Map<String, dynamic>>(
       () => _client.raw.post(
@@ -41,6 +42,7 @@ class OrderApi {
           if (couponCode != null && couponCode.isNotEmpty) 'coupon_code': couponCode,
           if (notes != null && notes.isNotEmpty) 'notes': notes,
           'age_confirmed': ageConfirmed,
+          if (stripePaymentIntentId != null) 'stripe_payment_intent_id': stripePaymentIntentId,
         },
       ),
     );
