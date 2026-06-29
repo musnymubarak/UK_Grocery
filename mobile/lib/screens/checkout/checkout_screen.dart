@@ -260,18 +260,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     if (_payment == 'online') {
       try {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Step 1: Creating Payment Intent...')));
         final paymentData = await Api.instance.payments.createPaymentIntent(amount: total);
         final clientSecret = paymentData['clientSecret']!;
         stripePaymentIntentId = paymentData['paymentIntentId']!;
 
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Step 2: Initializing Payment Sheet...')));
         await Stripe.instance.initPaymentSheet(
           paymentSheetParameters: SetupPaymentSheetParameters(
             paymentIntentClientSecret: clientSecret,
             merchantDisplayName: 'Daily Grocer',
             style: ThemeMode.light,
           ),
-        );
-        await Stripe.instance.presentPaymentSheet();
+        ).timeout(const Duration(seconds: 15), onTimeout: () {
+          throw Exception('initPaymentSheet timed out after 15s');
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Step 3: Presenting Payment Sheet...')));
+        await Stripe.instance.presentPaymentSheet().timeout(const Duration(seconds: 60), onTimeout: () {
+          throw Exception('presentPaymentSheet timed out');
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Successful! Creating order...')));
       } on ApiException catch (e) {
         if (!mounted) return;
         setState(() => _processing = false);
