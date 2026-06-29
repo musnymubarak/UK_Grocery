@@ -297,7 +297,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
         if (status != 'succeeded') {
           if (_selectedCardId != null && status == 'requires_action') {
-            final paymentIntent = await Stripe.instance.handleNextAction(paymentIntentClientSecret: clientSecret);
+            final paymentIntent = await Stripe.instance.handleNextAction(clientSecret);
             if (paymentIntent.status != PaymentIntentsStatus.Succeeded) {
               throw Exception('Payment failed. Status: ${paymentIntent.status}');
             }
@@ -645,11 +645,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                           child: CardField(
                             enablePostalCode: true,
-                            style: CardStyle(
-                              textColor: Colors.black87,
+                            cursorColor: theme.colorScheme.primary,
+                            style: const TextStyle(
+                              color: Colors.black87,
                               fontSize: 16,
-                              cursorColor: theme.colorScheme.primary,
-                              placeholderColor: Colors.black38,
                             ),
                             onCardChanged: (card) {
                               setState(() => _card = card);
