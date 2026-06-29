@@ -37,6 +37,7 @@ class Customer(TimestampMixin, Base):
         ForeignKey("customers.id", ondelete="SET NULL"),
         nullable=True,
     )
+    stripe_customer_id = Column(String(255), nullable=True, index=True)
 
     # Relationships
     organization = relationship("Organization")
