@@ -33,8 +33,35 @@ class PaymentService:
             resp.raise_for_status()
             return resp.json()
 
+    async def create_customer(self, email: str, name: str) -> dict:
+        if not self.api_key:
+            return {"id": "cus_mocked"}
+            
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{self.STRIPE_BASE}/customers",
+                auth=(self.api_key, ""),
+                data={"email": email, "name": name}
+            )
+            resp.raise_for_status()
+            return resp.json()
+
+    async def list_payment_methods(self, customer_id: str) -> list:
+        if not self.api_key:
+            return []
+            
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{self.STRIPE_BASE}/customers/{customer_id}/payment_methods",
+                auth=(self.api_key, ""),
+                params={"type": "card"}
+            )
+            resp.raise_for_status()
+            return resp.json().get("data", [])
+
     async def create_payment_intent(
-        self, amount_pence: int, currency: str = "gbp", metadata: dict = None
+        self, amount_pence: int, currency: str = "gbp", metadata: dict = None,
+        stripe_customer_id: str = None, save_card: bool = False, payment_method_id: str = None
     ) -> dict:
         if not self.api_key:
             logger.warning("No Stripe API key configured, mocking payment intent.")
@@ -46,6 +73,15 @@ class PaymentService:
                 "currency": currency,
                 "payment_method_types[]": "card",
             }
+            if stripe_customer_id:
+                data["customer"] = stripe_customer_id
+            if save_card:
+                data["setup_future_usage"] = "off_session"
+            if payment_method_id:
+                data["payment_method"] = payment_method_id
+                data["confirm"] = "true"
+                data["off_session"] = "true"
+
             if metadata:
                 for k, v in metadata.items():
                     data[f"metadata[{k}]"] = v

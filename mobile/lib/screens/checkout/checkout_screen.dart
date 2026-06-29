@@ -37,6 +37,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _processing = false;
   bool _newAddress = false;
   CardFieldInputDetails? _card;
+  bool _saveCard = false;
+  List<dynamic> _savedCards = [];
+  String? _selectedCardId;
 
   final _addressCtrl = TextEditingController();
   final _postcodeCtrl = TextEditingController();
@@ -69,7 +72,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } else {
       _newAddress = true;
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) => _recalcFee());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _recalcFee();
+      _fetchSavedCards();
+    });
+  }
+
+  Future<void> _fetchSavedCards() async {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuthenticated) return;
+    try {
+      final cards = await Api.instance.payments.getPaymentMethods();
+      if (mounted) {
+        setState(() {
+          _savedCards = cards;
+          if (cards.isNotEmpty) {
+            _selectedCardId = cards.first['id'] as String;
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   /// Resolve the authoritative delivery fee for the chosen postcode (mirrors the
@@ -264,19 +286,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     if (_payment == 'online') {
       try {
-        final paymentData = await Api.instance.payments.createPaymentIntent(amount: total);
+        final paymentData = await Api.instance.payments.createPaymentIntent(
+          amount: total,
+          saveCard: _saveCard && _selectedCardId == null,
+          paymentMethodId: _selectedCardId,
+        );
         final clientSecret = paymentData['clientSecret']!;
         stripePaymentIntentId = paymentData['paymentIntentId']!;
+        final status = paymentData['status']!;
 
-        final paymentIntent = await Stripe.instance.confirmPayment(
-          paymentIntentClientSecret: clientSecret,
-          data: const PaymentMethodParams.card(
-            paymentMethodData: PaymentMethodData(),
-          ),
-        );
+        if (status != 'succeeded') {
+          if (_selectedCardId != null && status == 'requires_action') {
+            final paymentIntent = await Stripe.instance.handleNextAction(paymentIntentClientSecret: clientSecret);
+            if (paymentIntent.status != PaymentIntentsStatus.Succeeded) {
+              throw Exception('Payment failed. Status: ${paymentIntent.status}');
+            }
+          } else {
+            final paymentIntent = await Stripe.instance.confirmPayment(
+              paymentIntentClientSecret: clientSecret,
+              data: const PaymentMethodParams.card(
+                paymentMethodData: PaymentMethodData(),
+              ),
+            );
 
-        if (paymentIntent.status != PaymentIntentsStatus.Succeeded) {
-          throw Exception('Payment failed. Status: ${paymentIntent.status}');
+            if (paymentIntent.status != PaymentIntentsStatus.Succeeded) {
+              throw Exception('Payment failed. Status: ${paymentIntent.status}');
+            }
+          }
         }
       } on ApiException catch (e) {
         if (!mounted) return;
@@ -363,7 +399,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final belowMin = minOrder > 0 && cart.subtotal < minOrder;
     final storeClosed = store != null && !store.isOpen;
     final gated = belowMin || storeClosed || !_deliverable || cart.items.isEmpty;
-    final isCardIncomplete = _payment == 'online' && (_card == null || !_card!.complete);
+    final isCardIncomplete = _payment == 'online' && _selectedCardId == null && (_card == null || !_card!.complete);
     final blockOrder = _processing || (auth.isAuthenticated && gated) || isCardIncomplete;
 
     return Scaffold(
@@ -563,22 +599,75 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       subtitle: 'Pay securely on confirmation',
                       onTap: () => setState(() => _payment = 'online'),
                     ),
-                    if (_payment == 'online')
-                      Container(
-                        margin: const EdgeInsets.only(top: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: theme.colorScheme.outlineVariant),
+                    if (_payment == 'online') ...[
+                      if (_savedCards.isNotEmpty)
+                        ..._savedCards.map((c) {
+                          final cardData = c['card'] ?? {};
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: AnimatedPress(
+                              onTap: () => setState(() => _selectedCardId = c['id'] as String),
+                              child: _SelectableCard(
+                                selected: _selectedCardId == c['id'],
+                                leading: _SquareIcon(
+                                  icon: Icons.credit_card_rounded,
+                                  selected: _selectedCardId == c['id'],
+                                ),
+                                title: '•••• ${cardData['last4']}',
+                                subtitle: 'Expires ${cardData['exp_month']}/${cardData['exp_year']}',
+                              ),
+                            ),
+                          );
+                        }),
+                      
+                      if (_savedCards.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: AnimatedPress(
+                            onTap: () => setState(() => _selectedCardId = null),
+                            child: _SelectableCard(
+                              selected: _selectedCardId == null,
+                              leading: _SquareIcon(icon: Icons.add_card_rounded, selected: _selectedCardId == null),
+                              title: 'Use a different card',
+                              subtitle: 'Enter new details',
+                            ),
+                          ),
                         ),
-                        child: CardField(
-                          enablePostalCode: true,
-                          onCardChanged: (card) {
-                            setState(() => _card = card);
-                          },
+
+                      if (_selectedCardId == null) ...[
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: theme.colorScheme.outlineVariant),
+                          ),
+                          child: CardField(
+                            enablePostalCode: true,
+                            style: CardStyle(
+                              textColor: Colors.black87,
+                              fontSize: 16,
+                              cursorColor: theme.colorScheme.primary,
+                              placeholderColor: Colors.black38,
+                            ),
+                            onCardChanged: (card) {
+                              setState(() => _card = card);
+                            },
+                          ),
                         ),
-                      ),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _saveCard,
+                              activeColor: theme.colorScheme.primary,
+                              onChanged: (v) => setState(() => _saveCard = v ?? false),
+                            ),
+                            Text('Save this card for future purchases', style: theme.textTheme.bodyMedium),
+                          ],
+                        ),
+                      ],
+                    ],
                     const SizedBox(height: 10),
                   ],
                   _SelectableCard(
