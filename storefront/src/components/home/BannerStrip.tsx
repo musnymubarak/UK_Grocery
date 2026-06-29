@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import SmartTransparentImage from '../SmartTransparentImage';
+import SolidBannerCard from './SolidBannerCard';
 import { useSectionAction } from '../../hooks/useSectionAction';
 import type { HomeSection, SectionItem } from '../../types';
 
@@ -42,31 +43,37 @@ const BannerStrip: React.FC<Props> = ({ section }) => {
             onClick={() => onAction(item.action)}
             className="group relative block w-full overflow-hidden rounded-xl border border-outline-variant bg-surface-container text-left h-[140px] md:h-[180px]"
           >
-            {item.image_url && (
-              <SmartTransparentImage
-                src={item.image_url}
-                alt={item.title || 'Banner'}
-                className="w-full h-full"
-              />
-            )}
-
-            {item.badge && (
-              <span className="absolute top-3 left-3 z-10 bg-action-red text-on-primary text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-sm">
-                {item.badge}
-              </span>
-            )}
-
-            {(item.title || item.subtitle) && (
-              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/55 via-black/10 to-transparent p-4">
-                {item.title && (
-                  <h4 className="text-on-primary text-lg font-extrabold tracking-tight leading-tight">
-                    {item.title}
-                  </h4>
+            {item.design_type === 'solid_card' ? (
+              <SolidBannerCard item={item} />
+            ) : (
+              <>
+                {item.image_url && (
+                  <SmartTransparentImage
+                    src={item.image_url}
+                    alt={item.title || 'Banner'}
+                    className="w-full h-full"
+                  />
                 )}
-                {item.subtitle && (
-                  <p className="text-on-primary/90 text-sm mt-0.5">{item.subtitle}</p>
+
+                {item.badge && (
+                  <span className="absolute top-3 left-3 z-10 bg-action-red text-on-primary text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-sm">
+                    {item.badge}
+                  </span>
                 )}
-              </div>
+
+                {(item.title || item.subtitle) && (
+                  <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/55 via-black/10 to-transparent p-4">
+                    {item.title && (
+                      <h4 className="text-on-primary text-lg font-extrabold tracking-tight leading-tight">
+                        {item.title}
+                      </h4>
+                    )}
+                    {item.subtitle && (
+                      <p className="text-on-primary/90 text-sm mt-0.5">{item.subtitle}</p>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </motion.button>
         ))}

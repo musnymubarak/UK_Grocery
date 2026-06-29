@@ -62,7 +62,19 @@ const labelStyle: React.CSSProperties = {
 };
 
 function emptyItem(): SectionItem {
-    return { image_url: '', title: '', subtitle: '', badge: '', action: { type: 'none', value: '' } };
+    return { 
+        image_url: '', 
+        title: '', 
+        subtitle: '', 
+        badge: '', 
+        action: { type: 'none', value: '' },
+        design_type: 'image',
+        bg_color: '#005eb8',
+        text_color: '#ffffff',
+        button_text: 'Shop Now',
+        button_color: '#e53935',
+        icon_name: ''
+    };
 }
 
 interface Props {
@@ -100,6 +112,12 @@ export default function SectionEditorModal({ section, onClose, onSubmit, isSavin
                   subtitle: it.subtitle || '',
                   badge: it.badge || '',
                   action: it.action ? { type: it.action.type || 'none', value: it.action.value || '' } : { type: 'none', value: '' },
+                  design_type: it.design_type || 'image',
+                  bg_color: it.bg_color || '#005eb8',
+                  text_color: it.text_color || '#ffffff',
+                  button_text: it.button_text || 'Shop Now',
+                  button_color: it.button_color || '#e53935',
+                  icon_name: it.icon_name || ''
               }))
             : [emptyItem()]
     );
@@ -188,6 +206,12 @@ export default function SectionEditorModal({ section, onClose, onSubmit, isSavin
                         it.action && it.action.type && it.action.type !== 'none'
                             ? { type: it.action.type, value: it.action.value || null }
                             : { type: 'none', value: null },
+                    design_type: it.design_type || 'image',
+                    bg_color: it.bg_color || null,
+                    text_color: it.text_color || null,
+                    button_text: it.button_text || null,
+                    button_color: it.button_color || null,
+                    icon_name: it.icon_name || null
                 })),
             };
             if (itemColumns !== '') config.columns = parseInt(itemColumns, 10) || null;
@@ -383,60 +407,113 @@ export default function SectionEditorModal({ section, onClose, onSubmit, isSavin
                                     gap: '1rem',
                                 }}
                             >
-                                {/* Image */}
-                                <div style={{ width: 120, flexShrink: 0 }}>
-                                    <div
-                                        style={{
-                                            width: 120,
-                                            height: 80,
-                                            borderRadius: 'var(--radius-md)',
-                                            background: 'var(--bg-secondary)',
-                                            border: '1px solid var(--border)',
-                                            overflow: 'hidden',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                        }}
-                                    >
-                                        {item.image_url ? (
-                                            <img src={item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        ) : (
-                                            <ImageIcon size={28} style={{ opacity: 0.3 }} />
-                                        )}
-                                    </div>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        ref={(el) => {
-                                            fileInputRefs.current[idx] = el;
-                                        }}
-                                        onChange={(e) => handleSlideUpload(idx, e)}
-                                        style={{ display: 'none' }}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary"
-                                        onClick={() => fileInputRefs.current[idx]?.click()}
-                                        disabled={uploadingIdx === idx}
-                                        style={{ width: '100%', marginTop: '0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
-                                    >
-                                        <Upload size={12} /> {uploadingIdx === idx ? 'Uploading...' : 'Upload'}
-                                    </button>
+                                {/* Type Toggle */}
+                                <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.8rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                                        <input
+                                            type="radio"
+                                            checked={item.design_type === 'image' || !item.design_type}
+                                            onChange={() => updateItem(idx, { design_type: 'image' })}
+                                            style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                        />
+                                        Image Upload
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                                        <input
+                                            type="radio"
+                                            checked={item.design_type === 'solid_card'}
+                                            onChange={() => updateItem(idx, { design_type: 'solid_card' })}
+                                            style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                        />
+                                        Custom Design (Solid Card)
+                                    </label>
                                 </div>
 
-                                {/* Fields */}
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                    <input
-                                        value={item.image_url || ''}
-                                        onChange={(e) => updateItem(idx, { image_url: e.target.value })}
-                                        placeholder="Image URL (or upload)"
-                                        style={{ ...inputStyle, fontSize: '0.8rem' }}
-                                    />
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
-                                        <input value={item.title || ''} onChange={(e) => updateItem(idx, { title: e.target.value })} placeholder="Title" style={inputStyle} />
-                                        <input value={item.badge || ''} onChange={(e) => updateItem(idx, { badge: e.target.value })} placeholder="Badge" style={inputStyle} />
-                                    </div>
-                                    <input value={item.subtitle || ''} onChange={(e) => updateItem(idx, { subtitle: e.target.value })} placeholder="Subtitle" style={inputStyle} />
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.8rem' }}>
+                                    {/* Image Upload Block (Only if image) */}
+                                    {item.design_type !== 'solid_card' && (
+                                        <div style={{ width: 120, flexShrink: 0 }}>
+                                            <div
+                                                style={{
+                                                    width: 120,
+                                                    height: 80,
+                                                    borderRadius: 'var(--radius-md)',
+                                                    background: 'var(--bg-secondary)',
+                                                    border: '1px solid var(--border)',
+                                                    overflow: 'hidden',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                {item.image_url ? (
+                                                    <img src={item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <ImageIcon size={28} style={{ opacity: 0.3 }} />
+                                                )}
+                                            </div>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                ref={(el) => {
+                                                    fileInputRefs.current[idx] = el;
+                                                }}
+                                                onChange={(e) => handleSlideUpload(idx, e)}
+                                                style={{ display: 'none' }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="btn btn-secondary"
+                                                onClick={() => fileInputRefs.current[idx]?.click()}
+                                                disabled={uploadingIdx === idx}
+                                                style={{ width: '100%', marginTop: '0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
+                                            >
+                                                <Upload size={12} /> {uploadingIdx === idx ? 'Uploading...' : 'Upload'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Fields */}
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                        {item.design_type !== 'solid_card' && (
+                                            <input
+                                                value={item.image_url || ''}
+                                                onChange={(e) => updateItem(idx, { image_url: e.target.value })}
+                                                placeholder="Image URL (or upload)"
+                                                style={{ ...inputStyle, fontSize: '0.8rem' }}
+                                            />
+                                        )}
+                                        {item.design_type === 'solid_card' && (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem' }}>
+                                                <div>
+                                                    <label style={labelStyle}>Background Color</label>
+                                                    <input type="color" value={item.bg_color || '#005eb8'} onChange={(e) => updateItem(idx, { bg_color: e.target.value })} style={{ width: '100%', height: '36px', padding: 0, border: 'none', borderRadius: '4px' }} />
+                                                </div>
+                                                <div>
+                                                    <label style={labelStyle}>Text Color</label>
+                                                    <CustomSelect options={[{value: '#ffffff', label: 'Light'}, {value: '#000000', label: 'Dark'}]} value={item.text_color || '#ffffff'} onChange={(v) => updateItem(idx, { text_color: String(v) })} />
+                                                </div>
+                                                <div>
+                                                    <label style={labelStyle}>Icon Name</label>
+                                                    <input value={item.icon_name || ''} onChange={(e) => updateItem(idx, { icon_name: e.target.value })} placeholder="e.g., star, moped, tag" style={inputStyle} />
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                                            <input value={item.title || ''} onChange={(e) => updateItem(idx, { title: e.target.value })} placeholder="Title" style={inputStyle} />
+                                            <input value={item.badge || ''} onChange={(e) => updateItem(idx, { badge: e.target.value })} placeholder="Badge" style={inputStyle} />
+                                        </div>
+                                        <input value={item.subtitle || ''} onChange={(e) => updateItem(idx, { subtitle: e.target.value })} placeholder="Subtitle" style={inputStyle} />
+                                        
+                                        {item.design_type === 'solid_card' && (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                                                <input value={item.button_text || ''} onChange={(e) => updateItem(idx, { button_text: e.target.value })} placeholder="Button Text (e.g. Shop Now)" style={inputStyle} />
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <label style={{...labelStyle, marginBottom: 0}}>Btn Color</label>
+                                                    <input type="color" value={item.button_color || '#e53935'} onChange={(e) => updateItem(idx, { button_color: e.target.value })} style={{ width: '40px', height: '36px', padding: 0, border: 'none', borderRadius: '4px' }} />
+                                                </div>
+                                            </div>
+                                        )}
                                     <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '0.6rem' }}>
                                         <CustomSelect
                                             options={ACTION_TYPES}
@@ -452,7 +529,7 @@ export default function SectionEditorModal({ section, onClose, onSubmit, isSavin
                                         />
                                     </div>
                                 </div>
-
+                                </div>
                                 <button
                                     onClick={() => removeItem(idx)}
                                     style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--danger)', alignSelf: 'flex-start' }}

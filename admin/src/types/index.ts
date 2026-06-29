@@ -206,6 +206,12 @@ export interface SectionItem {
     subtitle?: string | null;
     badge?: string | null;
     action?: SectionAction | null;
+    design_type?: 'image' | 'solid_card';
+    bg_color?: string | null;
+    text_color?: string | null;
+    button_text?: string | null;
+    button_color?: string | null;
+    icon_name?: string | null;
 }
 
 export type HomeSectionType =

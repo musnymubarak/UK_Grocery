@@ -39,6 +39,14 @@ class SectionItem(BaseModel):
     subtitle: Optional[str] = None
     badge: Optional[str] = None
     action: Optional[SectionAction] = None
+    
+    # Custom design fields
+    design_type: Literal["image", "solid_card"] = "image"
+    bg_color: Optional[str] = None
+    text_color: Optional[str] = None
+    button_text: Optional[str] = None
+    button_color: Optional[str] = None
+    icon_name: Optional[str] = None
 
 
 class HomeSectionBase(BaseModel):
