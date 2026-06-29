@@ -44,7 +44,7 @@ class PaymentService:
             data = {
                 "amount": amount_pence,
                 "currency": currency,
-                "automatic_payment_methods[enabled]": "true",
+                "payment_method_types[]": "card",
             }
             if metadata:
                 for k, v in metadata.items():

@@ -274,6 +274,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             paymentIntentClientSecret: clientSecret,
             merchantDisplayName: 'Daily Grocer',
             style: ThemeMode.light,
+            returnURL: 'dailygrocer://stripe-redirect',
+            allowsDelayedPaymentMethods: true,
           ),
         ).timeout(const Duration(seconds: 15), onTimeout: () {
           throw Exception('initPaymentSheet timed out after 15s');
