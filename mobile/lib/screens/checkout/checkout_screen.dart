@@ -263,30 +263,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     if (_payment == 'online') {
       try {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Step 1: Creating Payment Intent...')));
         final paymentData = await Api.instance.payments.createPaymentIntent(amount: total);
         final clientSecret = paymentData['clientSecret']!;
         stripePaymentIntentId = paymentData['paymentIntentId']!;
 
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Step 2: Initializing Payment Sheet...')));
         await Stripe.instance.initPaymentSheet(
           paymentSheetParameters: SetupPaymentSheetParameters(
             paymentIntentClientSecret: clientSecret,
             merchantDisplayName: 'Daily Grocer',
-            style: ThemeMode.light,
-            returnURL: 'dailygrocer://stripe-redirect',
-            allowsDelayedPaymentMethods: true,
           ),
-        ).timeout(const Duration(seconds: 15), onTimeout: () {
-          throw Exception('initPaymentSheet timed out after 15s');
-        });
+        );
 
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Step 3: Presenting Payment Sheet...')));
+        // Give iOS time to stabilize its view controller hierarchy
+        await Future.delayed(const Duration(milliseconds: 1000));
+
         await Stripe.instance.presentPaymentSheet().timeout(const Duration(seconds: 60), onTimeout: () {
-          throw Exception('presentPaymentSheet timed out');
+          throw Exception('presentPaymentSheet timed out. Please try again.');
         });
-        
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Successful! Creating order...')));
       } on ApiException catch (e) {
         if (!mounted) return;
         setState(() => _processing = false);
@@ -298,11 +291,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final msg = e.error.localizedMessage ?? 'Payment cancelled or failed.';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
         return;
-      } catch (e) {
+      } catch (e, stackTrace) {
         if (!mounted) return;
         setState(() => _processing = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to initialize payment: $e')));
-        return;
+        debugPrint('Checkout error: $e\n$stackTrace');
+        
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Unexpected Error'),
+            content: SingleChildScrollView(
+              child: Text('$e\n\n$stackTrace', style: const TextStyle(fontSize: 12)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       }
     }
 
