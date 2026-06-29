@@ -254,6 +254,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final rawTotal = cart.subtotal + delivery - _appliedDiscount;
     final total = rawTotal < 0 ? 0.0 : rawTotal;
 
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future.delayed(const Duration(milliseconds: 300));
+
     setState(() => _processing = true);
 
     String? stripePaymentIntentId;
