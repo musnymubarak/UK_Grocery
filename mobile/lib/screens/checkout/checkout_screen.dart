@@ -302,10 +302,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               throw Exception('Payment failed. Status: ${paymentIntent.status}');
             }
           } else {
+            final customer = Provider.of<AuthProvider>(context, listen: false).customer;
+            
             final paymentIntent = await Stripe.instance.confirmPayment(
               paymentIntentClientSecret: clientSecret,
-              data: const PaymentMethodParams.card(
-                paymentMethodData: PaymentMethodData(),
+              data: PaymentMethodParams.card(
+                paymentMethodData: PaymentMethodData(
+                  billingDetails: BillingDetails(
+                    name: customer?.fullName,
+                    email: customer?.email,
+                  ),
+                ),
               ),
             );
 
@@ -321,9 +328,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return;
       } on StripeException catch (e) {
         if (!mounted) return;
-        setState(() => _processing = false);
-        final msg = e.error.localizedMessage ?? 'Payment cancelled or failed.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        setState(() {
+          _processing = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.error.message ?? e.error.localizedMessage ?? 'Stripe Error: ${e.error.code}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
         return;
       } catch (e, stackTrace) {
         if (!mounted) return;
