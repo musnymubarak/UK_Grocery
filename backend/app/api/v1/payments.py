@@ -41,7 +41,7 @@ async def create_payment_intent(
         if not current_customer.stripe_customer_id:
             cust = await payment_service.create_customer(email=current_customer.email, name=current_customer.full_name)
             current_customer.stripe_customer_id = cust["id"]
-            db.commit()
+            await db.commit()
 
         intent = await payment_service.create_payment_intent(
             amount_pence=amount_pence,
