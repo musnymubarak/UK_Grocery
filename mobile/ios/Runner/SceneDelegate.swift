@@ -8,7 +8,9 @@ class SceneDelegate: FlutterSceneDelegate {
     // IMPORTANT: flutter_stripe relies on UIApplication.shared.delegate.window to present modals like 3DS
     // When using SceneDelegate, this is nil by default. We must explicitly link it!
     if let window = self.window {
-      UIApplication.shared.delegate?.window = window
+      if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
+        appDelegate.window = window
+      }
     }
   }
 
