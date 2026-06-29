@@ -268,7 +268,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           paymentSheetParameters: SetupPaymentSheetParameters(
             paymentIntentClientSecret: clientSecret,
             merchantDisplayName: 'Daily Grocer',
-            applePay: const PaymentSheetApplePay(merchantCountryCode: 'GB'),
             style: ThemeMode.light,
           ),
         );
