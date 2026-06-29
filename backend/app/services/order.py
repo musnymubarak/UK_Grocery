@@ -195,7 +195,25 @@ class OrderService:
         # Payment Status Logic
         pm = data.payment_method or "cod"
         ps = "pending"
-        if pm == "online":
+        stripe_charge_id = None
+
+        stripe_payment_intent_id = getattr(data, "stripe_payment_intent_id", None)
+        if stripe_payment_intent_id:
+            from app.services.payment import PaymentService
+            payment_service = PaymentService()
+            try:
+                intent = await payment_service.retrieve_payment_intent(stripe_payment_intent_id)
+                if intent.get("status") == "succeeded":
+                    ps = "paid"
+                    charges = intent.get("charges", {}).get("data", [])
+                    if charges:
+                        stripe_charge_id = charges[0].get("id")
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(
+                    f"Failed to verify Stripe payment for intent {stripe_payment_intent_id}: {e}"
+                )
+        elif pm == "online":
             ps = "paid" # Mock success
 
         # Create Order
@@ -210,6 +228,8 @@ class OrderService:
             status="placed",
             payment_method=pm,
             payment_status=ps,
+            stripe_payment_intent_id=stripe_payment_intent_id,
+            stripe_charge_id=stripe_charge_id,
             notes=data.notes,
             delivery_instructions=delivery_instr,
             scheduled_delivery_start=data.scheduled_delivery_start,

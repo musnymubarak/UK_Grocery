@@ -256,9 +256,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     setState(() => _processing = true);
 
-    if (_payment == 'card') {
+    String? stripePaymentIntentId;
+
+    if (_payment == 'online') {
       try {
-        final clientSecret = await Api.instance.payments.createPaymentIntent(amount: total);
+        final paymentData = await Api.instance.payments.createPaymentIntent(amount: total);
+        final clientSecret = paymentData['clientSecret']!;
+        stripePaymentIntentId = paymentData['paymentIntentId']!;
+
         await Stripe.instance.initPaymentSheet(
           paymentSheetParameters: SetupPaymentSheetParameters(
             paymentIntentClientSecret: clientSecret,
@@ -268,6 +273,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         );
         await Stripe.instance.presentPaymentSheet();
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        setState(() => _processing = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        return;
       } on StripeException catch (e) {
         if (!mounted) return;
         setState(() => _processing = false);
@@ -277,7 +287,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       } catch (e) {
         if (!mounted) return;
         setState(() => _processing = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to initialize payment.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to initialize payment: $e')));
         return;
       }
     }
@@ -295,6 +305,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         couponCode: _appliedDiscount > 0 ? _promoCtrl.text.trim().toUpperCase() : null,
         notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         ageConfirmed: cart.hasAgeRestricted,
+        stripePaymentIntentId: stripePaymentIntentId,
       );
       if (!mounted) return;
       cart.clear();
@@ -305,10 +316,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't place your order. Please try again.")),
+        SnackBar(content: Text("Couldn't place your order. Error: $e")),
       );
     } finally {
       if (mounted) setState(() => _processing = false);
@@ -521,14 +532,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 10),
                   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) ...[
                     _SelectableCard(
-                      selected: _payment == 'card',
+                      selected: _payment == 'online',
                       leading: _SquareIcon(
                         icon: Icons.credit_card_rounded,
-                        selected: _payment == 'card',
+                        selected: _payment == 'online',
                       ),
                       title: 'Card payment',
                       subtitle: 'Pay securely on confirmation',
-                      onTap: () => setState(() => _payment = 'card'),
+                      onTap: () => setState(() => _payment = 'online'),
                     ),
                     const SizedBox(height: 10),
                   ],
