@@ -80,7 +80,7 @@ class PaymentService:
             if payment_method_id:
                 data["payment_method"] = payment_method_id
                 data["confirm"] = "true"
-                data["off_session"] = "true"
+                data["off_session"] = "false"
 
             if metadata:
                 for k, v in metadata.items():
