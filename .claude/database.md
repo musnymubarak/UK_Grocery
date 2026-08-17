@@ -94,12 +94,14 @@ placed
   │      │             └─→ assigned_to_driver
   │      │                    └─→ out_for_delivery
   │      │                           ├─→ delivered
-  │      │                           └─→ failed_delivery
+  │      │                           └─→ delivery_failed
   │      └─→ cancelled / rejected
   └─→ cancelled / rejected
 ```
 
-All transitions enforced by `OrderService`. Each one inserts an `OrderStatusHistory` row and an `AuditLog` row.
+This shows the intended sequence — in practice `placed` can jump directly to most later statuses (including `delivered`) in one call; see `VALID_TRANSITIONS` in [backend/app/services/order.py](../backend/app/services/order.py) for the authoritative rules. This flexibility is intentional, not a gap.
+
+All transitions enforced by `OrderService`. Each one inserts an `OrderStatusHistory` row; only staff-initiated transitions (via `update_status`) also write an `AuditLog` row — the customer self-cancel and auto-reject-timeout paths don't, since `AuditLog` is scoped to staff actions. See [backend.md](backend.md) → "Order State Machine" for details.
 
 ## Refund Pricing
 

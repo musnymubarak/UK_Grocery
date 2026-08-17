@@ -465,11 +465,13 @@ class _QtyStepper extends StatelessWidget {
     );
   }
 
+  // Was 36x36 — under the 44pt platform minimum; no fixed-height ancestor
+  // here, so growing to the full guideline size is safe.
   Widget _round({required VoidCallback onTap, required IconData icon}) => AnimatedPress(
         onTap: onTap,
         child: Container(
-          height: 36,
-          width: 36,
+          height: 44,
+          width: 44,
           alignment: Alignment.center,
           decoration: const BoxDecoration(shape: BoxShape.circle),
           child: Icon(icon, size: 18),

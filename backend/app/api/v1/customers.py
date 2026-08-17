@@ -85,6 +85,7 @@ async def login_customer(
     )
 
 @router.post("/google", response_model=Token)
+@limiter.limit("5/minute")
 async def google_login_customer(
     request: Request,
     data: GoogleLogin,
@@ -145,6 +146,7 @@ async def google_login_customer(
         raise UnauthorizedException("Invalid Google token")
 
 @router.post("/apple", response_model=Token)
+@limiter.limit("5/minute")
 async def apple_login_customer(
     request: Request,
     data: AppleLogin,
@@ -216,6 +218,7 @@ async def apple_login_customer(
 
 
 @router.post("/refresh", summary="Rotate customer refresh token")
+@limiter.limit("5/minute")
 async def refresh_customer_token(data: RefreshRequest, request: Request, db: AsyncSession = Depends(get_async_session)):
     """Issue a new access token and refresh token for customer."""
     service = TokenService(db)

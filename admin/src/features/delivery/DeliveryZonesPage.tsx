@@ -21,6 +21,30 @@ interface Zone {
 
 const gbp = (n: any) => `£${Number(n || 0).toFixed(2)}`;
 
+// Matches how the backend actually matches these (delivery.py): either an
+// exact postcode, or a prefix ending in a single trailing "*". Previously
+// any comma-separated text was accepted here — a malformed pattern (stray
+// space, wildcard in the middle, empty entry) failed silently at match time
+// instead of being caught when the zone was created.
+function isValidPostcodePattern(raw: string): boolean {
+    const p = raw.trim().toUpperCase();
+    if (!p) return false;
+    const asterisks = (p.match(/\*/g) || []).length;
+    if (asterisks > 1 || (asterisks === 1 && !p.endsWith('*'))) return false;
+    const core = p.endsWith('*') ? p.slice(0, -1) : p;
+    if (core.length < 2 || core.length > 8) return false;
+    return /^[A-Z0-9]{1,4} ?[A-Z0-9]{0,3}$/.test(core);
+}
+
+function validatePatterns(patterns: string[]): string | null {
+    if (patterns.length === 0) return 'Enter at least one postcode pattern';
+    const invalid = patterns.filter((p) => !isValidPostcodePattern(p));
+    if (invalid.length > 0) {
+        return `Invalid postcode pattern${invalid.length > 1 ? 's' : ''}: ${invalid.join(', ')}. Use a postcode (e.g. SW1A 1AA) or a prefix ending in * (e.g. SW1A*).`;
+    }
+    return null;
+}
+
 export default function DeliveryZonesPage() {
     const { selectedStore } = useAdminStore();
     const { can } = usePermissions();
@@ -87,8 +111,13 @@ export default function DeliveryZonesPage() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const patterns = postcodes.split(',').map((s) => s.trim()).filter(Boolean);
-        if (!name || patterns.length === 0) {
-            toast.error('Name and at least one postcode are required');
+        if (!name) {
+            toast.error('Zone name is required');
+            return;
+        }
+        const patternError = validatePatterns(patterns);
+        if (patternError) {
+            toast.error(patternError);
             return;
         }
         createMutation.mutate({
@@ -115,8 +144,13 @@ export default function DeliveryZonesPage() {
     const handleUpdate = (e: React.FormEvent) => {
         e.preventDefault();
         const patterns = editForm.postcodes.split(',').map((s) => s.trim()).filter(Boolean);
-        if (!editForm.name || patterns.length === 0) {
-            toast.error('Name and at least one postcode are required');
+        if (!editForm.name) {
+            toast.error('Zone name is required');
+            return;
+        }
+        const patternError = validatePatterns(patterns);
+        if (patternError) {
+            toast.error(patternError);
             return;
         }
         updateMutation.mutate({

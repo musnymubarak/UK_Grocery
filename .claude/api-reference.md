@@ -31,10 +31,11 @@ All endpoints are prefixed with `/api/v1`. Authentication is JWT bearer unless n
 | POST | `/customers/google` | 🔓 | Google OAuth login |
 | GET | `/customers/me` | 🛒 | Profile |
 | PUT | `/customers/me` | 🛒 | Update profile |
-| GET | `/customers/addresses` | 🛒 | List addresses |
-| POST | `/customers/addresses` | 🛒 | Add address |
-| PUT | `/customers/addresses/{id}` | 🛒 | Update address |
-| DELETE | `/customers/addresses/{id}` | 🛒 | Delete address |
+| POST | `/customers/me/addresses` | 🛒 | Add address |
+| DELETE | `/customers/me/addresses/{id}` | 🛒 | Delete address |
+| PUT | `/customers/me/addresses/{id}/default` | 🛒 | Set as default address |
+
+Addresses are only returned embedded in `GET /customers/me` — there is no standalone list endpoint, and no generic "edit address fields" endpoint (only delete and set-default).
 | GET | `/customers` | 🛡️ | List customers (staff) |
 | GET | `/customers/{id}` | 🛡️ | Customer detail (staff) |
 
@@ -82,22 +83,31 @@ All endpoints are prefixed with `/api/v1`. Authentication is JWT bearer unless n
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/orders` | 🛒 | Customer creates order |
+| POST | `/orders/checkout` | 🛒 | Customer creates order |
+| GET | `/orders/me` | 🛒 | Customer's own order list |
+| GET | `/orders/me/{id}` | 🛒 | Customer's own order detail |
+| POST | `/orders/me/{id}/cancel` | 🛒 | Self-cancel (only within the cancel window, status must be `placed`) |
+| POST | `/orders/{id}/reject-substitutions` | 👤 | Driver/staff records door-side substitution rejections (auto-refunds) |
 | GET | `/orders` | 👤 | Staff list |
-| GET | `/orders/{id}` | 👤 / 🛒 | Detail (owner check for customer) |
-| PUT | `/orders/{id}` | 👤 | Update meta |
-| PUT | `/orders/{id}/status` | 👤 | Transition status |
-| POST | `/orders/{id}/assign` | 👤 | Assign to driver |
+| GET | `/orders/dispatch` | 👤 | Live dispatch board (unassigned/in-flight + driver roster) |
+| GET | `/orders/{id}` | 👤 | Staff detail |
+| PATCH | `/orders/{id}/status` | 👤 | Transition status |
+| PATCH | `/orders/{id}/assign` | 👤 | Assign to driver |
+| GET | `/orders/delivery/my-orders` | 👤 | Delivery driver's assigned orders |
+
+**Note on the state machine**: `placed` can transition directly to several later statuses (including `delivered`) in one call, not just to the next step in sequence — this is intentional operational flexibility (collection orders, corrections, catching up after a backlog), not a bug. See `VALID_TRANSITIONS` in `backend/app/services/order.py` for the authoritative list; don't assume the diagram below implies every transition must be taken one step at a time.
 
 ## Refunds
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/refunds` | 🛒 | Customer requests refund |
-| GET | `/refunds` | 👤 | Staff queue |
-| GET | `/refunds/{id}` | 👤 / 🛒 | Detail |
-| PUT | `/refunds/{id}` | 🛡️ | Approve/reject (per item) |
-| POST | `/refunds/{id}/evidence` | 🛒 / 👤 | Upload evidence |
+| POST | `/refunds/request` | 🛒 | Customer requests a granular (per-item) refund — rate-limited 3/hour |
+| GET | `/refunds/me` | 🛒 | Customer's own refund requests |
+| POST | `/refunds/{refund_item_id}/evidence` | 🛒 | Upload evidence for one refund item — rate-limited 5/hour |
+| GET | `/refunds` | 👤 | Staff queue (org-wide) |
+| POST | `/refunds/{refund_id}/items/{item_id}/process` | 🛡️ | Approve/reject one refund item (store-scoped for managers) |
+
+There is no single-refund detail route (`GET /refunds/{id}`) — refund objects are only ever returned as part of the `me`/list responses above.
 
 ## Delivery
 
@@ -119,7 +129,8 @@ All endpoints are prefixed with `/api/v1`. Authentication is JWT bearer unless n
 | GET | `/rewards/me` | 🛒 | Points balance |
 | POST | `/rewards/redeem` | 🛒 | Redeem points |
 | GET | `/wallet/me` | 🛒 | Wallet balance + history |
-| POST | `/wallet/topup` | 🛒 | Topup (Stripe stub) |
+
+There is no top-up endpoint — the wallet is only ever credited by refunds, referral bonuses, and admin adjustments; a customer cannot add funds directly.
 
 ## Reviews, Banners, Notifications
 
@@ -151,8 +162,9 @@ All endpoints are prefixed with `/api/v1`. Authentication is JWT bearer unless n
 | GET | `/webhooks` | 🛡️ | Endpoints |
 | POST | `/webhooks` | 🛡️ | Create endpoint |
 | GET | `/webhooks/deliveries` | 🛡️ | Delivery log |
-| POST | `/gdpr/export` | 🛒 | Export my data |
-| POST | `/gdpr/delete` | 🛒 | Right to be forgotten |
+| GET | `/gdpr/export` | 🛒 | Export my data |
+| DELETE | `/gdpr/forget-me` | 🛒 | Right to be forgotten (anonymize) |
+| POST | `/gdpr/admin/anonymize/{customer_id}` | 🛡️ | Admin-initiated anonymization (support request) |
 
 ## Drivers
 
