@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, Request, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_async_session
-from app.core.dependencies import get_current_customer, require_role, get_org_context
+from app.core.dependencies import get_current_customer, require_role, get_org_context, get_store_scope
 from app.core.rate_limiter import limiter
 from app.models.customer import Customer
 from app.models.user import User
@@ -108,11 +108,17 @@ async def process_refund_item(
     refund_id: UUID,
     item_id: UUID,
     data: RefundProcessItemRequest,
+    store_scope: Optional[UUID] = Depends(get_store_scope),
     current_user: User = Depends(require_role(["admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):
-    """Admin: approve or reject an individual refund item."""
+    """Admin: approve or reject an individual refund item.
+
+    Managers/cashiers are restricted to their own assigned store — a refund
+    belonging to a different store in the same organization is rejected.
+    Admins are unrestricted.
+    """
     service = RefundService(db)
     return await service.process_refund_item(
-        item_id, data.status, current_user, data.admin_notes
+        refund_id, item_id, data.status, current_user, data.admin_notes, store_scope=store_scope
     )
