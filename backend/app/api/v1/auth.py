@@ -5,7 +5,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, require_capability
@@ -46,6 +46,12 @@ from app.core.rate_limiter import limiter
 @limiter.limit("1/minute")
 async def setup_organization(request: Request, data: SetupRequest, db: AsyncSession = Depends(get_db)):
     """One-time setup: create organization and initial admin user."""
+    # Postgres advisory lock, held for the rest of this transaction: closes the
+    # race where two concurrent requests both pass the "no org exists" check
+    # before either commits (the session only commits at the end of the
+    # request). A fixed, arbitrary key — this endpoint is the only user.
+    await db.execute(select(func.pg_advisory_xact_lock(727385001)))
+
     # Security: check if any organization already exists
     existing_org = await db.execute(select(Organization).limit(1))
     if existing_org.scalar_one_or_none():

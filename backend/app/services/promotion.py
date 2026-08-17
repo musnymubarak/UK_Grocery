@@ -113,10 +113,16 @@ class PromotionService:
                     buy_qty = int(promo.config["buy_qty"])
                     get_qty = int(promo.config["get_qty"])
                     discount_pct = Decimal(str(promo.config["discount_pct"])) / 100
-                    
-                    times_applied = cart[buy_pid]["quantity"] // buy_qty
+
+                    # Each application of the promo needs buy_qty PAID units
+                    # plus get_qty FREE units actually present in the cart —
+                    # previously this divided by buy_qty alone, which let a
+                    # cart with only buy_qty units (no extra free units at
+                    # all) still receive the discount.
+                    bundle_size = buy_qty + get_qty
+                    times_applied = cart[buy_pid]["quantity"] // bundle_size if bundle_size > 0 else 0
                     if times_applied > 0:
-                        # For simplicity, we assume the discount applies to the same product or we just 
+                        # For simplicity, we assume the discount applies to the same product or we just
                         # subtract from the subtotal based on the price of the 'buy' item.
                         # Real-world logic might be more complex (cheapest item free, etc.)
                         discount = (Decimal(str(cart[buy_pid]["price"])) * get_qty * times_applied) * discount_pct

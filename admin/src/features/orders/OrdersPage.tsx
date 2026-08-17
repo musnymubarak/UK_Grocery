@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CreditCard, User, MapPin, Package, Clock, Phone, Mail } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { orderApi } from '../../services/api';
+import { orderApi, getErrorMessage } from '../../services/api';
 import { useAdminStore } from '../auth/AdminStoreContext';
 import { CustomSelect } from '../../components/CustomSelect';
 import { DataTable, type Column } from '../../components/ui/DataTable';
@@ -11,14 +11,38 @@ import toast from 'react-hot-toast';
 
 type BadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'neutral';
 
+// Mirrors backend/app/services/order.py VALID_TRANSITIONS exactly — the
+// dropdown must never offer a transition the backend will reject. Keep the
+// two in sync if the state machine changes.
+const VALID_TRANSITIONS: Record<string, string[]> = {
+    placed: ['confirmed', 'picking', 'substitution_pending', 'ready_for_collection', 'assigned_to_driver', 'out_for_delivery', 'delivered', 'rejected', 'cancelled'],
+    confirmed: ['picking', 'substitution_pending', 'ready_for_collection', 'assigned_to_driver', 'out_for_delivery', 'delivered', 'cancelled'],
+    picking: ['substitution_pending', 'ready_for_collection', 'assigned_to_driver', 'out_for_delivery', 'delivered', 'cancelled'],
+    substitution_pending: ['picking', 'ready_for_collection', 'assigned_to_driver', 'out_for_delivery', 'delivered', 'cancelled'],
+    ready_for_collection: ['assigned_to_driver', 'out_for_delivery', 'delivered', 'cancelled'],
+    assigned_to_driver: ['out_for_delivery', 'delivered', 'cancelled'],
+    out_for_delivery: ['delivered', 'delivery_failed', 'cancelled'],
+    delivered: ['refund_requested'],
+    rejected: [],
+    delivery_failed: ['refund_requested'],
+    refund_requested: ['refunded'],
+    refunded: [],
+    cancelled: [],
+};
+
 const STATUS_TONE: Record<string, BadgeTone> = {
     placed: 'warning',
     confirmed: 'neutral',
     picking: 'info',
+    substitution_pending: 'warning',
     ready_for_collection: 'info',
     ready: 'info',
+    assigned_to_driver: 'info',
     out_for_delivery: 'info',
     delivered: 'success',
+    delivery_failed: 'danger',
+    refund_requested: 'warning',
+    refunded: 'neutral',
     cancelled: 'danger',
     rejected: 'danger',
 };
@@ -27,13 +51,26 @@ const STATUS_LABEL: Record<string, string> = {
     placed: 'Placed',
     confirmed: 'Confirmed',
     picking: 'Picking',
+    substitution_pending: 'Substitution Pending',
     ready_for_collection: 'Ready',
     ready: 'Ready',
+    assigned_to_driver: 'Assigned to Driver',
     out_for_delivery: 'Shipped',
     delivered: 'Delivered',
+    delivery_failed: 'Delivery Failed',
+    refund_requested: 'Refund Requested',
+    refunded: 'Refunded',
     cancelled: 'Cancelled',
     rejected: 'Rejected',
 };
+
+/** Options for a specific order: its current status plus whatever it can
+ * legally move to next — never every status in the system. */
+function statusOptionsFor(currentStatus: string) {
+    const next = VALID_TRANSITIONS[currentStatus] ?? [];
+    const values = [currentStatus, ...next.filter((s) => s !== currentStatus)];
+    return values.map((value) => ({ value, label: statusLabel(value) }));
+}
 
 function statusLabel(status?: string) {
     if (!status) return '—';
@@ -74,8 +111,11 @@ export default function OrdersPage() {
             queryClient.invalidateQueries({ queryKey: ['orders_list'] });
             queryClient.invalidateQueries({ queryKey: ['orders'] }); // Invalidate dashboard too
         },
-        onError: () => {
-            toast.error('Failed to update status');
+        onError: (err: any) => {
+            // Previously always showed a generic message — the backend's real
+            // reason (e.g. "Cannot transition from delivered to placed") never
+            // reached staff, even though the dropdown could still attempt it.
+            toast.error(getErrorMessage(err, 'Failed to update status'));
         },
     });
 
@@ -101,16 +141,6 @@ export default function OrdersPage() {
         { id: 'out_for_delivery', label: 'Shipped' },
         { id: 'delivered', label: 'Completed' },
         { id: 'cancelled', label: 'Cancelled' },
-    ];
-
-    const statusOptions = [
-        { value: 'placed', label: 'Placed' },
-        { value: 'confirmed', label: 'Confirmed' },
-        { value: 'picking', label: 'Picking' },
-        { value: 'ready_for_collection', label: 'Ready' },
-        { value: 'out_for_delivery', label: 'Shipped' },
-        { value: 'delivered', label: 'Delivered' },
-        { value: 'cancelled', label: 'Cancelled' },
     ];
 
     const filteredOrders = (orders as any[]).filter(
@@ -152,7 +182,7 @@ export default function OrdersPage() {
                 <div className="flex flex-col items-start gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <Badge tone={STATUS_TONE[o.status] ?? 'neutral'}>{statusLabel(o.status)}</Badge>
                     <CustomSelect
-                        options={statusOptions}
+                        options={statusOptionsFor(o.status)}
                         value={o.status}
                         onChange={(val) => updateStatus.mutate({ id: o.id, status: val })}
                         style={{ width: '140px' }}
@@ -347,7 +377,7 @@ export default function OrdersPage() {
                                         <Clock size={18} className="text-primary" /> Order Status
                                     </h4>
                                     <CustomSelect
-                                        options={statusOptions}
+                                        options={statusOptionsFor(selectedOrder.status)}
                                         value={selectedOrder.status}
                                         onChange={(val) => updateStatus.mutate({ id: selectedOrder.id, status: val })}
                                     />

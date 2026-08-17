@@ -24,28 +24,39 @@ def send_webhook_event(self, endpoint_id: str, url: str, secret: str, event_type
 
 async def _send_webhook_event(self, endpoint_id: str, url: str, secret: str, event_type: str, payload: dict):
     from app.models.webhook import WebhookDelivery
-    
+    from app.core.url_safety import assert_safe_webhook_url
+    from app.core.exceptions import ValidationException
+
     payload_str = json.dumps(payload)
     signature = WebhookService.sign_payload(payload_str, secret)
-    
+
     headers = {
         "Content-Type": "application/json",
         "X-Webhook-Event": event_type,
         "X-Webhook-Signature": signature,
         "User-Agent": "UK-Grocery-Webhook/1.1"
     }
-    
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        try:
+
+    # Re-checked at delivery time, not just at registration — a URL that
+    # resolved to a public IP when the endpoint was registered could later
+    # re-resolve to an internal address (DNS rebinding).
+    try:
+        await assert_safe_webhook_url(url)
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(url, content=payload_str, headers=headers)
             status_code = response.status_code
             resp_body = response.text[:1000] # Cap size
             delivered = 200 <= status_code < 300
-        except Exception as e:
-            logger.error(f"Webhook delivery failed to {url}: {str(e)}")
-            status_code = 0
-            resp_body = str(e)
-            delivered = False
+    except ValidationException as e:
+        logger.error(f"Webhook delivery to {url} blocked: {e}")
+        status_code = 0
+        resp_body = f"Blocked: {e}"
+        delivered = False
+    except Exception as e:
+        logger.error(f"Webhook delivery failed to {url}: {str(e)}")
+        status_code = 0
+        resp_body = str(e)
+        delivered = False
 
     async with async_session_factory() as db:
         delivery = WebhookDelivery(

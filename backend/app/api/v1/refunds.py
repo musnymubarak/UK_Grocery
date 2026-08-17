@@ -44,23 +44,28 @@ async def upload_refund_evidence(
     db: AsyncSession = Depends(get_async_session)
 ):
     """Customer uploads evidence (photo) for a refund item."""
-    import os
-    import shutil
+    from sqlalchemy import select
+    from app.models.refund import Refund, RefundItem
     from app.models.refund_evidence import RefundEvidence
-    from app.core.config import settings
-    
-    upload_dir = os.path.join(settings.UPLOAD_DIR, "refunds")
-    os.makedirs(upload_dir, exist_ok=True)
-    
-    file_ext = os.path.splitext(file.filename)[1]
-    safe_filename = f"{refund_item_id}_{file.filename}"
-    file_path = os.path.join(upload_dir, safe_filename)
-    
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    file_url = f"/static/uploads/refunds/{safe_filename}"
-    
+    from app.core.exceptions import NotFoundException
+    from app.services.uploads import save_image_upload
+
+    # Ownership check: the refund item must belong to a refund owned by the
+    # calling customer — previously any authenticated customer could attach
+    # evidence to any refund item by guessing/learning its UUID.
+    row = (await db.execute(
+        select(RefundItem, Refund.customer_id)
+        .join(Refund, Refund.id == RefundItem.refund_id)
+        .where(RefundItem.id == refund_item_id)
+    )).first()
+    if not row or row[1] != current_customer.id:
+        raise NotFoundException("RefundItem", refund_item_id)
+
+    # Validated content-type allowlist + a server-generated filename (UUID +
+    # a sanitized extension) — the client's filename is never used to build a
+    # filesystem path, which is what previously allowed path traversal.
+    file_url = await save_image_upload(file, subdir="refunds")
+
     evidence = RefundEvidence(
         refund_item_id=refund_item_id,
         file_url=file_url,
@@ -69,7 +74,7 @@ async def upload_refund_evidence(
     )
     db.add(evidence)
     await db.commit()
-    
+
     return {"status": "success", "file_url": file_url}
 
 @router.get("/me", response_model=List[RefundResponse])

@@ -52,11 +52,12 @@ async def list_banners_admin(
 @router.get("/{banner_id}", response_model=BannerResponse)
 async def get_banner(
     banner_id: UUID,
+    org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_role(["admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     banner = await db.get(Banner, banner_id)
-    if not banner:
+    if not banner or banner.organization_id != org_id:
         raise NotFoundException("Banner", banner_id)
     return banner
 
@@ -64,17 +65,18 @@ async def get_banner(
 async def update_banner(
     banner_id: UUID,
     data: BannerUpdate,
+    org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_role(["admin"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     banner = await db.get(Banner, banner_id)
-    if not banner:
+    if not banner or banner.organization_id != org_id:
         raise NotFoundException("Banner", banner_id)
-    
+
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(banner, key, value)
-    
+
     await db.flush()
     await db.refresh(banner)
     return banner
@@ -82,11 +84,12 @@ async def update_banner(
 @router.delete("/{banner_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_banner(
     banner_id: UUID,
+    org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_role(["admin"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     banner = await db.get(Banner, banner_id)
-    if not banner:
+    if not banner or banner.organization_id != org_id:
         raise NotFoundException("Banner", banner_id)
     await db.delete(banner)
     await db.flush()

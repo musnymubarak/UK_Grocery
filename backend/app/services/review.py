@@ -67,20 +67,31 @@ class ReviewService:
             "total_reviews": row.count or 0,
         }
 
-    async def toggle_publish(self, review_id: UUID, publish: bool) -> Review:
+    async def _verify_review_in_org(self, review: Review, org_id: UUID):
+        """Review has no organization_id column of its own — verify via its
+        store. Previously neither moderation method checked this at all, so
+        any admin/manager could moderate any org's reviews by ID."""
+        from app.models.store import Store
+        store = await self.db.get(Store, review.store_id)
+        if not store or store.organization_id != org_id:
+            raise NotFoundException("Review", review.id)
+
+    async def toggle_publish(self, review_id: UUID, publish: bool, org_id: UUID) -> Review:
         """Admin: show/hide a review."""
         review = await self.db.get(Review, review_id)
         if not review:
             raise NotFoundException("Review", review_id)
+        await self._verify_review_in_org(review, org_id)
         review.is_published = publish
         await self.db.flush()
         return review
 
-    async def add_store_response(self, review_id: UUID, response_text: str) -> Review:
+    async def add_store_response(self, review_id: UUID, response_text: str, org_id: UUID) -> Review:
         """Store manager responds to a review."""
         review = await self.db.get(Review, review_id)
         if not review:
             raise NotFoundException("Review", review_id)
+        await self._verify_review_in_org(review, org_id)
         review.store_response = response_text
         await self.db.flush()
         return review

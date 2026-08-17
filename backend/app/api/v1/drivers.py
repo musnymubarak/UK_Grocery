@@ -50,12 +50,13 @@ async def update_my_availability(
 @router.get("/available")
 async def list_available_drivers(
     store_id: Optional[UUID] = Query(None),
+    org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_role(["admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Admin lists online and available drivers."""
     service = DriverService(db)
-    return await service.get_available_drivers(store_id)
+    return await service.get_available_drivers(org_id, store_id)
 
 
 @router.get("")

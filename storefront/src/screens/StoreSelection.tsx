@@ -121,8 +121,42 @@ export default function StoreSelection() {
       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in miles
+    return R * c; // Distance in miles — used only as a rough sort/display
+    // value below, never to decide price or deliverability (see feeInfo).
   };
+
+  // Real delivery fee/deliverability per store, from the backend — the
+  // straight-line-distance mile bands previously computed here were a local
+  // guess that could (and did) disagree with the authoritative zone/postcode
+  // logic used at actual checkout, showing a store as deliverable-at-£X and
+  // then rejecting it later for a different reason entirely.
+  const [feeInfo, setFeeInfo] = useState<Record<string, { fee: number; deliverable: boolean; message?: string }>>({});
+  const [feeLoading, setFeeLoading] = useState(false);
+
+  useEffect(() => {
+    if (!postcode || postcode.length < 3 || rawStores.length === 0) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setFeeLoading(true);
+      Promise.all(
+        rawStores.map((s: any) =>
+          catalogApi
+            .calculateDistanceFee(s.id, postcode)
+            .then((res) => [s.id, {
+              fee: Number(res.data.delivery_fee ?? 0),
+              deliverable: !!res.data.deliverable,
+              message: res.data.message,
+            }] as const)
+            .catch(() => [s.id, { fee: 0, deliverable: false, message: 'Could not check delivery for this address' }] as const)
+        )
+      ).then((entries) => {
+        if (cancelled) return;
+        setFeeInfo(Object.fromEntries(entries));
+        setFeeLoading(false);
+      });
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [postcode, rawStores]);
 
   const handleSearchAddress = async (val: string) => {
     if (!val.trim()) return;
@@ -187,51 +221,34 @@ export default function StoreSelection() {
 
   const stores = useMemo(() => {
     const calculated = rawStores.map((s: any, idx: number) => {
-      let distanceStr = '0.50 miles';
-      let distanceMiles = 0.5;
+      // Straight-line distance — display/sort only, never used to decide
+      // price or deliverability (that comes from feeInfo, the real backend
+      // answer, below).
+      let distanceStr = '— miles';
+      let distanceMiles = 0.5 + idx * 1.2;
 
       if (coordinates && s.lat && s.lng) {
-        const dist = calculateDistance(coordinates.lat, coordinates.lng, Number(s.lat), Number(s.lng));
-        distanceMiles = dist;
-        distanceStr = dist.toFixed(2) + ' miles';
-      } else {
-        // Safe default incremental distances for initial load
-        distanceMiles = 0.5 + idx * 1.2;
+        distanceMiles = calculateDistance(coordinates.lat, coordinates.lng, Number(s.lat), Number(s.lng));
         distanceStr = distanceMiles.toFixed(2) + ' miles';
       }
 
-      // Calculate dynamic delivery fee based on backend delivery tiers
-      let deliveryFeeVal = '£1.99';
-      let deliveryFeeNum = 1.99;
-      let deliverable = true;
-
-      if (distanceMiles <= 1.0) {
-        deliveryFeeVal = '£1.99';
-        deliveryFeeNum = 1.99;
-      } else if (distanceMiles <= 2.0) {
-        deliveryFeeVal = '£2.99';
-        deliveryFeeNum = 2.99;
-      } else if (distanceMiles <= 3.0) {
-        deliveryFeeVal = '£3.99';
-        deliveryFeeNum = 3.99;
-      } else if (distanceMiles <= 4.0) {
-        deliveryFeeVal = '£4.99';
-        deliveryFeeNum = 4.99;
-      } else if (distanceMiles <= 5.0) {
-        deliveryFeeVal = '£5.99';
-        deliveryFeeNum = 5.99;
-      } else {
-        deliveryFeeVal = 'Delivery Not Available';
-        deliveryFeeNum = 0.00;
-        deliverable = false;
-      }
+      const info = feeInfo[s.id];
+      const checking = feeLoading && !info;
+      const deliverable = info ? info.deliverable : true; // optimistic until we know otherwise
+      const deliveryFeeVal = checking
+        ? 'Checking…'
+        : !info
+        ? 'Enter address'
+        : !info.deliverable
+        ? (info.message || 'Delivery Not Available')
+        : `£${info.fee.toFixed(2)}`;
 
       return {
         ...s,
         min_order_value: Number(s.min_order_value || 10.00),
         free_delivery_threshold: Number(s.free_delivery_threshold || 40.00),
         delivery_fee: deliveryFeeVal,
-        delivery_fee_num: deliveryFeeNum,
+        delivery_fee_num: info?.fee ?? 0,
         distance: distanceStr,
         distanceVal: distanceMiles,
         is_deliverable: deliverable,
@@ -245,7 +262,7 @@ export default function StoreSelection() {
       if (!a.is_deliverable && b.is_deliverable) return 1;
       return a.distanceVal - b.distanceVal;
     });
-  }, [rawStores, coordinates]);
+  }, [rawStores, coordinates, feeInfo, feeLoading]);
 
   const isStoreCurrentlyOpen = (store: StoreData) => {
     if (store.is_open === false) return false;

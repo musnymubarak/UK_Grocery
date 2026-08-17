@@ -52,20 +52,22 @@ async def get_store_rating_summary(
 async def toggle_review_visibility(
     review_id: UUID,
     publish: bool = True,
+    org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_role(["admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Admin: show or hide a review."""
     service = ReviewService(db)
-    return await service.toggle_publish(review_id, publish)
+    return await service.toggle_publish(review_id, publish, org_id)
 
 @router.patch("/{review_id}/respond", response_model=ReviewResponse)
 async def respond_to_review(
     review_id: UUID,
     response_text: str,
+    org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_role(["admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Store staff responds to a review."""
     service = ReviewService(db)
-    return await service.add_store_response(review_id, response_text)
+    return await service.add_store_response(review_id, response_text, org_id)

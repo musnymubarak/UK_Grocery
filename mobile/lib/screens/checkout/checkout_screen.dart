@@ -273,7 +273,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     final defaultFee = store.defaultDeliveryFee ?? 2.99;
     final baseDelivery = _serverFee ?? defaultFee;
-    final delivery = cart.subtotal > 40 ? 0.0 : baseDelivery;
+    final delivery = cart.subtotal > store.freeDeliveryThreshold ? 0.0 : baseDelivery;
     final rawTotal = cart.subtotal + delivery - _appliedDiscount;
     final total = rawTotal < 0 ? 0.0 : rawTotal;
 
@@ -284,7 +284,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     String? stripePaymentIntentId;
 
-    if (_payment == 'online') {
+    // Was `_payment == 'online'` only — since Apple/Google Pay sets _payment
+    // to 'platform' (a separate, mutually-exclusive value), that condition
+    // could never be true for a platform-pay checkout, so the whole Stripe
+    // payment-intent flow — including the confirmPlatformPayPaymentIntent
+    // branch a few lines below — was unreachable for those payments. The
+    // order still got created, just with no payment ever collected.
+    if (_payment == 'online' || _payment == 'platform') {
       try {
         final paymentData = await Api.instance.payments.createPaymentIntent(
           amount: total,
@@ -441,7 +447,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final store = context.watch<StoreProvider>().selected;
     final defaultFee = store?.defaultDeliveryFee ?? 2.99;
     final baseDelivery = _serverFee ?? defaultFee;
-    final delivery = cart.subtotal > 40 ? 0.0 : baseDelivery;
+    // Was hardcoded to 40 regardless of the selected store's actual
+    // configured threshold (StoreLocation.freeDeliveryThreshold, parsed from
+    // the backend but never read anywhere) — a store configured with a
+    // lower threshold showed/charged delivery fees the backend would
+    // already be waiving, and vice versa.
+    final freeThreshold = store?.freeDeliveryThreshold ?? 40.0;
+    final delivery = cart.subtotal > freeThreshold ? 0.0 : baseDelivery;
     final rawTotal = cart.subtotal + delivery - _appliedDiscount;
     final total = rawTotal < 0 ? 0.0 : rawTotal;
     final addresses = auth.customer?.addresses ?? const <DeliveryAddress>[];

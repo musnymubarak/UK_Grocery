@@ -108,8 +108,11 @@ export default function Checkout() {
 
   const deliveryFee = deliveryInfo?.fee ?? 0;
   const isMinOrderMet = selectedStore ? totalPrice >= (selectedStore.min_order_value || 10) : true;
-  const taxesAndFees = 1.85;
-  const finalTotal = Math.max(0, totalPrice + deliveryFee + taxesAndFees - appliedDiscount);
+  // No "taxes & fees" line exists on the backend Order model — subtotal +
+  // delivery_fee (+ service_fee/tip, both always 0 today) - discount is the
+  // whole formula. A hardcoded £1.85 here previously showed customers a
+  // total that didn't match what they were actually charged on every order.
+  const finalTotal = Math.max(0, totalPrice + deliveryFee - appliedDiscount);
 
   const handleValidatePromo = async () => {
     if (!promoCode.trim() || !selectedStore) return;
@@ -432,10 +435,6 @@ export default function Checkout() {
                   <span>£{deliveryFee.toFixed(2)}</span>
                 )}
               </div>
-            </div>
-            <div className="flex justify-between">
-              <span>Taxes & Fees</span>
-              <span>£{taxesAndFees.toFixed(2)}</span>
             </div>
             {appliedDiscount > 0 && (
               <div className="flex justify-between text-price-green font-semibold">

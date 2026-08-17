@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { cart, addToCart, updateQuantity } = useCart();
+  const { cart, addToCart, updateQuantity, selectedStore } = useCart();
   const { isAuthenticated } = useAuth();
   
   const [product, setProduct] = useState<any>(null);
@@ -27,21 +27,27 @@ export default function ProductDetails() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    
-    Promise.all([
-      catalogApi.getProduct(id),
-      reviewApi.getStoreReviews(id),
-      reviewApi.getStoreSummary(id)
-    ]).then(([pRes, rRes, sRes]) => {
+
+    // Reviews are about a STORE's service, keyed by store_id — not the
+    // product id from the URL. These were previously called with the
+    // product's own id, which almost never collides with a real store id,
+    // so the rating badge and review list were empty/wrong for nearly every
+    // product. Only fetch them once we know which store is selected.
+    const requests: Promise<any>[] = [catalogApi.getProduct(id)];
+    if (selectedStore?.id) {
+      requests.push(reviewApi.getStoreReviews(selectedStore.id), reviewApi.getStoreSummary(selectedStore.id));
+    }
+
+    Promise.all(requests).then(([pRes, rRes, sRes]) => {
       setProduct(pRes.data);
-      setReviews(rRes.data || []);
-      setSummary(sRes.data);
+      setReviews(rRes?.data || []);
+      setSummary(sRes?.data ?? null);
       setLoading(false);
     }).catch(err => {
       console.error(err);
       setLoading(false);
     });
-  }, [id]);
+  }, [id, selectedStore?.id]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();

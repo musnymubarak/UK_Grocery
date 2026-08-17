@@ -41,6 +41,9 @@ async def create_webhook(
     db: AsyncSession = Depends(get_async_session)
 ):
     """Register a new webhook endpoint."""
+    from app.core.url_safety import assert_safe_webhook_url
+    await assert_safe_webhook_url(data.url)
+
     endpoint = WebhookEndpoint(
         organization_id=org_id,
         url=data.url,
@@ -96,14 +99,19 @@ async def delete_webhook(
 @router.get("/{webhook_id}/deliveries", response_model=List[dict])
 async def get_webhook_deliveries(
     webhook_id: UUID,
+    org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_capability("manage_settings")),
     db: AsyncSession = Depends(get_async_session)
 ):
     """View recent delivery logs for a specific webhook."""
+    endpoint = await db.get(WebhookEndpoint, webhook_id)
+    if not endpoint or endpoint.organization_id != org_id:
+        raise NotFoundException("Webhook", webhook_id)
+
     query = select(WebhookDelivery).where(
         WebhookDelivery.endpoint_id == webhook_id
     ).order_by(WebhookDelivery.created_at.desc()).limit(50)
-    
+
     result = await db.execute(query)
     return [
         {

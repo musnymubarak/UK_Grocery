@@ -33,7 +33,13 @@ class CouponService:
         existing = await self.get_coupon_by_code(org_id, data.code)
         if existing:
             raise ValidationException(f"Coupon code '{data.code}' already exists")
-            
+
+        # Defense in depth — the schema already rejects this, but this also
+        # covers any future caller that constructs CouponCreate without going
+        # through Pydantic validation.
+        if data.discount_type == "percentage_discount" and data.discount_value > 100:
+            raise ValidationException("Percentage discount cannot exceed 100%")
+
         coupon = Coupon(organization_id=org_id, **data.model_dump())
         self.db.add(coupon)
         await self.db.flush()
@@ -47,7 +53,13 @@ class CouponService:
 
         for key, value in data.model_dump(exclude_unset=True).items():
             setattr(coupon, key, value)
-            
+
+        # CouponUpdate has no discount_type field (can't change type), but it
+        # can change discount_value — re-validate against the coupon's
+        # existing type since the schema alone can't see it on a partial update.
+        if coupon.discount_type == "percentage_discount" and coupon.discount_value > 100:
+            raise ValidationException("Percentage discount cannot exceed 100%")
+
         await self.db.flush()
         await self.db.refresh(coupon)
         return coupon
@@ -56,7 +68,11 @@ class CouponService:
         coupon = await self.db.get(Coupon, coupon_id)
         if not coupon or coupon.organization_id != org_id:
             raise NotFoundException("Coupon not found")
-        await self.db.delete(coupon)
+        # Soft delete: Coupon has no is_deleted column, and CouponRedemption /
+        # Order.coupon_id reference this row by ID — a hard delete would break
+        # that history. Deactivating achieves the same "can't be used again"
+        # outcome the delete button promises, without destroying references.
+        coupon.is_active = False
         await self.db.flush()
 
     async def validate_coupon(
@@ -124,7 +140,10 @@ class CouponService:
         if coupon.discount_type == "flat_discount":
             discount_amount = min(subtotal, coupon.discount_value) # don't discount below 0
         elif coupon.discount_type == "percentage_discount":
-            discount_amount = subtotal * (coupon.discount_value / Decimal("100.00"))
+            # Clamped defensively even though creation/update now reject >100%
+            # values — a coupon written before this fix could still be sitting
+            # in the database with an out-of-range value.
+            discount_amount = min(subtotal, subtotal * (coupon.discount_value / Decimal("100.00")))
         elif coupon.discount_type == "free_delivery":
             discount_amount = delivery_fee
 

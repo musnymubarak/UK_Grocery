@@ -7,6 +7,7 @@ import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
 import '../../state/cart_provider.dart';
+import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/premium_app_bar.dart';
@@ -196,7 +197,13 @@ class _CartFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final theme = Theme.of(context);
-    final delivery = cart.subtotal > 40 ? 0.0 : 2.99;
+    final store = context.watch<StoreProvider>().selected;
+    // Was hardcoded (threshold 40, fee 2.99) regardless of the selected
+    // store's real configured values — see checkout_screen.dart for the
+    // same fix and why it matters (silent over/undercharging).
+    final freeThreshold = store?.freeDeliveryThreshold ?? 40.0;
+    final baseFee = store?.defaultDeliveryFee ?? 2.99;
+    final delivery = cart.subtotal > freeThreshold ? 0.0 : baseFee;
     final total = cart.subtotal + delivery;
     return Container(
       decoration: BoxDecoration(

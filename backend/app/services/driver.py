@@ -47,12 +47,13 @@ class DriverService:
         await self.db.refresh(profile)
         return profile
 
-    async def get_available_drivers(self, store_id: Optional[UUID] = None) -> List[DriverProfile]:
+    async def get_available_drivers(self, org_id: UUID, store_id: Optional[UUID] = None) -> List[DriverProfile]:
         """Get all online and available drivers."""
         query = (
             select(DriverProfile)
             .join(User, User.id == DriverProfile.user_id)
             .where(
+                User.organization_id == org_id,
                 DriverProfile.is_available == True,
                 DriverProfile.is_online == True
             )
