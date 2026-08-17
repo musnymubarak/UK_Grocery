@@ -4,9 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from decimal import Decimal
 
+import logging
+
 from app.models.delivery_zone import DeliveryZone, PostcodeZoneMapping
 from app.schemas.delivery_zone import DeliveryZoneCreate, DeliveryZoneUpdate, FeeCalculationRequest, FeeCalculationResponse
 from app.core.exceptions import NotFoundException, ValidationException
+
+logger = logging.getLogger(__name__)
 
 class DeliveryZoneService:
     @staticmethod
@@ -78,8 +82,8 @@ class DeliveryZoneService:
     @staticmethod
     async def calculate_fee(db: AsyncSession, data: FeeCalculationRequest) -> FeeCalculationResponse:
         from app.models.store import Store
-        from app.services.distance import geocode_postcode, get_driving_distance_miles, get_delivery_fee
-        
+        from app.services.distance import geocode_postcode, get_driving_distance_miles, get_delivery_fee, DistanceServiceUnavailable
+
         # Prefer distance-based calculation if store has coordinates
         store = await db.get(Store, data.store_id)
         if store and store.lat and store.lng:
@@ -90,12 +94,12 @@ class DeliveryZoneService:
                     cust_lat, cust_lng
                 )
                 fee = get_delivery_fee(distance)
-                
+
                 if fee is not None:
                     # Check for free delivery threshold from store model
                     if store.free_delivery_threshold > 0 and data.order_total >= store.free_delivery_threshold:
                         fee = Decimal("0.00")
-                        
+
                     return FeeCalculationResponse(
                         deliverable=True,
                         fee=fee,
@@ -103,9 +107,13 @@ class DeliveryZoneService:
                     )
                 else:
                     return FeeCalculationResponse(deliverable=False, fee=Decimal("0.00"), zone_name="Too far")
-            except Exception:
-                # Fallback to zone-based if distance fails
-                pass
+            except DistanceServiceUnavailable as e:
+                logger.error(
+                    f"Distance pricing unavailable for store {store.id}, postcode {data.postcode!r}: {e}. "
+                    "Falling back to postcode/zone matching."
+                )
+                # Fall through to the zone-based logic below — a real calculation,
+                # not a fabricated number.
 
         # Original Zone-based logic
         # First check explicit exact mapping mappings
