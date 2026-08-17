@@ -45,7 +45,8 @@ async def my_orders(
     from sqlalchemy.orm import selectinload
     from app.models.order import Order, OrderItem
     query = select(Order).options(
-        selectinload(Order.items).selectinload(OrderItem.product)
+        selectinload(Order.items).selectinload(OrderItem.product),
+        selectinload(Order.customer).selectinload(Customer.orders)
     ).where(Order.customer_id == current_customer.id).order_by(Order.created_at.desc())
     result = await db.execute(query)
     return list(result.scalars().all())
@@ -63,9 +64,10 @@ async def get_my_order(
     from app.core.exceptions import NotFoundException
 
     query = select(Order).options(
-        selectinload(Order.items).selectinload(OrderItem.product)
+        selectinload(Order.items).selectinload(OrderItem.product),
+        selectinload(Order.customer).selectinload(Customer.orders)
     ).where(
-        Order.id == order_id, 
+        Order.id == order_id,
         Order.customer_id == current_customer.id
     )
     result = await db.execute(query)

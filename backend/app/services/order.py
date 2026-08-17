@@ -14,7 +14,7 @@ from fastapi import Request
 
 from app.models.order import Order, OrderItem
 from app.models.user import User
-from app.models.customer import CustomerAddress
+from app.models.customer import Customer, CustomerAddress
 from app.schemas.order import OrderCreate, OrderUpdateStatus
 from app.services.inventory import InventoryService
 from app.services.coupon import CouponService
@@ -58,7 +58,7 @@ class OrderService:
         from sqlalchemy.orm import selectinload
         query = select(Order).options(
             selectinload(Order.items).selectinload(OrderItem.product),
-            selectinload(Order.customer)
+            selectinload(Order.customer).selectinload(Customer.orders)
         ).where(Order.id == order_id)
         if org_id:
             query = query.where(Order.organization_id == org_id)
@@ -72,7 +72,7 @@ class OrderService:
         from sqlalchemy.orm import selectinload
         query = select(Order).options(
             selectinload(Order.items).selectinload(OrderItem.product),
-            selectinload(Order.customer)
+            selectinload(Order.customer).selectinload(Customer.orders)
         ).where(Order.organization_id == org_id)
         if store_id:
             query = query.where(Order.store_id == store_id)
@@ -152,7 +152,7 @@ class OrderService:
         from sqlalchemy.orm import selectinload
         query = select(Order).options(
             selectinload(Order.items).selectinload(OrderItem.product),
-            selectinload(Order.customer)
+            selectinload(Order.customer).selectinload(Customer.orders)
         ).where(Order.assigned_to == user_id).order_by(Order.created_at.desc()).offset(skip).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())

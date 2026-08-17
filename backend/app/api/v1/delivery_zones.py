@@ -1,8 +1,11 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import get_async_session
 from app.core.dependencies import get_current_user, require_role, get_store_scope, enforce_store_access
@@ -96,8 +99,8 @@ async def calculate_distance_fee(
             "message": "Store coordinates not set, using default fee."
         }
     
-    from app.services.distance import geocode_postcode, get_driving_distance_miles, get_delivery_fee
-    
+    from app.services.distance import geocode_postcode, get_driving_distance_miles, get_delivery_fee, DistanceServiceUnavailable
+
     try:
         cust_lat, cust_lng = await geocode_postcode(postcode)
         distance = await get_driving_distance_miles(
@@ -105,17 +108,28 @@ async def calculate_distance_fee(
             cust_lat, cust_lng
         )
         fee = get_delivery_fee(distance)
-        
+
         return {
             "deliverable": fee is not None,
             "distance_miles": round(distance, 2),
             "delivery_fee": float(fee) if fee else 0,
             "message": None if fee else f"Sorry, delivery is not available beyond 5 miles. Distance: {round(distance, 2)} mi"
         }
-    except Exception as e:
+    except DistanceServiceUnavailable as e:
+        logger.error(
+            f"Distance pricing unavailable for store {store_id}, postcode {postcode!r}: {e}. "
+            "Falling back to postcode/zone matching."
+        )
+        from app.schemas.delivery_zone import FeeCalculationRequest
+        zone_resp = await DeliveryZoneService.calculate_fee(
+            db, FeeCalculationRequest(store_id=store_id, postcode=postcode, order_total=0)
+        )
         return {
-            "deliverable": True,
-            "distance_miles": 0,
-            "delivery_fee": 1.99,
-            "message": "Could not calculate exact distance, using base fee."
+            "deliverable": zone_resp.deliverable,
+            "distance_miles": None,
+            "delivery_fee": float(zone_resp.fee),
+            "message": (
+                f"Estimated via delivery zone ({zone_resp.zone_name})" if zone_resp.deliverable
+                else "This postcode is outside our delivery area."
+            ),
         }
