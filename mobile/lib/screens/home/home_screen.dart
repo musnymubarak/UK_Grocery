@@ -358,11 +358,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   const _FreeDeliveryCard(),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    t('home.categories_title', 'Categories'),
+                    t('home.categories_title', 'Shop by category'),
                     style: const TextStyle(
                       color: Color(0xFF001D3D),
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    t('home.categories_subtitle', 'Tap a colour, start shopping'),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -702,6 +711,11 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Pastel tint of the category's own palette colour — reuses the single
+    // colour source (Category.colorA, keyed off the category name in
+    // category.dart) instead of a second hardcoded tile palette, so the tile
+    // background and the chevron-style CategoryTile stay in the same family.
+    final background = Color.lerp(category.colorA, Colors.white, 0.82)!;
     return AnimatedPress(
       onTap: () => Navigator.of(context).pushNamed(
         AppRouter.aisle,
@@ -709,46 +723,46 @@ class _CategoryTile extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: background,
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
           children: [
-            // Image stage — product image fills the frame on a clean surface
-            // (no more tiny circle floating in whitespace).
-            Expanded(
+            Positioned.fill(
               child: Padding(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.fromLTRB(14, 16, 14, 44),
                 child: _image(),
               ),
             ),
-            // Footer — label on the left, neutral chevron on the right.
-            Container(
-              height: 54,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-              ),
+            Positioned(
+              left: 14,
+              right: 10,
+              bottom: 12,
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       category.name,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF1A1A1A),
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        height: 1.2,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF64748B)),
+                  Container(
+                    height: 26,
+                    width: 26,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                    child: const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF1A1A1A)),
+                  ),
                 ],
               ),
             ),
