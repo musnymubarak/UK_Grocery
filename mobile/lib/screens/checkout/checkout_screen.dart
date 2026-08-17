@@ -340,7 +340,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               throw Exception('Payment failed. Status: ${paymentIntent.status}');
             }
           } else if (_selectedCardId != null && status == 'requires_action') {
-            final paymentIntent = await Stripe.instance.handleNextAction(paymentIntentClientSecret: clientSecret);
+            final paymentIntent = await Stripe.instance.handleNextAction(clientSecret);
             if (paymentIntent.status != PaymentIntentsStatus.Succeeded) {
               throw Exception('3D Secure failed. Status: ${paymentIntent.status}');
             }

@@ -35,11 +35,8 @@ export default function StoreSelection() {
   const { setSelectedStore } = useCart();
   const [rawStores, setRawStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [postcode, setPostcode] = useState('SW1A 2AA');
-  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>({
-    lat: 51.5034, // Default London latitude (Downing St / SW1A 2AA)
-    lng: -0.1276  // Default London longitude
-  });
+  const [postcode, setPostcode] = useState('');
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
