@@ -128,21 +128,25 @@ Rate limits (`slowapi`):
 
 ## Order State Machine
 
-Defined in [backend/app/services/order.py](../backend/app/services/order.py). Statuses:
+Defined in [backend/app/services/order.py](../backend/app/services/order.py) as the `VALID_TRANSITIONS` map — treat that as the source of truth, not the diagram below. Statuses:
 
 ```
 placed → confirmed → picking → substitution_pending → ready_for_collection
        → assigned_to_driver → out_for_delivery → delivered
-                                                  └→ failed_delivery
+                                                  └→ delivery_failed
        → cancelled / rejected (allowed from several states)
 ```
 
-Each transition:
-1. Validates the transition is legal.
+**This diagram shows the intended sequence, not the only legal path.** `placed` can transition directly to most later statuses — including straight to `delivered` — in a single call, not just to the next step shown above. This is intentional (collection orders, corrections, catching up after a backlog), a deliberate product decision, not a bug to fix.
+
+Each **staff-initiated** transition, via `OrderService.update_status`:
+1. Validates the transition is legal (`VALID_TRANSITIONS`).
 2. Updates `Order.status`.
 3. Inserts an `OrderStatusHistory` row.
-4. Writes an `AuditLog`.
-5. May enqueue a Celery side-effect (e.g., refund webhook).
+4. Writes an `AuditLog` entry.
+5. Fires an `order.{status}` webhook, and may enqueue a Celery side-effect (e.g., rewards processing on delivery).
+
+Two other paths mutate status outside `update_status` — `OrderService.customer_cancel` (customer self-service, within the cancel window) and the `order_timeout_check` Celery task (auto-reject after 15 minutes stuck in `placed`). Both write `OrderStatusHistory` and fire the relevant webhook, but **neither writes an `AuditLog` entry** — `AuditLog` is scoped to staff actions (`user_id`/`user_role`), and neither of these has a staff actor. This is why order status changes only show up in `AuditLog` when a staff member made them.
 
 **Do not bypass the service** — never `order.status = "..."` in route handlers.
 

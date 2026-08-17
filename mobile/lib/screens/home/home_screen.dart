@@ -314,10 +314,10 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: AppSpacing.lg),
           Skeleton(height: 96, borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
           const SizedBox(height: AppSpacing.lg),
-          GridView.count(
+          GridView.extent(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
+            maxCrossAxisExtent: 180,
             mainAxisSpacing: AppSpacing.base,
             crossAxisSpacing: AppSpacing.base,
             childAspectRatio: 0.85,
@@ -381,8 +381,13 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.base, 0, AppSpacing.base, AppSpacing.xxl),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                // Was a fixed 2-column grid regardless of screen width — on
+                // a tablet this just stretches the phone layout instead of
+                // showing more columns. MaxCrossAxisExtent fits as many
+                // ~180px tiles as the available width allows (2 on a ~390px
+                // phone, more on a wider screen) instead of a fixed count.
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 180,
                   mainAxisSpacing: AppSpacing.base,
                   crossAxisSpacing: AppSpacing.base,
                   childAspectRatio: 0.85,

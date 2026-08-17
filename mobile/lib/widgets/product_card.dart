@@ -249,10 +249,16 @@ class _StepperButton extends StatelessWidget {
         child: AnimatedPress(
           onTap: onTap,
           scale: 0.9,
+          // Was 30x26 — well under the 44x48pt platform minimum for a
+          // control tapped repeatedly while shopping. The parent pill has a
+          // fixed 34px height (growing past it would clip), so this uses the
+          // full height available and grows width — the pill widens to fit
+          // since its Row uses mainAxisSize.min, which is a safe, contained
+          // change rather than a risk of overflow/clipping.
           child: SizedBox(
-            height: 30,
-            width: 26,
-            child: Center(child: Icon(icon, size: 16, color: Colors.white)),
+            height: 34,
+            width: 40,
+            child: Center(child: Icon(icon, size: 18, color: Colors.white)),
           ),
         ),
       ),

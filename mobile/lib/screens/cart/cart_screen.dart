@@ -159,9 +159,12 @@ class _MiniStepper extends StatelessWidget {
         children: [
           AnimatedPress(
             onTap: onMinus,
+            // Was 32x32 — under the 44pt platform minimum. This row has no
+            // fixed-height ancestor (unlike product_card.dart's pill), so
+            // there's no clipping risk in growing to the full guideline size.
             child: Container(
-              height: 32,
-              width: 32,
+              height: 44,
+              width: 44,
               alignment: Alignment.center,
               child: const Icon(Icons.remove_rounded, size: 16),
             ),
@@ -177,8 +180,8 @@ class _MiniStepper extends StatelessWidget {
           AnimatedPress(
             onTap: onPlus,
             child: Container(
-              height: 32,
-              width: 32,
+              height: 44,
+              width: 44,
               alignment: Alignment.center,
               child: const Icon(Icons.add_rounded, size: 16),
             ),

@@ -86,6 +86,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
 
 
 @router.post("/refresh", summary="Rotate refresh token")
+@limiter.limit("5/minute")
 async def refresh_token(data: RefreshRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Issue a new access token and refresh token."""
     from app.services.token import TokenService
