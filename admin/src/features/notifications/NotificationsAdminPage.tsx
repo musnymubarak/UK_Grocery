@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { AxiosResponse } from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationAdminApi, customerApi, getErrorMessage } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -40,7 +41,11 @@ export default function NotificationsAdminPage() {
     });
 
     const send = useMutation({
-        mutationFn: () => {
+        // Explicit return type — the two branches call different api.post<...>
+        // overloads with incompatible inferred request-body generics, which
+        // otherwise fails to unify into one MutationFunction type. Both
+        // branches' response data is consumed as `any` below regardless.
+        mutationFn: (): Promise<AxiosResponse<any>> => {
             if (target === 'single') {
                 if (!customerId) throw new Error('Select a customer');
                 return notificationAdminApi.send({ customer_id: customerId, title, body, notification_type: notificationType });

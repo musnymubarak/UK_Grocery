@@ -286,9 +286,15 @@ async def delete_my_account(
     current_customer: Customer = Depends(get_current_customer),
     db: AsyncSession = Depends(get_async_session),
 ):
-    """Permanently delete the current customer's account and all associated data."""
-    await CustomerService.delete_customer(db, current_customer.id)
-    await db.commit()
+    """Deregister the current customer's account.
+
+    Routed through the same anonymization used by /gdpr/forget-me rather than
+    a hard delete — Order.customer_id cascades on delete, so a raw DELETE here
+    would silently destroy the customer's entire order/financial history along
+    with their account, reachable with nothing but a valid bearer token.
+    """
+    from app.services.gdpr import GDPRService
+    await GDPRService(db).anonymize_customer(current_customer.id)
 
 
 @router.get("/me/referral-code", response_model=ReferralCodeResponse)

@@ -69,6 +69,12 @@ export default function RefundsPage() {
             setProcessingItem(null);
             setNotes('');
             queryClient.invalidateQueries({ queryKey: ['refunds'] });
+            // Approving/rejecting a refund item mutates the parent order's
+            // payment_status server-side — previously only ['refunds'] was
+            // invalidated, so Orders kept showing a stale "Paid" badge until
+            // something unrelated triggered a refetch.
+            queryClient.invalidateQueries({ queryKey: ['orders_list'] });
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
 
             // Update local state for the selected refund to show immediate feedback
             if (selectedRefund) {

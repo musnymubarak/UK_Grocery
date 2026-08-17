@@ -3,17 +3,21 @@ GDPR Compliance service — Data Export and Account Erasure (Anonymization).
 """
 import hashlib
 import logging
+import uuid as uuid_lib
 from uuid import UUID
 from typing import Dict, Any, List
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.customer import Customer
+from app.models.customer import Customer, CustomerAddress
 from app.models.order import Order
 from app.models.review import Review
 from app.models.notification import Notification
 from app.models.refresh_token import RefreshToken
+from app.models.wallet import WalletTransaction
+from app.models.refund import Refund
+from app.core.security import hash_password
 from app.core.exceptions import NotFoundException
 
 logger = logging.getLogger(__name__)
@@ -43,11 +47,64 @@ class GDPRService:
             "addresses": [],
             "orders": [],
             "reviews": [],
+            "wallet": {"balance": float(customer.wallet_balance), "transactions": []},
+            "refunds": [],
         }
 
+        # Addresses — previously declared in the response shape but never
+        # populated, so a data-portability export silently omitted them.
+        address_result = await self.db.execute(
+            select(CustomerAddress).where(CustomerAddress.customer_id == customer_id)
+        )
+        for a in address_result.scalars().all():
+            data["addresses"].append({
+                "id": str(a.id),
+                "label": a.label,
+                "street": a.street,
+                "city": a.city,
+                "state": a.state,
+                "postcode": a.postcode,
+                "country": a.country,
+                "is_default": a.is_default,
+            })
+
+        # Wallet transaction history
+        wallet_result = await self.db.execute(
+            select(WalletTransaction)
+            .where(WalletTransaction.customer_id == customer_id)
+            .order_by(WalletTransaction.created_at.desc())
+        )
+        for t in wallet_result.scalars().all():
+            data["wallet"]["transactions"].append({
+                "id": str(t.id),
+                "amount": float(t.amount),
+                "type": t.transaction_type,
+                "source": t.source,
+                "balance_after": float(t.balance_after),
+                "created_at": t.created_at.isoformat(),
+            })
+
+        # Refund history
+        refund_result = await self.db.execute(
+            select(Refund).where(Refund.customer_id == customer_id).order_by(Refund.created_at.desc())
+        )
+        for r in refund_result.scalars().all():
+            data["refunds"].append({
+                "id": str(r.id),
+                "order_id": str(r.order_id),
+                "status": r.status,
+                "destination": r.destination,
+                "total_amount": float(r.total_amount),
+                "created_at": r.created_at.isoformat(),
+            })
+
         # Orders (simplified)
+        from sqlalchemy.orm import selectinload
         order_result = await self.db.execute(
-            select(Order).where(Order.customer_id == customer_id).order_by(Order.created_at.desc())
+            select(Order)
+            .options(selectinload(Order.items))
+            .where(Order.customer_id == customer_id)
+            .order_by(Order.created_at.desc())
         )
         orders = order_result.scalars().all()
         for o in orders:
@@ -57,7 +114,7 @@ class GDPRService:
                 "status": o.status,
                 "total_amount": float(o.total),
                 "created_at": o.created_at.isoformat(),
-                "items_count": len(o.items) if hasattr(o, 'items') else 0,
+                "items_count": len(o.items),
             })
 
         # Reviews
@@ -68,7 +125,8 @@ class GDPRService:
         for r in reviews:
             data["reviews"].append({
                 "id": str(r.id),
-                "rating": r.rating,
+                "store_rating": r.store_rating,
+                "delivery_rating": r.delivery_rating,
                 "comment": r.comment,
                 "created_at": r.created_at.isoformat(),
             })
@@ -94,18 +152,40 @@ class GDPRService:
         customer.full_name = "Deleted User"
         customer.email = anon_email
         customer.phone = None
-        customer.password_hash = "ANONYMIZED"
+        # Previously set customer.password_hash — the actual column is
+        # hashed_password, so that assignment silently did nothing and the
+        # real bcrypt hash survived anonymization. Hashing a random, unknown,
+        # discarded value (rather than a fixed placeholder string) guarantees
+        # the old password can never be used again, even if is_active is
+        # later reversed.
+        customer.hashed_password = hash_password(uuid_lib.uuid4().hex)
         customer.is_active = False
-        
+
         # 3. Delete sensitive linked data
+        # Addresses — previously untouched by anonymization despite being
+        # clear PII (street/city/postcode). Order.delivery_address is a
+        # separate point-in-time snapshot string, so scrubbing these doesn't
+        # affect historical order records.
+        await self.db.execute(
+            update(CustomerAddress)
+            .where(CustomerAddress.customer_id == customer_id)
+            .values(street="REDACTED", city="REDACTED", state=None, postcode="REDACTED", label="removed")
+        )
+
         # Notifications
         await self.db.execute(
             update(Notification).where(Notification.customer_id == customer_id).values(is_deleted=True)
         )
-        
-        # Refresh Tokens (revokes all sessions)
+
+        # Refresh Tokens (revokes all sessions). The column is is_revoked, not
+        # revoked — this update previously raised a CompileError every time,
+        # meaning anonymize_customer never actually completed successfully
+        # for anyone; it always failed before reaching the final commit below.
+        from datetime import datetime, timezone as tz
         await self.db.execute(
-            update(RefreshToken).where(RefreshToken.customer_id == customer_id).values(revoked=True)
+            update(RefreshToken)
+            .where(RefreshToken.customer_id == customer_id)
+            .values(is_revoked=True, revoked_at=datetime.now(tz.utc))
         )
 
         # 4. Reviews - could either delete or anonymize

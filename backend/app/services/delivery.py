@@ -14,7 +14,23 @@ logger = logging.getLogger(__name__)
 
 class DeliveryZoneService:
     @staticmethod
-    async def create_zone(db: AsyncSession, store_id: UUID, data: DeliveryZoneCreate) -> DeliveryZone:
+    async def _verify_store_in_org(db: AsyncSession, store_id: UUID, org_id: Optional[UUID]):
+        """Every zone-CRUD method below trusted a client-supplied store_id with
+        no check that it belongs to the caller's own organization — fine for
+        managers/cashiers (already store-scoped elsewhere) but a real gap for
+        admins, who have no equivalent check at all. Skipped when org_id is
+        None, which only happens on the public read-only fee-calculation path
+        (calculate_fee below), which has no auth context to check against."""
+        if org_id is None:
+            return
+        from app.models.store import Store
+        store = await db.get(Store, store_id)
+        if not store or store.organization_id != org_id:
+            raise NotFoundException("Store", store_id)
+
+    @staticmethod
+    async def create_zone(db: AsyncSession, store_id: UUID, data: DeliveryZoneCreate, org_id: Optional[UUID] = None) -> DeliveryZone:
+        await DeliveryZoneService._verify_store_in_org(db, store_id, org_id)
         zone = DeliveryZone(
             store_id=store_id,
             name=data.name,
@@ -37,7 +53,8 @@ class DeliveryZoneService:
         return zone
 
     @staticmethod
-    async def get_zones(db: AsyncSession, store_id: UUID) -> List[DeliveryZone]:
+    async def get_zones(db: AsyncSession, store_id: UUID, org_id: Optional[UUID] = None) -> List[DeliveryZone]:
+        await DeliveryZoneService._verify_store_in_org(db, store_id, org_id)
         query = select(DeliveryZone).where(
             DeliveryZone.store_id == store_id,
             DeliveryZone.is_deleted == False,
@@ -46,10 +63,11 @@ class DeliveryZoneService:
         return list(result.scalars().all())
 
     @staticmethod
-    async def update_zone(db: AsyncSession, zone_id: UUID, data: DeliveryZoneUpdate) -> DeliveryZone:
+    async def update_zone(db: AsyncSession, zone_id: UUID, data: DeliveryZoneUpdate, org_id: Optional[UUID] = None) -> DeliveryZone:
         zone = await db.get(DeliveryZone, zone_id)
         if not zone or zone.is_deleted:
             raise NotFoundException("DeliveryZone", zone_id)
+        await DeliveryZoneService._verify_store_in_org(db, zone.store_id, org_id)
         upd = data.model_dump(exclude_unset=True)
         patterns = upd.pop("postcode_patterns", None)
         for k, v in upd.items():
@@ -67,10 +85,11 @@ class DeliveryZoneService:
         return zone
 
     @staticmethod
-    async def delete_zone(db: AsyncSession, zone_id: UUID) -> DeliveryZone:
+    async def delete_zone(db: AsyncSession, zone_id: UUID, org_id: Optional[UUID] = None) -> DeliveryZone:
         zone = await db.get(DeliveryZone, zone_id)
         if not zone or zone.is_deleted:
             raise NotFoundException("DeliveryZone", zone_id)
+        await DeliveryZoneService._verify_store_in_org(db, zone.store_id, org_id)
         zone.is_deleted = True
         zone.is_active = False
         existing = await db.execute(select(PostcodeZoneMapping).where(PostcodeZoneMapping.zone_id == zone.id))

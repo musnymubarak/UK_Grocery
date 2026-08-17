@@ -199,9 +199,18 @@ function CouponFormModal({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const discountValue = formData.discount_type === 'free_delivery' ? 0 : parseFloat(formData.discount_value);
+        // The backend now rejects this too, but catching it here gives
+        // immediate feedback instead of a round-trip — a staff typo like 150
+        // instead of 15 previously went straight through and could zero out
+        // every order the coupon was applied to.
+        if (formData.discount_type === 'percentage_discount' && discountValue > 100) {
+            toast.error('Percentage discount cannot exceed 100%');
+            return;
+        }
         const payload = {
             ...formData,
-            discount_value: formData.discount_type === 'free_delivery' ? 0 : parseFloat(formData.discount_value),
+            discount_value: discountValue,
             minimum_order_value: formData.minimum_order_value ? parseFloat(formData.minimum_order_value) : null,
             max_redemptions: formData.max_redemptions ? parseInt(formData.max_redemptions, 10) : null,
             max_per_customer: parseInt(formData.max_per_customer, 10),
@@ -241,8 +250,16 @@ function CouponFormModal({
                         </Select>
                     </FormField>
                     {formData.discount_type !== 'free_delivery' && (
-                        <FormField label="Discount Value" required>
-                            <Input required type="number" step="0.01" value={formData.discount_value} onChange={e => setFormData({ ...formData, discount_value: e.target.value })} placeholder="e.g. 10" />
+                        <FormField label={formData.discount_type === 'percentage_discount' ? 'Discount Value (%, max 100)' : 'Discount Value'} required>
+                            <Input
+                                required
+                                type="number"
+                                step="0.01"
+                                max={formData.discount_type === 'percentage_discount' ? 100 : undefined}
+                                value={formData.discount_value}
+                                onChange={e => setFormData({ ...formData, discount_value: e.target.value })}
+                                placeholder="e.g. 10"
+                            />
                         </FormField>
                     )}
                     <FormField label="Minimum Order Value (£)">

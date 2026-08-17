@@ -1,7 +1,7 @@
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { Minus, Plus, ArrowRight, ShoppingBag, Store, Info, ShoppingBasket } from 'lucide-react';
+import { Minus, Plus, ArrowRight, ShoppingBag, Store, ShoppingBasket } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import React from 'react';
 import { catalogApi, customerAuthApi } from '../services/api';
@@ -64,12 +64,14 @@ export default function Cart() {
     fetchFee();
   }, [selectedStore, isAuthenticated]);
 
-  const serviceFee = 0.99;
-  const bagCharge = 0.30;
+  // No service charge or bag charge exists on the backend Order model —
+  // these were hardcoded and added on top of the real total, so customers
+  // saw a Cart total £1.29 higher than what Checkout (and the order actually
+  // charged) would show for the exact same basket.
   const baseDeliveryFee = dynamicDeliveryFee !== null ? dynamicDeliveryFee : (selectedStore?.delivery_fee ?? 3.0);
   const freeThreshold = selectedStore?.free_delivery_threshold ?? 40.0;
   const deliveryFee = totalPrice >= freeThreshold ? 0 : baseDeliveryFee;
-  const finalTotal = totalPrice + serviceFee + bagCharge + deliveryFee;
+  const finalTotal = totalPrice + deliveryFee;
 
   const minSpend = selectedStore?.min_order_value || 10.0;
   const isMinMet = totalPrice >= minSpend;
@@ -164,17 +166,6 @@ export default function Cart() {
                   <span>£{totalPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between py-1.5 text-on-surface-variant text-sm">
-                  <div className="flex items-center gap-1">
-                    <span>Service Charge</span>
-                    <Info size={14} className="text-on-surface-variant" />
-                  </div>
-                  <span>£{serviceFee.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between py-1.5 text-on-surface-variant text-sm">
-                  <span>Bag Charge</span>
-                  <span>£{bagCharge.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between py-1.5 text-on-surface-variant text-sm">
                   <span>Delivery Fee</span>
                   {deliveryFee === 0 ? (
                     <span className="text-price-green text-label-bold font-semibold">Free</span>
@@ -196,20 +187,6 @@ export default function Cart() {
                   </p>
                 </div>
               )}
-
-              {/* Coupon Code */}
-              <div className="ref-card p-4 mb-5">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter code (e.g. WELCOME10)"
-                    className="flex-1 bg-surface-container-lowest border border-outline-variant rounded-md py-2 px-3 text-sm outline-none focus:border-action-blue focus:ring-1 focus:ring-action-blue"
-                  />
-                  <button className="bg-surface-dark text-on-primary text-label-bold font-semibold px-4 py-2 rounded-md hover:bg-primary-container transition-colors">
-                    Apply
-                  </button>
-                </div>
-              </div>
 
               {/* Minimum spend message */}
               {!isMinMet && (
@@ -317,17 +294,6 @@ export default function Cart() {
                   <span>Subtotal</span>
                   <span>£{totalPrice.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 text-on-surface-variant text-sm font-semibold">
-                  <div className="flex items-center gap-1">
-                    <span>Service Charge</span>
-                    <Info size={14} className="text-on-surface-variant" />
-                  </div>
-                  <span>£{serviceFee.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between py-1.5 text-on-surface-variant text-sm font-semibold">
-                  <span>Bag Charge</span>
-                  <span>£{bagCharge.toFixed(2)}</span>
-                </div>
                 <div className="flex justify-between py-1.5 text-on-surface-variant text-sm font-semibold mb-2">
                   <span>Delivery Fee</span>
                   {deliveryFee === 0 ? (
@@ -352,19 +318,6 @@ export default function Cart() {
                 </div>
               </div>
 
-              {/* Coupon Code */}
-              <div className="ref-card p-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Coupon Code"
-                    className="flex-1 bg-surface-container-lowest border border-outline-variant rounded-md py-2.5 px-3 text-sm outline-none focus:border-action-blue focus:ring-1 focus:ring-action-blue"
-                  />
-                  <button className="bg-action-blue text-on-primary text-label-bold font-semibold px-5 py-2.5 rounded-md hover:bg-action-blue/90 transition-colors">
-                    Apply
-                  </button>
-                </div>
-              </div>
 
               {/* Minimum spend message */}
               {!isMinMet && (

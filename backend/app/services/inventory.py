@@ -28,19 +28,31 @@ class InventoryService:
         self.audit = AuditService(db)
 
     async def get_or_create_inventory(self, product_id: UUID, store_id: UUID) -> Inventory:
-        """Get inventory record or create with zero quantity."""
+        """Get inventory record (row-locked) or create with zero quantity.
+
+        FOR UPDATE — this is the shared helper behind every stock mutator
+        (adjust/transfer/purchase/release/restore). Previously only
+        reserve_for_order/deduct_for_order locked their own row directly;
+        every other mutation here was an unlocked read-then-write, so two
+        concurrent staff actions on the same product/store row could silently
+        lose one of the updates.
+        """
         result = await self.db.execute(
             select(Inventory).where(
                 Inventory.product_id == product_id,
                 Inventory.store_id == store_id,
-            )
+            ).with_for_update()
         )
         inv = result.scalar_one_or_none()
         if not inv:
             inv = Inventory(product_id=product_id, store_id=store_id, quantity=0, reserved_quantity=0)
             self.db.add(inv)
             await self.db.flush()
-            await self.db.refresh(inv)
+            # Re-select to hold the lock on the row we just created too.
+            result = await self.db.execute(
+                select(Inventory).where(Inventory.id == inv.id).with_for_update()
+            )
+            inv = result.scalar_one()
         return inv
 
     async def get_store_inventory(
@@ -133,8 +145,17 @@ class InventoryService:
         if data.from_store_id == data.to_store_id:
             raise ValidationException("Cannot transfer to the same store")
 
-        # Deduct from source
-        source_inv = await self.get_or_create_inventory(data.product_id, data.from_store_id)
+        # Lock both rows in a fixed order (by store_id) regardless of
+        # transfer direction — otherwise two concurrent transfers moving
+        # stock in opposite directions between the same pair of stores could
+        # deadlock (each holding the lock the other is waiting on).
+        if str(data.from_store_id) < str(data.to_store_id):
+            source_inv = await self.get_or_create_inventory(data.product_id, data.from_store_id)
+            dest_inv = await self.get_or_create_inventory(data.product_id, data.to_store_id)
+        else:
+            dest_inv = await self.get_or_create_inventory(data.product_id, data.to_store_id)
+            source_inv = await self.get_or_create_inventory(data.product_id, data.from_store_id)
+
         if source_inv.available_quantity < data.quantity:
             raise InsufficientStockException(
                 product_name=str(data.product_id),
@@ -143,9 +164,6 @@ class InventoryService:
             )
 
         source_inv.quantity -= data.quantity
-
-        # Add to destination
-        dest_inv = await self.get_or_create_inventory(data.product_id, data.to_store_id)
         dest_inv.quantity += data.quantity
 
         await self.db.flush()

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -9,6 +9,12 @@ class CouponBase(BaseModel):
     code: str = Field(..., max_length=50, description="Unique promo code")
     discount_type: str = Field(..., description="flat_discount, percentage_discount, free_delivery")
     discount_value: Decimal = Field(..., ge=0, description="Amount or Percentage")
+
+    @model_validator(mode="after")
+    def _validate_percentage_bounds(self):
+        if self.discount_type == "percentage_discount" and self.discount_value > 100:
+            raise ValueError("Percentage discount cannot exceed 100")
+        return self
     minimum_order_value: Optional[Decimal] = Field(None, ge=0)
     max_redemptions: Optional[int] = Field(None, ge=1)
     max_per_customer: int = Field(1, ge=1)

@@ -106,8 +106,14 @@ class RefundService:
         unrestricted). A manager/cashier scoped to one store is rejected if the
         refund belongs to a different store.
         """
-        # 1. Atomic Locking: Lock the RefundItem and OrderItem
-        refund_item = await self.db.get(RefundItem, refund_item_id)
+        # 1. Atomic Locking: lock the RefundItem itself FIRST. Previously this
+        # was a plain unlocked read, so two concurrent approve calls (double
+        # click, two staff tabs) could both pass the pending-check before
+        # either committed, resulting in two wallet credits / Stripe refunds
+        # for the same item. Locking here makes the second request block
+        # until the first commits, then re-read the now-updated status.
+        query_refund_item = select(RefundItem).where(RefundItem.id == refund_item_id).with_for_update()
+        refund_item = (await self.db.execute(query_refund_item)).scalar_one_or_none()
         if not refund_item or refund_item.refund_id != refund_id:
             raise NotFoundException("RefundItem", refund_item_id)
 
@@ -188,7 +194,23 @@ class RefundService:
                 "amount": float(refund_item.amount)
             }
         )
-        
+
+        # Audit trail for the staff decision — a real money-moving action that
+        # previously left no record in AuditLog at all.
+        from app.services.audit import AuditService
+        await AuditService(self.db).log(
+            action=f"refund_item.{status}",
+            user=admin_user,
+            organization_id=parent_refund.organization_id,
+            entity_type="RefundItem",
+            entity_id=refund_item.id,
+            old_value={"status": "pending"},
+            new_value={"status": status, "amount": float(refund_item.amount)},
+            store_id=parent_refund.store_id,
+            notes=admin_notes,
+        )
+
+
         return refund_item
 
     async def _recalc_parent_refund(self, refund: Refund):

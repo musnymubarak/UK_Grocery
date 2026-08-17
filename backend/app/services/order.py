@@ -19,6 +19,7 @@ from app.schemas.order import OrderCreate, OrderUpdateStatus
 from app.services.inventory import InventoryService
 from app.services.coupon import CouponService
 from app.services.rewards import RewardsService
+from app.services.audit import AuditService
 from app.core.exceptions import NotFoundException, ValidationException
 
 VALID_TRANSITIONS = {
@@ -197,6 +198,7 @@ class OrderService:
         ps = "pending"
         stripe_charge_id = None
 
+        stripe_intent_amount_pence = None
         stripe_payment_intent_id = getattr(data, "stripe_payment_intent_id", None)
         if stripe_payment_intent_id:
             from app.services.payment import PaymentService
@@ -208,6 +210,7 @@ class OrderService:
                     charges = intent.get("charges", {}).get("data", [])
                     if charges:
                         stripe_charge_id = charges[0].get("id")
+                    stripe_intent_amount_pence = intent.get("amount")
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).error(
@@ -317,6 +320,7 @@ class OrderService:
             raise ValidationException(f"Order subtotal must be at least £{store.min_order_value:.2f}")
 
         # Apply Coupon
+        free_delivery_coupon_applied = False
         if data.coupon_code:
             from app.services.coupon import CouponService
             coupon_service = CouponService(self.db)
@@ -330,14 +334,21 @@ class OrderService:
             )
             if not validation_resp.valid:
                 raise ValidationException(validation_resp.message or "Invalid coupon")
-                
-            order.discount = validation_resp.discount_amount
+
+            if validation_resp.discount_type == "free_delivery":
+                # Don't lock in a fixed amount now — order.delivery_fee below is
+                # still the pre-subtotal estimate. Applied directly against the
+                # real, final fee once it's recalculated a few lines down.
+                free_delivery_coupon_applied = True
+            else:
+                order.discount = validation_resp.discount_amount
+
             order.coupon_id = validation_resp.coupon_id
             order.coupon_code = data.coupon_code
-            
+
             # Record redemption
             await coupon_service.record_redemption(validation_resp.coupon_id, customer_id, order.id)
-            
+
         # Recalculate delivery fee with real subtotal (for free delivery threshold)
         if order.order_type == "delivery" and order.delivery_postcode:
             from app.schemas.delivery_zone import FeeCalculationRequest
@@ -355,12 +366,16 @@ class OrderService:
             customer = await self.db.get(Customer, customer_id)
             if customer and customer.membership_tier in ("premium", "vip"):
                 order.delivery_fee = Decimal("0.00")
-            
+
             # Apply Store Surge Multiplier if active
             from app.models.store import Store
             store = await self.db.get(Store, store_id)
             if store and store.is_surge_active and store.surge_multiplier > 1.0:
                 order.delivery_fee = (order.delivery_fee * store.surge_multiplier).quantize(Decimal("0.01"))
+
+            # Free-delivery coupon: waive the now-finalized fee, not a stale estimate
+            if free_delivery_coupon_applied:
+                order.delivery_fee = Decimal("0.00")
 
         # 5. Promotions (New in Phase 4)
         from app.services.promotion import PromotionService
@@ -376,8 +391,42 @@ class OrderService:
         ]
 
         order.total = max(Decimal("0.00"), subtotal + order.delivery_fee + order.service_fee + order.tip_amount - order.discount - promotion_discount)
+
+        # 6. Wallet payment: debit now that the real total is known.
+        # Insufficient balance aborts order creation entirely (raises ValidationException).
+        if pm == "wallet":
+            from app.services.wallet import WalletService
+            wallet_service = WalletService(self.db)
+            await wallet_service.debit(
+                customer_id=customer_id,
+                amount=order.total,
+                source="order_payment",
+                reference_id=order.id,
+                notes=f"Payment for order {order.order_number}",
+            )
+            order.payment_status = "paid"
+
+        # Stripe reconciliation: the PaymentIntent was created client-side for an
+        # amount we don't control — verify it actually matches what we computed.
+        # The customer has already been charged by this point, so a mismatch is
+        # flagged for manual reconciliation rather than silently trusted or used
+        # to block a paying customer from getting their order.
+        if stripe_intent_amount_pence is not None:
+            expected_pence = int((order.total * 100).to_integral_value())
+            if stripe_intent_amount_pence != expected_pence:
+                import logging
+                logging.getLogger(__name__).error(
+                    f"Stripe/order total mismatch on {order.order_number}: "
+                    f"charged {stripe_intent_amount_pence}p, computed total {expected_pence}p"
+                )
+                mismatch_note = (
+                    f"⚠ Payment/total mismatch: charged £{stripe_intent_amount_pence / 100:.2f}, "
+                    f"order total £{order.total:.2f}. Needs manual reconciliation."
+                )
+                order.notes = f"{order.notes}\n{mismatch_note}" if order.notes else mismatch_note
+
         await self.db.flush()
-        
+
         # 7. Fire Webhook (New in Phase 4)
         from app.services.webhook import WebhookService
         await WebhookService(self.db).dispatch(
@@ -494,6 +543,26 @@ class OrderService:
                 refund_service = RefundService(self.db)
                 await refund_service.trigger_automated_full_refund(order, reason=f"System {new_status}")
 
+        elif new_status == "rejected":
+            # "rejected" is only reachable from "placed" — inventory was only ever
+            # soft-reserved at that point (never hard-deducted), so release it,
+            # matching the cancelled branch's "still in received" path above.
+            for item in order.items:
+                await self.inventory_service.release_reservation(
+                    product_id=item.product_id,
+                    store_id=order.store_id,
+                    quantity=int(item.quantity)
+                )
+
+            # AUTOMATED REFUND: a rejected order that was already paid must be
+            # refunded — previously this branch didn't exist at all, so a
+            # prepaid order that got rejected kept the customer's money with no
+            # refund and no way for the customer to request one afterward.
+            if order.payment_status == "paid":
+                from app.services.refund import RefundService
+                refund_service = RefundService(self.db)
+                await refund_service.trigger_automated_full_refund(order, reason="System rejected")
+
         elif new_status == "delivered":
             order.delivered_at = datetime.now(timezone.utc)
             if order.payment_method == "cod":
@@ -519,7 +588,8 @@ class OrderService:
                     str(order.organization_id),
                     str(order.customer_id),
                     str(order.store_id),
-                    str(order.total)
+                    str(order.total),
+                    str(order.id),
                 )
             except Exception as e:
                 import logging
@@ -536,6 +606,19 @@ class OrderService:
                 "status": new_status,
                 "customer_id": str(order.customer_id)
             }
+        )
+
+        # Audit trail for the staff-initiated status change (documented as
+        # already covered, but nothing in this file previously wrote to it).
+        await AuditService(self.db).log(
+            action="order.status_changed",
+            user=user,
+            organization_id=order.organization_id,
+            entity_type="Order",
+            entity_id=order.id,
+            old_value={"status": old_status},
+            new_value={"status": new_status},
+            store_id=order.store_id,
         )
 
         await self.db.flush()
@@ -603,6 +686,34 @@ class OrderService:
             from app.services.refund import RefundService
             refund_service = RefundService(self.db)
             await refund_service.trigger_automated_full_refund(order, reason="Customer Self-Cancellation")
-        
+
+        # Match staff-initiated cancellation: notify the customer and fire the
+        # webhook. Previously this path skipped both, so integrations listening
+        # for order.cancelled never heard about customer self-cancellations.
+        try:
+            from app.services.notification import NotificationService
+            await NotificationService(self.db).send(
+                customer_id=order.customer_id,
+                title="Order Cancelled",
+                body=f"Your order {order.order_number} has been cancelled.",
+                notification_type="order_update",
+                reference_id=order.id,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to send notification: {e}")
+
+        from app.services.webhook import WebhookService
+        await WebhookService(self.db).dispatch(
+            org_id=order.organization_id,
+            event_type="order.cancelled",
+            payload={
+                "order_id": str(order.id),
+                "order_number": order.order_number,
+                "status": "cancelled",
+                "customer_id": str(order.customer_id),
+            },
+        )
+
         await self.db.flush()
         return order

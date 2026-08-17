@@ -26,7 +26,13 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const selectedOption = options.find(opt => opt.value === value) || options[0];
+    // Previously fell back to options[0] when `value` wasn't in the list,
+    // which silently displayed a WRONG option instead of the real value —
+    // e.g. an order dropdown showing "Placed" for an order that was actually
+    // "Refunded" just because that status wasn't in the offered list. Falling
+    // back to the raw value is honest even if unstyled, rather than lying.
+    const selectedOption = options.find(opt => opt.value === value);
+    const displayLabel = selectedOption?.label ?? String(value);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -74,7 +80,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                 }}
             >
                 <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {selectedOption?.label}
+                    {displayLabel}
                 </span>
                 <ChevronDown 
                     size={16} 
