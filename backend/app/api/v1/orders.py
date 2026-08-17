@@ -94,13 +94,18 @@ async def cancel_my_order(
 async def reject_substitutions_at_door(
     order_id: UUID,
     rejections: List[SubstitutionRejection],
+    org_id: UUID = Depends(get_org_context),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
     current_user: User = Depends(require_role(["delivery_boy", "admin", "manager"])),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Driver records substitutions rejected at the door. Auto-approved refund."""
     order_service = OrderService(db)
-    order = await order_service.get_order(order_id)
-    
+    order = await order_service.get_order(order_id, org_id)
+
+    if store_scope:
+        enforce_store_access(order.store_id, store_scope)
+
     if current_user.role == "delivery_boy" and order.assigned_to != current_user.id:
         from app.core.exceptions import ForbiddenException
         raise ForbiddenException("You are not assigned to this order")
@@ -148,19 +153,22 @@ async def reject_substitutions_at_door(
             quantity=r.quantity,
             amount=amount,
             reason="substitution_rejected",
-            status="approved",
+            status="pending",  # process_refund_item() below transitions this to "approved"
             customer_notes=r.notes,
             requires_manual_review=False
         )
         db.add(refund_item)
-        
+        await db.flush()  # populate refund_item.id (server-side default) before using it below
+
         await refund_service.process_refund_item(
+            refund_id=parent_refund.id,
             refund_item_id=refund_item.id,
             status="approved",
-            admin_user=current_user
+            admin_user=current_user,
+            store_scope=store_scope,
         )
-        
-    return await order_service.get_order(order_id)
+
+    return await order_service.get_order(order_id, org_id)
 
 # ====================
 # ADMIN / STAFF ROUTES

@@ -11,6 +11,7 @@ from app.models.order import Order, OrderItem
 from app.models.user import User
 from app.services.wallet import WalletService
 from app.core.exceptions import NotFoundException, ValidationException
+from app.core.dependencies import enforce_store_access
 
 class RefundService:
     # Industry standard: 72 hours after delivered_at
@@ -91,16 +92,23 @@ class RefundService:
         return refund
 
     async def process_refund_item(
-        self, 
-        refund_item_id: UUID, 
-        status: str, 
-        admin_user: User, 
-        admin_notes: str = None
+        self,
+        refund_id: UUID,
+        refund_item_id: UUID,
+        status: str,
+        admin_user: User,
+        admin_notes: str = None,
+        store_scope: Optional[UUID] = None,
     ) -> RefundItem:
-        """Admin approves or rejects an individual refund item."""
+        """Admin approves or rejects an individual refund item.
+
+        `store_scope` is the caller's assigned store (None for admins, who are
+        unrestricted). A manager/cashier scoped to one store is rejected if the
+        refund belongs to a different store.
+        """
         # 1. Atomic Locking: Lock the RefundItem and OrderItem
         refund_item = await self.db.get(RefundItem, refund_item_id)
-        if not refund_item:
+        if not refund_item or refund_item.refund_id != refund_id:
             raise NotFoundException("RefundItem", refund_item_id)
 
         if refund_item.status != "pending":
@@ -114,6 +122,9 @@ class RefundService:
         query_refund = select(Refund).where(Refund.id == refund_item.refund_id).with_for_update()
         refund_res = await self.db.execute(query_refund)
         parent_refund = refund_res.scalar_one()
+
+        # Tenant/store boundary — must happen before any mutation below.
+        enforce_store_access(parent_refund.store_id, store_scope)
 
         # 2. Update status
         refund_item.status = status
