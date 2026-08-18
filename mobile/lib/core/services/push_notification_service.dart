@@ -128,9 +128,24 @@ class PushNotificationService {
       }
 
       // Capture FCM Token
+      if (Platform.isIOS) {
+        await _localNotifs
+            .resolvePlatformSpecificImplementation<DarwinFlutterLocalNotificationsPlugin>()
+            ?.requestPermissions(alert: true, badge: true, sound: true);
+
+        for (int i = 0; i < 6; i++) {
+          final apns = await _messaging.getAPNSToken();
+          if (apns != null) break;
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
+      }
+
       _fcmToken = await _messaging.getToken();
       if (kDebugMode) {
         print('FCM Device Token: $_fcmToken');
+      }
+      if (_fcmToken != null && _fcmToken!.isNotEmpty) {
+        await syncTokenWithBackend();
       }
 
       // Listen for token refresh
