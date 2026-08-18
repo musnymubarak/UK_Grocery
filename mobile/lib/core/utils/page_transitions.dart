@@ -2,41 +2,23 @@ import 'package:flutter/material.dart';
 
 enum SlideDirection { right, up }
 
-class PremiumPageRoute<T> extends PageRouteBuilder<T> {
+/// Standard native page route providing platform-adaptive transitions (Cupertino
+/// with swipe-to-back on iOS/macOS, smooth predictive/zoom on Android).
+class PremiumPageRoute<T> extends MaterialPageRoute<T> {
   PremiumPageRoute({
-    required this.child,
-    required RouteSettings settings,
-    this.direction = SlideDirection.right,
-  }) : super(
-          settings: settings,
-          transitionDuration: const Duration(milliseconds: 380),
-          reverseTransitionDuration: const Duration(milliseconds: 280),
-          pageBuilder: (_, __, ___) => child,
-          transitionsBuilder: (_, a, sa, c) {
-            final offset = direction == SlideDirection.right
-                ? const Offset(0.04, 0)
-                : const Offset(0, 0.05);
-            return FadeTransition(
-              opacity: CurvedAnimation(parent: a, curve: Curves.easeOutCubic),
-              child: SlideTransition(
-                position: Tween<Offset>(begin: offset, end: Offset.zero)
-                    .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
-                child: c,
-              ),
-            );
-          },
-        );
-
-  final Widget child;
-  final SlideDirection direction;
+    required Widget child,
+    required super.settings,
+    SlideDirection direction = SlideDirection.right,
+  }) : super(builder: (_) => child);
 }
 
+/// Lightweight fade transition used for root app changes (e.g. Splash -> Shell).
 class PremiumFadeRoute<T> extends PageRouteBuilder<T> {
   PremiumFadeRoute({required this.child, required RouteSettings settings})
       : super(
           settings: settings,
-          transitionDuration: const Duration(milliseconds: 320),
-          reverseTransitionDuration: const Duration(milliseconds: 220),
+          transitionDuration: const Duration(milliseconds: 250),
+          reverseTransitionDuration: const Duration(milliseconds: 200),
           pageBuilder: (_, __, ___) => child,
           transitionsBuilder: (_, a, __, c) => FadeTransition(
             opacity: CurvedAnimation(parent: a, curve: Curves.easeOutCubic),
