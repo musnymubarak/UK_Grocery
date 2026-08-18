@@ -5,11 +5,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../../data/api/api_registry.dart';
+import '../../firebase_options.dart';
 import '../router/app_router.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   if (kDebugMode) {
     print('Handling background FCM message: ${message.messageId}');
   }
@@ -38,7 +41,9 @@ class PushNotificationService {
     if (_initialized) return;
 
     try {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
       // Notification settings / permissions
