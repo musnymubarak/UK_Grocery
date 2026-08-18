@@ -48,11 +48,13 @@ class OrderLine {
     required this.qty,
     this.productName,
     this.unitPrice,
+    this.productImageUrl,
   });
   final Product? product;
   final int qty;
   final String? productName;
   final double? unitPrice;
+  final String? productImageUrl;
 
   double get subtotal => (unitPrice ?? product?.effectivePrice ?? 0) * qty;
   String get nameOrFallback => productName ?? product?.name ?? 'Item';
@@ -64,6 +66,8 @@ class OrderLine {
       productName: json['product_name'] as String? ?? json['name'] as String?,
       unitPrice: _parseDoubleOrNull(json['unit_price']) ??
           _parseDoubleOrNull(json['price']),
+      productImageUrl: json['product_image_url'] as String? ??
+          json['image_url'] as String?,
     );
   }
 }
@@ -78,8 +82,16 @@ class OrderSummary {
     required this.deliveryFee,
     required this.tip,
     this.discount = 0,
+    this.serviceFee = 0,
     this.subtotalOverride,
     this.totalOverride,
+    this.deliveryAddress,
+    this.deliveryPostcode,
+    this.paymentMethod = 'card',
+    this.paymentStatus = 'paid',
+    this.notes,
+    this.estimatedDeliveryAt,
+    this.deliveredAt,
   });
 
   final String id;
@@ -90,18 +102,29 @@ class OrderSummary {
   final double deliveryFee;
   final double tip;
   final double discount;
+  final double serviceFee;
   final double? subtotalOverride;
   final double? totalOverride;
+  final String? deliveryAddress;
+  final String? deliveryPostcode;
+  final String paymentMethod;
+  final String paymentStatus;
+  final String? notes;
+  final DateTime? estimatedDeliveryAt;
+  final DateTime? deliveredAt;
 
   double get subtotal =>
       subtotalOverride ?? lines.fold(0, (s, l) => s + l.subtotal);
   double get total =>
-      totalOverride ?? subtotal + deliveryFee + tip - discount;
+      totalOverride ?? subtotal + deliveryFee + tip + serviceFee - discount;
   int get itemCount => lines.fold(0, (s, l) => s + l.qty);
 
   factory OrderSummary.fromJson(Map<String, dynamic> json) {
     final itemsRaw = (json['items'] as List<dynamic>? ?? const []);
     final placedAtRaw = json['created_at'] as String? ?? json['placed_at'] as String?;
+    final estRaw = json['estimated_delivery_at'] as String?;
+    final delRaw = json['delivered_at'] as String?;
+
     return OrderSummary(
       id: json['id'] as String,
       orderNumber: json['order_number'] as String? ?? json['id'] as String,
@@ -116,8 +139,16 @@ class OrderSummary {
       deliveryFee: _parseDouble(json['delivery_fee']),
       tip: _parseDouble(json['tip_amount']),
       discount: _parseDouble(json['discount']),
+      serviceFee: _parseDouble(json['service_fee']),
       subtotalOverride: _parseDoubleOrNull(json['subtotal']),
       totalOverride: _parseDoubleOrNull(json['total']),
+      deliveryAddress: json['delivery_address'] as String?,
+      deliveryPostcode: json['delivery_postcode'] as String?,
+      paymentMethod: json['payment_method'] as String? ?? 'card',
+      paymentStatus: json['payment_status'] as String? ?? 'paid',
+      notes: json['notes'] as String? ?? json['delivery_instructions'] as String?,
+      estimatedDeliveryAt: estRaw != null ? DateTime.tryParse(estRaw)?.toLocal() : null,
+      deliveredAt: delRaw != null ? DateTime.tryParse(delRaw)?.toLocal() : null,
     );
   }
 }
