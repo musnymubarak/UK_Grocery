@@ -12,7 +12,28 @@
           "package_name": "uk.co.dailygrocer"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "721475838135-adj4bfeehr5oap7m4bdfkolc8cqo4aqd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "uk.co.dailygrocer",
+            "certificate_hash": "1e1820fa4cd25a6af7058f5a8372e53b3140858c"
+          }
+        },
+        {
+          "client_id": "721475838135-i6sn44th7cdkt4db00igeseu4r4r89jd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "uk.co.dailygrocer",
+            "certificate_hash": "3f999e6be0f5e9871a8d4d118f8006cf0e57b7bd"
+          }
+        },
+        {
+          "client_id": "721475838135-vuc68jpvf4b32qjfh19cv1hhsb22etbb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAHHMqVy-1EtyvJbjz-OpXSx1vJbIi6kd8"
@@ -20,7 +41,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "721475838135-vuc68jpvf4b32qjfh19cv1hhsb22etbb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "721475838135-a5s2f1abkej3b10e98dr8hq0tphncpsi.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "uk.co.dailygrocer"
+              }
+            }
+          ]
         }
       }
     }

@@ -36,6 +36,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '721475838135',
     projectId: 'daily-grocer-dbe1d',
     storageBucket: 'daily-grocer-dbe1d.firebasestorage.app',
+    iosClientId: '721475838135-a5s2f1abkej3b10e98dr8hq0tphncpsi.apps.googleusercontent.com',
     iosBundleId: 'uk.co.dailygrocer',
   );
 }

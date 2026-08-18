@@ -10,9 +10,9 @@ import '../data/models/customer.dart';
 
 class AuthProvider extends ChangeNotifier {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: Platform.isIOS ? '288235605762-mmbm7t44m69mcs7g5humomfrve4eb5e4.apps.googleusercontent.com' : null,
-    serverClientId: '288235605762-sgum0h750di3nd4jbi62v7quladv5j34.apps.googleusercontent.com',
-    scopes: ['email'],
+    clientId: Platform.isIOS ? '721475838135-a5s2f1abkej3b10e98dr8hq0tphncpsi.apps.googleusercontent.com' : null,
+    serverClientId: '721475838135-vuc68jpvf4b32qjfh19cv1hhsb22etbb.apps.googleusercontent.com',
+    scopes: ['email', 'profile'],
   );
 
   AuthProvider() {
