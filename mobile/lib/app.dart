@@ -16,6 +16,7 @@ class DailyGrocerApp extends StatelessWidget {
       builder: (context, brandingProvider, _) {
         final b = brandingProvider.branding;
         return MaterialApp(
+          navigatorKey: AppRouter.navigatorKey,
           title: b.appName,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(

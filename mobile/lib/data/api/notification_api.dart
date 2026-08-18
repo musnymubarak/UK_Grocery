@@ -46,4 +46,30 @@ class NotificationApi {
       () => _client.raw.post('/notifications/me/read-all'),
     );
   }
+
+  Future<void> registerDeviceToken({
+    required String fcmToken,
+    required String platform,
+    String? deviceId,
+  }) async {
+    await _client.request<dynamic>(
+      () => _client.raw.post(
+        '/notifications/me/device-token',
+        data: {
+          'fcm_token': fcmToken,
+          'platform': platform,
+          'device_id': deviceId,
+        },
+      ),
+    );
+  }
+
+  Future<void> unregisterDeviceToken({String? fcmToken}) async {
+    await _client.request<dynamic>(
+      () => _client.raw.delete(
+        '/notifications/me/device-token',
+        queryParameters: fcmToken != null ? {'fcm_token': fcmToken} : null,
+      ),
+    );
+  }
 }
