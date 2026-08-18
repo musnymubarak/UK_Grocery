@@ -47,7 +47,7 @@ class AppTheme {
     const onSurface = Color(0xFFEFF1FF);
     const onSurfaceMuted = Color(0xFFA8B0C6);
 
-    final scheme = const ColorScheme.dark(
+    const scheme = ColorScheme.dark(
       primary: AppColors.blue400,
       onPrimary: AppColors.neutral0,
       secondary: AppColors.red400,
@@ -195,6 +195,15 @@ class AppTheme {
             top: Radius.circular(AppSpacing.radiusXxl),
           ),
         ),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+          TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+        },
       ),
     );
   }
