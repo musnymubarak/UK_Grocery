@@ -19,12 +19,19 @@ class HomeLayoutProvider extends ChangeNotifier {
   HomeLayout? get layout => _layout;
   bool get loading => _loading;
   String? get error => _error;
+  bool get hasLoaded => _layout != null;
 
-  /// Fetch the layout for [storeId]. Re-entrant per store: passing the same
-  /// store id again is a no-op while a layout is already present.
-  Future<void> refresh(String? storeId) async {
+  /// Fetch the layout for [storeId]. If a layout is already present for this store
+  /// and [force] is false, it returns immediately without refetching.
+  Future<void> refresh(String? storeId, {bool force = false}) async {
+    if (!force && _lastStoreId == storeId && _layout != null) {
+      return;
+    }
     _loading = true;
     _error = null;
+    if (_lastStoreId != storeId) {
+      _layout = null; // Clear previous store layout to prevent cross-store layout flash
+    }
     _lastStoreId = storeId;
     notifyListeners();
 
@@ -41,8 +48,10 @@ class HomeLayoutProvider extends ChangeNotifier {
       if (_lastStoreId != storeId) return;
       _layout = const HomeLayout(sections: []);
     } finally {
-      _loading = false;
-      notifyListeners();
+      if (_lastStoreId == storeId) {
+        _loading = false;
+        notifyListeners();
+      }
     }
   }
 }

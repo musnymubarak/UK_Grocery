@@ -10,7 +10,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/models/category.dart';
 import '../../data/models/home_layout.dart';
-import '../../data/models/product.dart';
 import '../animated_press.dart';
 import '../product_card.dart';
 
@@ -57,7 +56,6 @@ class _SectionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
@@ -70,17 +68,20 @@ class _SectionHeading extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: AppColors.blue900,
-                    fontSize: 20,
+                    color: Color(0xFF001D3D),
+                    fontSize: 22,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     subtitle!,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ],
@@ -479,7 +480,7 @@ class _CategoryGridSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final categories = section.categories;
     if (categories.isEmpty) return const SizedBox.shrink();
-    final columns = 2;
+    const columns = 2;
 
     return Padding(
       padding: _hPad.add(const EdgeInsets.only(bottom: AppSpacing.lg)),
@@ -491,11 +492,11 @@ class _CategoryGridSection extends StatelessWidget {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: columns,
               mainAxisSpacing: AppSpacing.base,
               crossAxisSpacing: AppSpacing.base,
-              childAspectRatio: columns == 4 ? 0.65 : (columns == 3 ? 0.75 : 0.85),
+              childAspectRatio: 0.85,
             ),
             itemCount: categories.length,
             itemBuilder: (_, i) => _CategoryGridTile(category: categories[i]),
@@ -514,6 +515,8 @@ class _CategoryGridTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic soft pastel tint derived from category.colorA
+    final background = Color.lerp(category.colorA, Colors.white, 0.82)!;
     return AnimatedPress(
       onTap: () => Navigator.of(context).pushNamed(
         AppRouter.aisle,
@@ -521,44 +524,50 @@ class _CategoryGridTile extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: background,
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-          border: Border.all(color: AppColors.neutral300),
         ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
           children: [
-            Expanded(
+            Positioned.fill(
               child: Padding(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.fromLTRB(14, 16, 14, 44),
                 child: _image(),
               ),
             ),
-            Container(
-              height: 54,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: AppColors.neutral300)),
-              ),
+            Positioned(
+              left: 14,
+              right: 10,
+              bottom: 12,
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       category.name,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: AppColors.neutral900,
+                        color: Color(0xFF1A1A1A),
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        height: 1.2,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.chevron_right_rounded,
-                      size: 18, color: AppColors.neutral600),
+                  Container(
+                    height: 26,
+                    width: 26,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                    child: const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -656,14 +665,15 @@ class _SolidBannerCard extends StatelessWidget {
     final textColor = _parseColor(item.textColor, Colors.white);
     final btnColor = _parseColor(item.buttonColor, AppColors.red500);
     final iconData = _parseIcon(item.iconName);
+    final hasImage = item.imageUrl != null && item.imageUrl!.trim().isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(color: bgColor),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (iconData != null) ...[
+          if (iconData != null && !hasImage) ...[
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -681,10 +691,10 @@ class _SolidBannerCard extends StatelessWidget {
               children: [
                 if (item.badge?.isNotEmpty ?? false) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                     ),
                     child: Text(
                       item.badge!,
@@ -692,6 +702,7 @@ class _SolidBannerCard extends StatelessWidget {
                         color: bgColor,
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
@@ -704,8 +715,9 @@ class _SolidBannerCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: textColor,
-                      fontSize: 18,
+                      fontSize: 19,
                       fontWeight: FontWeight.w800,
+                      height: 1.15,
                     ),
                   ),
                 if (item.subtitle?.isNotEmpty ?? false) ...[
@@ -715,7 +727,7 @@ class _SolidBannerCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: textColor.withValues(alpha: 0.9),
+                      color: textColor.withValues(alpha: 0.85),
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -724,6 +736,27 @@ class _SolidBannerCard extends StatelessWidget {
               ],
             ),
           ),
+          if (hasImage) ...[
+            const SizedBox(width: AppSpacing.md),
+            SizedBox(
+              height: 110,
+              width: 110,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    height: 96,
+                    width: 96,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  _sectionImage(item.imageUrl, fit: BoxFit.contain),
+                ],
+              ),
+            ),
+          ],
           if (item.buttonText?.isNotEmpty ?? false) ...[
             const SizedBox(width: AppSpacing.md),
             IgnorePointer(

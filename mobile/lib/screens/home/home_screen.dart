@@ -50,7 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
@@ -60,15 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (storeId != null && storeId != _lastStoreId) {
       _lastStoreId = storeId;
       _load();
-      _refreshLayout();
     }
-  }
-
-  /// Fetch the server-driven home layout for the active store. When it returns
-  /// no sections (or fails) the hardcoded fallback layout below is shown.
-  void _refreshLayout() {
-    final storeId = context.read<StoreProvider>().selected?.id;
-    context.read<HomeLayoutProvider>().refresh(storeId);
   }
 
   @override
@@ -78,13 +69,32 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool force = false}) async {
     final storeId = context.read<StoreProvider>().selected?.id;
+    if (storeId == null) return;
     if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
+
+    try {
+      await Future.wait([
+        context.read<HomeLayoutProvider>().refresh(storeId, force: force),
+        _loadFallbackData(storeId),
+      ]);
+    } catch (_) {
+      // Errors captured in state
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadFallbackData(String? storeId) async {
     try {
       final results = await Future.wait([
         Api.instance.catalog.getCategories(),
@@ -96,22 +106,15 @@ class _HomeScreenState extends State<HomeScreen> {
             .where((c) => c.parentId == null)
             .toList();
         _banners = results[1] as List<BannerSpec>;
-        _loading = false;
         _currentBanner = 0;
       });
       _startBannerTimer();
     } on ApiException catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _loading = false;
-      });
+      _error = e.message;
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Failed to load application data';
-        _loading = false;
-      });
+      _error = 'Failed to load application data';
     }
   }
 
@@ -287,12 +290,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final layoutProvider = context.watch<HomeLayoutProvider>();
     final t = context.watch<ContentProvider>().t;
     final sections = layoutProvider.layout?.sections ?? const <HomeSection>[];
-    if (sections.isNotEmpty) {
+    final hasServerSections = sections.isNotEmpty;
+    final isLayoutLoading = layoutProvider.loading || layoutProvider.layout == null;
+
+    if (hasServerSections) {
       return RefreshIndicator(
-        onRefresh: () async {
-          await _load();
-          _refreshLayout();
-        },
+        onRefresh: () => _load(force: true),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           slivers: [
@@ -305,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    if (_loading) {
+    if (isLayoutLoading || _loading) {
       return ListView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(AppSpacing.base, AppSpacing.base, AppSpacing.base, AppSpacing.xxl),
@@ -329,17 +332,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       );
     }
-    if (_error != null) {
+    if (_error != null && !hasServerSections) {
       return EmptyState(
         icon: Icons.cloud_off_rounded,
         title: 'Failed to load',
         message: _error!,
-        action: PremiumButton(label: 'Try again', icon: Icons.refresh_rounded, onPressed: _load),
+        action: PremiumButton(label: 'Try again', icon: Icons.refresh_rounded, onPressed: () => _load(force: true)),
       );
     }
     final categories = _categories ?? const <Category>[];
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: () => _load(force: true),
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         slivers: [
@@ -670,7 +673,7 @@ class _FreeDeliveryCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
