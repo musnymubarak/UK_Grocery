@@ -50,11 +50,11 @@ jobs:
           echo "keyAlias=$ANDROID_KEY_ALIAS" >> android/key.properties
           echo "storeFile=upload-keystore.jks" >> android/key.properties
 
-      - name: Calculate Dynamic Build Number
+      - name: Extract Build Number from pubspec.yaml
         run: |
-          BUILD_NUMBER=$((32 + ${{ github.run_number }}))
+          BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
-          echo "Calculated build number: $BUILD_NUMBER"
+          echo "Extracted build number: $BUILD_NUMBER"
 
       - name: Build Release APK
         run: flutter build apk --release --build-number=$BUILD_NUMBER
