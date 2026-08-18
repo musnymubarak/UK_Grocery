@@ -62,11 +62,11 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
-      - name: Calculate Dynamic Build Number
+      - name: Extract Build Number from pubspec.yaml
         run: |
-          BUILD_NUMBER=$((32 + ${{ github.run_number }}))
+          BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
-          echo "Calculated build number: $BUILD_NUMBER"
+          echo "Extracted build number: $BUILD_NUMBER"
 
       - name: Configure Manual Signing and Build
         run: |
