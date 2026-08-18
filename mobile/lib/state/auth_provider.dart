@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../core/network/api_client.dart';
+import '../core/services/push_notification_service.dart';
 import '../data/api/api_registry.dart';
 import '../data/models/customer.dart';
 
@@ -17,6 +18,7 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider() {
     ApiClient.instance.onAuthExpired.listen((_) {
       _customer = null;
+      PushNotificationService.instance.unregisterOnLogout();
       notifyListeners();
     });
     _bootstrap();
@@ -38,6 +40,7 @@ class AuthProvider extends ChangeNotifier {
     if (token != null && token.isNotEmpty) {
       try {
         _customer = await Api.instance.auth.me();
+        PushNotificationService.instance.syncTokenWithBackend();
       } catch (_) {
         await ApiClient.instance.tokens.clear();
       }
@@ -49,6 +52,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signIn({required String email, required String password}) async {
     await Api.instance.auth.login(email: email, password: password);
     _customer = await Api.instance.auth.me();
+    PushNotificationService.instance.syncTokenWithBackend();
     notifyListeners();
   }
 
@@ -69,6 +73,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> googleSignIn(String idToken) async {
     await Api.instance.auth.googleLogin(idToken);
     _customer = await Api.instance.auth.me();
+    PushNotificationService.instance.syncTokenWithBackend();
     notifyListeners();
   }
 
@@ -91,10 +96,12 @@ class AuthProvider extends ChangeNotifier {
   Future<void> appleSignIn(String identityToken, {String? email, String? fullName}) async {
     await Api.instance.auth.appleLogin(identityToken, email, fullName);
     _customer = await Api.instance.auth.me();
+    PushNotificationService.instance.syncTokenWithBackend();
     notifyListeners();
   }
 
   Future<void> signOut() async {
+    await PushNotificationService.instance.unregisterOnLogout();
     await Api.instance.auth.logout();
     _customer = null;
     try {
@@ -104,6 +111,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> deleteAccount() async {
+    await PushNotificationService.instance.unregisterOnLogout();
     await Api.instance.auth.deleteAccount();
     _customer = null;
     try {

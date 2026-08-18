@@ -1,6 +1,7 @@
 # Environment
 .env
 !.env.example
+*service-account*.json
 
 # Python
 __pycache__/

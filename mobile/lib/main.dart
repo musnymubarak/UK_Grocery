@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'dart:io';
 
 import 'app.dart';
+import 'core/router/app_router.dart';
+import 'core/services/push_notification_service.dart';
 import 'state/auth_provider.dart';
 import 'state/branding_provider.dart';
 import 'state/cart_provider.dart';
@@ -33,6 +35,17 @@ Future<void> main() async {
     Stripe.merchantIdentifier = 'merchant.uk.co.dailygrocer';
     Stripe.urlScheme = 'dailygrocer';
     await Stripe.instance.applySettings();
+
+    // Initialize Firebase Push Notifications
+    try {
+      await PushNotificationService.instance.initialize(
+        navigatorKey: AppRouter.navigatorKey,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('PushNotificationService initialization error: $e');
+      }
+    }
   }
 
   runApp(

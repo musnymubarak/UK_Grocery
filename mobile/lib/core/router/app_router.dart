@@ -23,6 +23,8 @@ import '../utils/page_transitions.dart';
 class AppRouter {
   AppRouter._();
 
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   static const splash = '/';
   static const landing = '/landing';
   static const login = '/login';

@@ -54,14 +54,42 @@ async def mark_notification_read(
     await service.mark_as_read(notification_id, current_customer.id)
     return {"status": "ok"}
 
-@router.post("/me/read-all")
-async def mark_all_read(
+class RegisterDeviceTokenRequest(BaseModel):
+    fcm_token: str = Field(..., min_length=10, max_length=512)
+    platform: str = Field(default="android", pattern="^(android|ios|web)$")
+    device_id: Optional[str] = Field(None, max_length=255)
+
+
+@router.post("/me/device-token")
+async def register_device_token(
+    data: RegisterDeviceTokenRequest,
     current_customer: Customer = Depends(get_current_customer),
-    db: AsyncSession = Depends(get_async_session)
+    db: AsyncSession = Depends(get_async_session),
 ):
+    """Register or refresh an FCM device token for the authenticated customer."""
     service = NotificationService(db)
-    count = await service.mark_all_read(current_customer.id)
-    return {"marked_read": count}
+    token_entry = await service.register_device_token(
+        customer_id=current_customer.id,
+        fcm_token=data.fcm_token,
+        platform=data.platform,
+        device_id=data.device_id,
+    )
+    return {"status": "ok", "id": str(token_entry.id), "platform": token_entry.platform}
+
+
+@router.delete("/me/device-token")
+async def unregister_device_token(
+    fcm_token: Optional[str] = Query(None),
+    current_customer: Customer = Depends(get_current_customer),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Deactivate device token(s) upon customer sign-out."""
+    service = NotificationService(db)
+    count = await service.unregister_device_token(
+        customer_id=current_customer.id,
+        fcm_token=fcm_token,
+    )
+    return {"status": "ok", "deactivated_count": count}
 
 
 # ====================

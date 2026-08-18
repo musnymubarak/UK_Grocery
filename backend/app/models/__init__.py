@@ -28,6 +28,7 @@ from app.models.driver import DriverProfile
 from app.models.promotion import Promotion
 from app.models.webhook import WebhookEndpoint, WebhookDelivery
 from app.models.refund_evidence import RefundEvidence
+from app.models.device_token import CustomerDeviceToken
 
 __all__ = [
     "Organization",
@@ -68,4 +69,5 @@ __all__ = [
     "WebhookEndpoint",
     "WebhookDelivery",
     "RefundEvidence",
+    "CustomerDeviceToken",
 ]

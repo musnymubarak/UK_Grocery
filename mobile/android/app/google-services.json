@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "721475838135",
+    "project_id": "daily-grocer-dbe1d",
+    "storage_bucket": "daily-grocer-dbe1d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:721475838135:android:6a404acbf76cff91a4ad32",
+        "android_client_info": {
+          "package_name": "uk.co.dailygrocer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHHMqVy-1EtyvJbjz-OpXSx1vJbIi6kd8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

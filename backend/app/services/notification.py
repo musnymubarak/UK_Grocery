@@ -7,16 +7,58 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notification import Notification
 from app.models.customer import Customer
+from app.models.device_token import CustomerDeviceToken
+from app.services.fcm import send_fcm_push
 
 class NotificationService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def register_device_token(
+        self, customer_id: UUID, fcm_token: str, platform: str = "android", device_id: Optional[str] = None
+    ) -> CustomerDeviceToken:
+        """Register or update an FCM device token for a customer."""
+        q = select(CustomerDeviceToken).where(CustomerDeviceToken.fcm_token == fcm_token)
+        existing = (await self.db.execute(q)).scalar_one_or_none()
+
+        if existing:
+            existing.customer_id = customer_id
+            existing.platform = platform
+            existing.device_id = device_id
+            existing.is_active = True
+            await self.db.flush()
+            return existing
+
+        token_entry = CustomerDeviceToken(
+            customer_id=customer_id,
+            fcm_token=fcm_token,
+            platform=platform,
+            device_id=device_id,
+            is_active=True,
+        )
+        self.db.add(token_entry)
+        await self.db.flush()
+        return token_entry
+
+    async def unregister_device_token(
+        self, customer_id: UUID, fcm_token: Optional[str] = None
+    ) -> int:
+        """Deactivate device token(s) upon customer logout."""
+        stmt = update(CustomerDeviceToken).where(
+            CustomerDeviceToken.customer_id == customer_id,
+            CustomerDeviceToken.is_active == True,
+        )
+        if fcm_token:
+            stmt = stmt.where(CustomerDeviceToken.fcm_token == fcm_token)
+        stmt = stmt.values(is_active=False)
+        res = await self.db.execute(stmt)
+        return res.rowcount
+
     async def send(
         self, customer_id: UUID, title: str, body: str,
         notification_type: str, reference_id: UUID = None
     ) -> Notification:
-        """Create a notification in the customer's inbox."""
+        """Create a notification in the customer's inbox and dispatch FCM push alert."""
         notif = Notification(
             customer_id=customer_id,
             title=title,
@@ -26,6 +68,37 @@ class NotificationService:
         )
         self.db.add(notif)
         await self.db.flush()
+
+        # Query active device tokens for this customer and send push notification
+        try:
+            tokens_q = select(CustomerDeviceToken.fcm_token).where(
+                CustomerDeviceToken.customer_id == customer_id,
+                CustomerDeviceToken.is_active == True,
+            )
+            tokens = list((await self.db.execute(tokens_q)).scalars().all())
+            if tokens:
+                push_res = await send_fcm_push(
+                    tokens=tokens,
+                    title=title,
+                    body=body,
+                    data={
+                        "notification_id": str(notif.id),
+                        "notification_type": notification_type,
+                        "reference_id": str(reference_id) if reference_id else "",
+                    },
+                )
+                # Prune invalid tokens if any
+                invalid = push_res.get("invalid_tokens", [])
+                if invalid:
+                    await self.db.execute(
+                        update(CustomerDeviceToken)
+                        .where(CustomerDeviceToken.fcm_token.in_(invalid))
+                        .values(is_active=False)
+                    )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Push dispatch error in NotificationService.send: {e}")
+
         return notif
 
     async def get_inbox(
@@ -84,6 +157,29 @@ class NotificationService:
                 notification_type=notification_type,
             ))
         await self.db.flush()
+
+        # Push to all active device tokens of customers in this org
+        try:
+            tokens_q = (
+                select(CustomerDeviceToken.fcm_token)
+                .join(Customer, Customer.id == CustomerDeviceToken.customer_id)
+                .where(
+                    Customer.organization_id == org_id,
+                    CustomerDeviceToken.is_active == True,
+                )
+            )
+            tokens = list((await self.db.execute(tokens_q)).scalars().all())
+            if tokens:
+                await send_fcm_push(
+                    tokens=tokens,
+                    title=title,
+                    body=body,
+                    data={"notification_type": notification_type},
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Push broadcast error: {e}")
+
         return len(ids)
 
     async def list_recent(self, org_id: UUID, limit: int = 50) -> List[dict]:
