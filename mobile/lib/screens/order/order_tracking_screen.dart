@@ -1,8 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/api/api_registry.dart';
@@ -11,6 +11,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/premium_app_bar.dart';
 import '../../widgets/premium_button.dart';
 import '../../widgets/skeleton.dart';
+import '../../widgets/status_badge.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   const OrderTrackingScreen({super.key, required this.orderId});
@@ -47,7 +48,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Tracking is time-sensitive — refresh quietly when returning to the app.
     if (state == AppLifecycleState.resumed && _order != null) {
       _load(silent: true);
     }
@@ -107,7 +107,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
       ('Order placed', 'Confirmed by the store', Icons.check_rounded),
       ('Picking your items', 'Selected at your store', Icons.shopping_basket_rounded),
       ('Out for delivery', 'On its way to you', Icons.electric_moped_rounded),
-      ('Delivered', 'Enjoy!', Icons.home_rounded),
+      ('Delivered', 'Enjoy your groceries!', Icons.home_rounded),
     ];
     return [
       for (var i = 0; i < raw.length; i++)
@@ -121,13 +121,22 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
     ];
   }
 
+  String _formatDateTime(DateTime t) {
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final hour = t.hour > 12 ? t.hour - 12 : (t.hour == 0 ? 12 : t.hour);
+    final minute = t.minute.toString().padLeft(2, '0');
+    final period = t.hour >= 12 ? 'PM' : 'AM';
+    return '${t.day} ${months[t.month - 1]} ${t.year} at $hour:$minute $period';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
-            const PremiumAppBar(title: 'Live tracking'),
+            const PremiumAppBar(title: 'Order Details'),
             Expanded(child: _body()),
           ],
         ),
@@ -136,19 +145,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
   }
 
   Widget _body() {
-    final theme = Theme.of(context);
     if (_loading) {
       return ListView(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          Skeleton(height: 240, borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
-          const SizedBox(height: AppSpacing.xl),
-          Skeleton(height: 90, borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
-          const SizedBox(height: AppSpacing.xl),
-          for (int i = 0; i < 4; i++) ...[
-            Skeleton(height: 60, borderRadius: BorderRadius.circular(8)),
-            const SizedBox(height: 12),
-          ],
+          Skeleton(height: 180, borderRadius: BorderRadius.circular(16)),
+          const SizedBox(height: 16),
+          Skeleton(height: 220, borderRadius: BorderRadius.circular(16)),
+          const SizedBox(height: 16),
+          Skeleton(height: 180, borderRadius: BorderRadius.circular(16)),
         ],
       );
     }
@@ -160,141 +165,443 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen>
         action: PremiumButton(label: 'Retry', icon: Icons.refresh_rounded, onPressed: _load),
       );
     }
+
     final order = _order!;
     final steps = _stepsFor(order.status);
+    final isDelivered = order.status == OrderStatus.delivered;
+    final isCancelled = order.status == OrderStatus.cancelled;
+    final isActive = !isDelivered && !isCancelled;
+
     return RefreshIndicator(
       onRefresh: () => _load(silent: true),
+      color: AppColors.blue600,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 8, AppSpacing.lg, AppSpacing.xxl),
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         children: [
-        Stack(
-          children: [
+          // 1. Order Summary & Status Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? const Color(0xFF0056B3).withValues(alpha: 0.1)
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isActive ? Icons.electric_moped_rounded : (isDelivered ? Icons.check_circle_rounded : Icons.receipt_long_rounded),
+                        size: 24,
+                        color: isActive ? const Color(0xFF0056B3) : (isDelivered ? AppColors.success : const Color(0xFF64748B)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Order #${order.orderNumber}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatDateTime(order.placedAt),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    StatusBadge(status: order.status),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 2. Status Tracking Timeline (if active or progress tracked)
+          if (!isCancelled) ...[
             Container(
-              height: 240,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                color: AppColors.blue900,
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CustomPaint(size: Size.infinite, painter: _MapGridPainter(theme.colorScheme.primary)),
-                  AnimatedBuilder(
-                    animation: _pulse,
-                    builder: (_, __) {
-                      final t = _pulse.value;
-                      return Center(
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              height: 120 * t,
-                              width: 120 * t,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withValues(alpha: 0.18 * (1 - t)),
-                              ),
-                            ),
-                            Container(
-                              height: 64,
-                              width: 64,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                              ),
-                              child: const Icon(Icons.electric_moped_rounded, color: AppColors.red500, size: 30),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                  const Text(
+                    'Order Status',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
+                  const SizedBox(height: 16),
+                  ...List.generate(steps.length, (i) {
+                    final last = i == steps.length - 1;
+                    return _Timeline(step: steps[i], isLast: last);
+                  }),
                 ],
               ),
             ),
-            Positioned(
-              left: 12,
-              top: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+            const SizedBox(height: 16),
+          ],
+
+          // 3. Ordered Items Breakdown
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
+                    const Text(
+                      'Ordered Items',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Spacer(),
                     Container(
-                      height: 8,
-                      width: 8,
-                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.greenAccent),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${order.itemCount} items',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 12),
+
+                // List of items
+                if (order.lines.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'No item details available.',
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                    ),
+                  )
+                else
+                  ...order.lines.map((line) => _buildOrderItemRow(line)),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 4. Delivery Address Details (if present)
+          if (order.deliveryAddress != null && order.deliveryAddress!.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.location_on_rounded, size: 18, color: Color(0xFF0056B3)),
+                      SizedBox(width: 8),
+                      Text(
+                        'Delivery Address',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    order.deliveryAddress!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF334155),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (order.deliveryPostcode != null && order.deliveryPostcode!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      order.deliveryPostcode!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                  if (order.notes != null && order.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Note: ${order.notes}',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // 5. Payment & Cost Summary
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Payment Summary',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _priceRow('Subtotal', formatGBP(order.subtotal)),
+                const SizedBox(height: 8),
+                _priceRow('Delivery Fee', order.deliveryFee > 0 ? formatGBP(order.deliveryFee) : 'Free'),
+                if (order.serviceFee > 0) ...[
+                  const SizedBox(height: 8),
+                  _priceRow('Service Fee', formatGBP(order.serviceFee)),
+                ],
+                if (order.tip > 0) ...[
+                  const SizedBox(height: 8),
+                  _priceRow('Driver Tip', formatGBP(order.tip)),
+                ],
+                if (order.discount > 0) ...[
+                  const SizedBox(height: 8),
+                  _priceRow('Discount', '-${formatGBP(order.discount)}', isDiscount: true),
+                ],
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text(
+                      'Total Paid',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      formatGBP(order.total),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF001D3D),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      order.paymentMethod.toLowerCase() == 'cod' ? Icons.money_rounded : Icons.credit_card_rounded,
+                      size: 14,
+                      color: const Color(0xFF64748B),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      order.status.label.toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1),
+                      order.paymentMethod.toLowerCase() == 'cod' ? 'Cash on Delivery' : 'Paid Online (Card)',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-            border: Border.all(color: theme.colorScheme.outlineVariant),
-            boxShadow: AppShadows.soft(context),
           ),
-          child: Row(
-            children: [
-              Container(
-                height: 56,
-                width: 56,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.red600,
-                ),
-                child: const Icon(Icons.receipt_long_rounded, color: Colors.white),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Order #${order.orderNumber}', style: theme.textTheme.titleLarge),
-                    Text(
-                      '${order.itemCount} items · ${formatGBP(order.total)}',
-                      style: theme.textTheme.bodySmall,
+
+          const SizedBox(height: 24),
+
+          // Help / Support
+          PremiumButton(
+            label: 'Need help with this order?',
+            icon: Icons.support_agent_rounded,
+            variant: PremiumButtonVariant.ghost,
+            expand: true,
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Support team is ready to assist you.')),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderItemRow(OrderLine line) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Product Thumbnail
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFEDF2F7)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: line.productImageUrl != null && line.productImageUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: line.productImageUrl!,
+                      fit: BoxFit.contain,
+                      placeholder: (_, __) => const Center(
+                        child: SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => const Icon(
+                        Icons.shopping_basket_outlined,
+                        size: 22,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.shopping_basket_outlined,
+                      size: 22,
+                      color: Color(0xFF94A3B8),
                     ),
-                  ],
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Title & Qty
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  line.nameOrFallback,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  line.unitPrice != null
+                      ? 'Qty: ${line.qty} × ${formatGBP(line.unitPrice!)}'
+                      : 'Qty: ${line.qty}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Total Price for this line
+          Text(
+            formatGBP(line.subtotal),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _priceRow(String label, String value, {bool isDiscount = false}) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            color: Color(0xFF64748B),
+            fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        Text('Progress', style: theme.textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        ...List.generate(steps.length, (i) {
-          final last = i == steps.length - 1;
-          return _Timeline(step: steps[i], isLast: last);
-        }),
-        const SizedBox(height: AppSpacing.xl),
-        PremiumButton(
-          label: 'Need help with this order?',
-          icon: Icons.support_agent_rounded,
-          variant: PremiumButtonVariant.ghost,
-          expand: true,
-          onPressed: () {},
+        const Spacer(),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            color: isDiscount ? AppColors.success : const Color(0xFF0F172A),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
-      ),
     );
   }
 }
@@ -323,8 +630,9 @@ class _Timeline extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = step.current
-        ? AppColors.red500
+        ? const Color(0xFF0056B3)
         : (step.done ? AppColors.success : theme.colorScheme.outlineVariant);
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -332,40 +640,50 @@ class _Timeline extends StatelessWidget {
           Column(
             children: [
               Container(
-                height: 36,
-                width: 36,
+                height: 32,
+                width: 32,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: step.done || step.current ? accent : theme.colorScheme.surfaceContainerHigh,
+                  color: step.done || step.current ? accent : const Color(0xFFF1F5F9),
                 ),
                 child: Icon(
                   step.done ? Icons.check_rounded : step.icon,
-                  size: 18,
-                  color: step.done || step.current ? Colors.white : theme.colorScheme.onSurfaceVariant,
+                  size: 16,
+                  color: step.done || step.current ? Colors.white : const Color(0xFF94A3B8),
                 ),
               ),
               if (!isLast)
-                Expanded(child: Container(width: 2, color: theme.colorScheme.outlineVariant)),
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: step.done ? AppColors.success.withValues(alpha: 0.5) : const Color(0xFFE2E8F0),
+                  ),
+                ),
             ],
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.only(bottom: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     step.label,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                       color: step.done || step.current
-                          ? theme.colorScheme.onSurface
-                          : theme.colorScheme.onSurfaceVariant,
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFF94A3B8),
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(step.detail, style: theme.textTheme.bodySmall),
+                  const SizedBox(height: 1),
+                  Text(
+                    step.detail,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
                 ],
               ),
             ),
@@ -374,36 +692,4 @@ class _Timeline extends StatelessWidget {
       ),
     );
   }
-}
-
-class _MapGridPainter extends CustomPainter {
-  const _MapGridPainter(this.color);
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
-      ..strokeWidth = 1;
-    const step = 28.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
-    }
-    final route = Paint()
-      ..color = Colors.white.withValues(alpha: 0.85)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final path = Path()
-      ..moveTo(20, size.height - 30)
-      ..cubicTo(size.width * 0.4, size.height - 20, size.width * 0.3, size.height * 0.3, size.width * 0.55, size.height * 0.45)
-      ..cubicTo(size.width * 0.7, size.height * 0.55, size.width * 0.7, size.height * 0.4, size.width * 0.85, 40);
-    canvas.drawPath(path, route);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
