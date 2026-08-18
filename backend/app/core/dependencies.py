@@ -21,12 +21,12 @@ async def get_db(session: AsyncSession = Depends(get_async_session)):
 
 
 async def get_current_user(
-    authorization: str = Header(..., description="Bearer <token>"),
+    authorization: Optional[str] = Header(None, description="Bearer <token>"),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Extract and validate JWT from Authorization header. Returns the User."""
-    if not authorization.startswith("Bearer "):
-        raise UnauthorizedException("Invalid authorization header format")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise UnauthorizedException("Authentication required")
 
     token = authorization.split("Bearer ")[1]
     payload = verify_token(token)
@@ -49,12 +49,12 @@ async def get_current_user(
     return user
 
 async def get_current_customer(
-    authorization: str = Header(..., description="Bearer <token>"),
+    authorization: Optional[str] = Header(None, description="Bearer <token>"),
     db: AsyncSession = Depends(get_db),
 ) -> Customer:
     """Extract and validate JWT from Authorization header. Returns the Customer."""
-    if not authorization.startswith("Bearer "):
-        raise UnauthorizedException("Invalid authorization header format")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise UnauthorizedException("Authentication required")
 
     token = authorization.split("Bearer ")[1]
     payload = verify_token(token)
