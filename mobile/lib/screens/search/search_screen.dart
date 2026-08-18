@@ -14,7 +14,6 @@ import '../../state/store_provider.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/premium_app_bar.dart';
 import '../../widgets/premium_button.dart';
-import '../../widgets/premium_text_field.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/skeleton.dart';
 
@@ -199,6 +198,8 @@ class _SearchScreenState extends State<SearchScreen> {
                         autofocus: !widget.embedded,
                         onChanged: _onChanged,
                         decoration: InputDecoration(
+                          filled: false,
+                          fillColor: Colors.transparent,
                           hintText: 'Search in $storeName',
                           hintStyle: TextStyle(
                             color: theme.colorScheme.onSurfaceVariant,

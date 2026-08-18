@@ -9,14 +9,11 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/utils/formatters.dart';
 import '../../data/models/store.dart';
 import '../../state/cart_provider.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
-import '../../widgets/empty_state.dart';
 import '../../widgets/premium_button.dart';
-import '../../widgets/skeleton.dart';
 
 class StoreSelectionScreen extends StatefulWidget {
   const StoreSelectionScreen({super.key});
@@ -529,6 +526,8 @@ class _SearchRow extends StatelessWidget {
               textInputAction: TextInputAction.search,
               style: theme.textTheme.bodyLarge,
               decoration: InputDecoration(
+                filled: false,
+                fillColor: Colors.transparent,
                 hintText: 'Enter UK postcode or street address',
                 hintStyle: theme.textTheme.bodyMedium?.copyWith(color: scheme.outline),
                 border: InputBorder.none,
