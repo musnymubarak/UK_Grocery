@@ -175,16 +175,24 @@ async def apple_login_customer(
             issuer='https://appleid.apple.com'
         )
         
-        # Apple payload uses "sub" as the unique user id, and typically includes "email"
-        email = payload.get("email") or data.email
-        if not email:
-            raise ValueError("Email not provided by Apple or client")
-            
-        name = data.full_name or email.split('@')[0]
+        # Apple payload uses "sub" as the unique user id, and includes "email" ONLY on the first sign-in
+        apple_sub = payload.get("sub")
+        if not apple_sub:
+            raise ValueError("Apple token missing subject (sub)")
+
+        # On subsequent sign-ins, Apple does not return the email.
+        # Fall back to deterministic Apple ID email alias so returning users log in seamlessly.
+        email = payload.get("email") or data.email or f"apple_{apple_sub}@privaterelay.apple.com"
+        name = data.full_name or payload.get("name") or email.split('@')[0]
         
         # Check if customer exists
         from app.services.customer import CustomerService
         customer = await CustomerService.get_customer_by_email(db, email)
+        
+        # If not found by email, check if there is an existing customer with the apple fallback email
+        if not customer and not email.startswith("apple_"):
+            fallback_email = f"apple_{apple_sub}@privaterelay.apple.com"
+            customer = await CustomerService.get_customer_by_email(db, fallback_email)
         
         if not customer:
             # Create new customer
@@ -192,6 +200,8 @@ async def apple_login_customer(
             from sqlalchemy import select as sa_select
             result = await db.execute(sa_select(Organization).limit(1))
             org = result.scalar_one_or_none()
+            if not org:
+                raise ValueError("No organization found to assign new customer")
             
             from app.schemas.customer import CustomerCreate
             import secrets
@@ -214,6 +224,8 @@ async def apple_login_customer(
         )
         
     except Exception as e:
+        import logging
+        logging.exception(f"Apple login failed: {e}")
         raise UnauthorizedException(f"Invalid Apple token: {str(e)}")
 
 

@@ -101,21 +101,36 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    await PushNotificationService.instance.unregisterOnLogout();
-    await Api.instance.auth.logout();
     _customer = null;
+    notifyListeners();
+    try {
+      await PushNotificationService.instance.unregisterOnLogout();
+    } catch (_) {}
+    try {
+      await Api.instance.auth.logout();
+    } catch (_) {}
     try {
       await _googleSignIn.signOut();
+    } catch (_) {}
+    try {
+      await ApiClient.instance.tokens.clear();
     } catch (_) {}
     notifyListeners();
   }
 
   Future<void> deleteAccount() async {
-    await PushNotificationService.instance.unregisterOnLogout();
-    await Api.instance.auth.deleteAccount();
+    try {
+      await PushNotificationService.instance.unregisterOnLogout();
+    } catch (_) {}
+    try {
+      await Api.instance.auth.deleteAccount();
+    } catch (_) {}
     _customer = null;
     try {
       await _googleSignIn.signOut();
+    } catch (_) {}
+    try {
+      await ApiClient.instance.tokens.clear();
     } catch (_) {}
     notifyListeners();
   }
