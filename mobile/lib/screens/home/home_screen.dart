@@ -58,7 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final storeId = context.read<StoreProvider>().selected?.id;
     if (storeId != null && storeId != _lastStoreId) {
       _lastStoreId = storeId;
-      _load();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _load();
+      });
     }
   }
 

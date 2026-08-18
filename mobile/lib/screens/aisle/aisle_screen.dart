@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/network/api_exception.dart';
-import '../../core/router/app_router.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/api/api_registry.dart';
 import '../../data/models/product.dart';
@@ -178,6 +177,8 @@ class _AisleScreenState extends State<AisleScreen> {
                         controller: _searchCtrl,
                         onChanged: _onSearchChanged,
                         decoration: InputDecoration(
+                          filled: false,
+                          fillColor: Colors.transparent,
                           hintText: 'Search in $storeName',
                           hintStyle: TextStyle(
                             color: theme.colorScheme.onSurfaceVariant,
