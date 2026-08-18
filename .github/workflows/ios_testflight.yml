@@ -62,13 +62,19 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
+      - name: Calculate Dynamic Build Number
+        run: |
+          BUILD_NUMBER=$((32 + ${{ github.run_number }}))
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "Calculated build number: $BUILD_NUMBER"
+
       - name: Configure Manual Signing and Build
         run: |
           echo "CODE_SIGN_STYLE=Manual" >> ios/Flutter/Release.xcconfig
           echo "PROVISIONING_PROFILE_SPECIFIER=Daily Grocer Distribution Profile" >> ios/Flutter/Release.xcconfig
           echo "CODE_SIGN_IDENTITY=Apple Distribution" >> ios/Flutter/Release.xcconfig
           echo "DEVELOPMENT_TEAM=92HDZ2VQ5P" >> ios/Flutter/Release.xcconfig
-          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist --build-number=$BUILD_NUMBER
 
       - name: Upload app to TestFlight
         env:
