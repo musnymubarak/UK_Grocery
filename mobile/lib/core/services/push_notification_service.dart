@@ -68,12 +68,12 @@ class PushNotificationService {
         sound: true,
       );
 
-      // Initialize local notifications for Android foreground heads-up
+      // Initialize local notifications for Android & iOS foreground heads-up
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosInit = DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
       );
       const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
 
@@ -132,10 +132,10 @@ class PushNotificationService {
         _handleRemoteMessageNavigation(initialMessage, navigatorKey);
       }
 
-      // Capture FCM Token
+      // Capture FCM Token & wait for APNs on iOS
       if (Platform.isIOS) {
         await _localNotifs
-            .resolvePlatformSpecificImplementation<DarwinFlutterLocalNotificationsPlugin>()
+            .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
             ?.requestPermissions(alert: true, badge: true, sound: true);
 
         for (int i = 0; i < 6; i++) {

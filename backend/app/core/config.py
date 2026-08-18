@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     GOOGLE_MAPS_API_KEY: str = "YOUR_GOOGLE_MAPS_API_KEY_HERE"
-    GOOGLE_CLIENT_ID: str = "831513497012-88u2bqs01njl5fv2f88t3q37n6e5t1fh.apps.googleusercontent.com"
+    GOOGLE_CLIENT_ID: str = "721475838135-vuc68jpvf4b32qjfh19cv1hhsb22etbb.apps.googleusercontent.com,721475838135-a5s2f1abkej3b10e98dr8hq0tphncpsi.apps.googleusercontent.com"
     FIREBASE_CREDENTIALS_PATH: str = "firebase-service-account.json"
 
     # JWT
