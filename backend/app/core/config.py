@@ -27,7 +27,15 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     GOOGLE_MAPS_API_KEY: str = "YOUR_GOOGLE_MAPS_API_KEY_HERE"
-    GOOGLE_CLIENT_ID: str = "721475838135-vuc68jpvf4b32qjfh19cv1hhsb22etbb.apps.googleusercontent.com,721475838135-a5s2f1abkej3b10e98dr8hq0tphncpsi.apps.googleusercontent.com"
+    # Comma-separated audience allow-list: mobile web/server client, mobile iOS client,
+    # mobile Android clients, storefront web client. Overridden by GOOGLE_CLIENT_ID in .env.
+    GOOGLE_CLIENT_ID: str = (
+        "721475838135-vuc68jpvf4b32qjfh19cv1hhsb22etbb.apps.googleusercontent.com,"
+        "721475838135-a5s2f1abkej3b10e98dr8hq0tphncpsi.apps.googleusercontent.com,"
+        "721475838135-adj4bfeehr5oap7m4bdfkolc8cqo4aqd.apps.googleusercontent.com,"
+        "721475838135-i6sn44th7cdkt4db00igeseu4r4r89jd.apps.googleusercontent.com,"
+        "831513497012-88u2bqs01njl5fv2f88t3q37n6e5t1fh.apps.googleusercontent.com"
+    )
     FIREBASE_CREDENTIALS_PATH: str = "firebase-service-account.json"
 
     # JWT
