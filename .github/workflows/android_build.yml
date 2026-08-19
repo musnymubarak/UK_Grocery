@@ -11,6 +11,8 @@ on:
 jobs:
   build_android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: mobile
@@ -18,6 +20,42 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Bump Build Number
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Runs on every push to mobile/**, same trigger as ios_testflight.yml, so both
+          # can race to push a bump commit at once. Retry against the current origin/main
+          # each time rather than rebasing, since actions/checkout is a shallow clone.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            CURRENT=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+            BUILD_NUMBER=$((CURRENT + 1))
+            # GNU sed (ubuntu-latest) form; see ios_testflight.yml for the BSD sed form
+            # required on macos-latest.
+            sed -i -E "s/^(version: [0-9]+\.[0-9]+\.[0-9]+\+)[0-9]+/\1${BUILD_NUMBER}/" pubspec.yaml
+
+            git add pubspec.yaml
+            git commit -m "ci: bump mobile build number to $BUILD_NUMBER [skip ci]"
+
+            if git push origin HEAD:main; then
+              echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+              echo "Bumped build number: $CURRENT -> $BUILD_NUMBER"
+              break
+            fi
+
+            echo "Push race on attempt $attempt (ios_testflight.yml likely bumped first) — retrying..."
+            sleep $((RANDOM % 5 + 1))
+            if [ "$attempt" -eq 5 ]; then
+              echo "::error::Failed to push build number bump after 5 attempts"
+              exit 1
+            fi
+          done
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -49,17 +87,6 @@ jobs:
           echo "keyPassword=$ANDROID_KEY_PASSWORD" >> android/key.properties
           echo "keyAlias=$ANDROID_KEY_ALIAS" >> android/key.properties
           echo "storeFile=upload-keystore.jks" >> android/key.properties
-
-      - name: Calculate Build Number
-        run: |
-          # Play Console rejects a versionCode <= one already uploaded, so this can't
-          # just read pubspec.yaml verbatim (see ios_testflight.yml for the failure that
-          # hit this exact bug). BASE is the pubspec.yaml floor; run_number guarantees
-          # forward progress even when nobody remembers to bump pubspec.yaml before pushing.
-          BASE=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
-          BUILD_NUMBER=$((BASE + ${{ github.run_number }}))
-          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
-          echo "pubspec base: $BASE, run_number: ${{ github.run_number }}, using build number: $BUILD_NUMBER"
 
       - name: Build Release APK
         run: flutter build apk --release --build-number=$BUILD_NUMBER
