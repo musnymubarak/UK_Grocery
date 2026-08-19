@@ -62,11 +62,16 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
-      - name: Extract Build Number from pubspec.yaml
+      - name: Calculate Build Number
         run: |
-          BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          # App Store Connect rejects any build number <= one already uploaded, so this
+          # can't just read pubspec.yaml verbatim (see run that failed on duplicate '35').
+          # BASE is the pubspec.yaml floor; run_number guarantees forward progress even
+          # when nobody remembers to bump pubspec.yaml before pushing.
+          BASE=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          BUILD_NUMBER=$((BASE + ${{ github.run_number }}))
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
-          echo "Extracted build number: $BUILD_NUMBER"
+          echo "pubspec base: $BASE, run_number: ${{ github.run_number }}, using build number: $BUILD_NUMBER"
 
       - name: Configure Manual Signing and Build
         run: |

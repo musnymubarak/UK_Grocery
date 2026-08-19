@@ -50,11 +50,16 @@ jobs:
           echo "keyAlias=$ANDROID_KEY_ALIAS" >> android/key.properties
           echo "storeFile=upload-keystore.jks" >> android/key.properties
 
-      - name: Extract Build Number from pubspec.yaml
+      - name: Calculate Build Number
         run: |
-          BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          # Play Console rejects a versionCode <= one already uploaded, so this can't
+          # just read pubspec.yaml verbatim (see ios_testflight.yml for the failure that
+          # hit this exact bug). BASE is the pubspec.yaml floor; run_number guarantees
+          # forward progress even when nobody remembers to bump pubspec.yaml before pushing.
+          BASE=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
+          BUILD_NUMBER=$((BASE + ${{ github.run_number }}))
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
-          echo "Extracted build number: $BUILD_NUMBER"
+          echo "pubspec base: $BASE, run_number: ${{ github.run_number }}, using build number: $BUILD_NUMBER"
 
       - name: Build Release APK
         run: flutter build apk --release --build-number=$BUILD_NUMBER
