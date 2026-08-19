@@ -102,7 +102,11 @@ async def google_login_customer(
         # Accept any of the configured client IDs (web + iOS + Android) — comma-separated in GOOGLE_CLIENT_ID
         allowed_auds = [a.strip() for a in settings.GOOGLE_CLIENT_ID.split(",") if a.strip()]
         if allowed_auds and id_info.get("aud") not in allowed_auds:
-            raise ValueError("Unrecognized Google client ID (audience mismatch)")
+            # Log the received aud — without it, a client-ID rotation is invisible in logs.
+            raise ValueError(
+                f"Unrecognized Google client ID (audience mismatch): received aud="
+                f"{id_info.get('aud')!r}, allowed={allowed_auds}"
+            )
         
         email = id_info['email']
         name = id_info.get('name', email.split('@')[0])

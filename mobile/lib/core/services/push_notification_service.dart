@@ -22,7 +22,11 @@ class PushNotificationService {
   PushNotificationService._();
   static final PushNotificationService instance = PushNotificationService._();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  // MUST stay lazy. As an eager field initializer this ran during construction of
+  // the `instance` singleton and threw [core/no-app] before Firebase.initializeApp()
+  // had a chance to run, which broke every caller — including Apple/Google sign-in.
+  FirebaseMessaging get _messaging => FirebaseMessaging.instance;
+
   final FlutterLocalNotificationsPlugin _localNotifs =
       FlutterLocalNotificationsPlugin();
 
@@ -41,9 +45,11 @@ class PushNotificationService {
     if (_initialized) return;
 
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
       // Notification settings / permissions

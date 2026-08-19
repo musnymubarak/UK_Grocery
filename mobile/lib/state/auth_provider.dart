@@ -18,10 +18,18 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider() {
     ApiClient.instance.onAuthExpired.listen((_) {
       _customer = null;
-      PushNotificationService.instance.unregisterOnLogout();
+      _safePush(() => PushNotificationService.instance.unregisterOnLogout());
       notifyListeners();
     });
     _bootstrap();
+  }
+
+  /// Push notifications are a best-effort side effect of auth — never let a
+  /// failure there (e.g. Firebase not initialised) fail a sign-in or sign-out.
+  void _safePush(Future<void> Function() action) {
+    try {
+      action().catchError((_) {});
+    } catch (_) {}
   }
 
   Customer? _customer;
@@ -40,9 +48,12 @@ class AuthProvider extends ChangeNotifier {
     if (token != null && token.isNotEmpty) {
       try {
         _customer = await Api.instance.auth.me();
-        PushNotificationService.instance.syncTokenWithBackend();
       } catch (_) {
         await ApiClient.instance.tokens.clear();
+      }
+      // Outside the try: a push failure must not clear a valid session.
+      if (_customer != null) {
+        _safePush(() => PushNotificationService.instance.syncTokenWithBackend());
       }
     }
     _bootstrapping = false;
@@ -52,7 +63,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signIn({required String email, required String password}) async {
     await Api.instance.auth.login(email: email, password: password);
     _customer = await Api.instance.auth.me();
-    PushNotificationService.instance.syncTokenWithBackend();
+    _safePush(() => PushNotificationService.instance.syncTokenWithBackend());
     notifyListeners();
   }
 
@@ -73,7 +84,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> googleSignIn(String idToken) async {
     await Api.instance.auth.googleLogin(idToken);
     _customer = await Api.instance.auth.me();
-    PushNotificationService.instance.syncTokenWithBackend();
+    _safePush(() => PushNotificationService.instance.syncTokenWithBackend());
     notifyListeners();
   }
 
@@ -96,7 +107,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> appleSignIn(String identityToken, {String? email, String? fullName}) async {
     await Api.instance.auth.appleLogin(identityToken, email, fullName);
     _customer = await Api.instance.auth.me();
-    PushNotificationService.instance.syncTokenWithBackend();
+    _safePush(() => PushNotificationService.instance.syncTokenWithBackend());
     notifyListeners();
   }
 
