@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../state/auth_provider.dart';
-import '../../state/cart_provider.dart';
 import '../../state/content_provider.dart';
 
 /// Layout-for-layout port of the storefront Landing (`/`): logo header, the
