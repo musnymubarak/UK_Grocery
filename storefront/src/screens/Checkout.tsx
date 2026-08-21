@@ -1,18 +1,34 @@
 import { motion } from 'motion/react';
 import Layout from '../components/Layout';
-import { MapPin, CreditCard, ShieldCheck, Clock, CheckCircle2, Tag, ReceiptText, Loader2, ArrowRight, Plus } from 'lucide-react';
+import { MapPin, CreditCard, ShieldCheck, Clock, CheckCircle2, Tag, ReceiptText, Loader2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderApi, couponApi, customerAuthApi, catalogApi, getErrorMessage } from '../services/api';
+import { orderApi, paymentApi, couponApi, customerAuthApi, catalogApi, getErrorMessage } from '../services/api';
 import { useState, useEffect } from 'react';
 import React from 'react';
 import toast from 'react-hot-toast';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { APP_CONFIG } from '../constants';
+
+// Loaded once at module scope, not per-render.
+const stripePromise = loadStripe(APP_CONFIG.stripePublishableKey);
 
 export default function Checkout() {
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutForm />
+    </Elements>
+  );
+}
+
+function CheckoutForm() {
   const navigate = useNavigate();
   const { cart, totalPrice, clearCart, selectedStore, hasAgeRestrictedItems } = useCart();
   const { isAuthenticated } = useAuth();
+  const stripe = useStripe();
+  const elements = useElements();
 
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
@@ -25,7 +41,6 @@ export default function Checkout() {
 
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
   const [deliveryTiming, setDeliveryTiming] = useState<'asap' | 'schedule'>('asap');
-  const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '' });
 
   const [submitting, setSubmitting] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
@@ -187,6 +202,60 @@ export default function Checkout() {
     setSubmitting(true);
     setError(null);
 
+    // Card payment must be confirmed with Stripe *before* the order exists —
+    // mirrors mobile's flow (checkout_screen.dart). COD skips this entirely.
+    let stripePaymentIntentId: string | undefined;
+    if (paymentMethod === 'online') {
+      if (!stripe || !elements) {
+        const msg = 'Payment is still loading. Please wait a moment and try again.';
+        setError(msg);
+        toast.error(msg);
+        setSubmitting(false);
+        return;
+      }
+      // getElement(CardElement)'s overload resolution doesn't narrow cleanly
+      // against @stripe/stripe-js's full Element union in this version combo.
+      const cardElement = elements.getElement(CardElement) as unknown as import('@stripe/stripe-js').StripeCardElement | null;
+      if (!cardElement) {
+        const msg = 'Please enter your card details.';
+        setError(msg);
+        toast.error(msg);
+        setSubmitting(false);
+        return;
+      }
+
+      try {
+        const { data } = await paymentApi.createPaymentIntent({ amount: finalTotal });
+        const { paymentIntent, error: stripeError } = await stripe.confirmCardPayment(data.client_secret, {
+          payment_method: { card: cardElement },
+        });
+
+        if (stripeError) {
+          // Stripe's own messages are already written for customers to read.
+          const msg = stripeError.message || 'Your card was declined. Please try a different card.';
+          setError(msg);
+          toast.error(msg);
+          setSubmitting(false);
+          return;
+        }
+        if (paymentIntent?.status !== 'succeeded') {
+          const msg = 'Payment could not be confirmed. Please try again.';
+          setError(msg);
+          toast.error(msg);
+          setSubmitting(false);
+          return;
+        }
+        stripePaymentIntentId = paymentIntent.id;
+      } catch (err) {
+        // Network/API failure creating the intent — nothing was charged.
+        const msg = getErrorMessage(err, "We couldn't reach the payment provider. Please try again.");
+        setError(msg);
+        toast.error(msg);
+        setSubmitting(false);
+        return;
+      }
+    }
+
     try {
       const res = await orderApi.checkout(selectedStore.id, {
         items: cart.map((item) => ({ product_id: item.id, quantity: item.quantity })),
@@ -197,6 +266,7 @@ export default function Checkout() {
         notes: notes || undefined,
         coupon_code: appliedDiscount > 0 && promoCode.trim() ? promoCode.trim().toUpperCase() : undefined,
         age_confirmed: hasAgeRestrictedItems ? isAgeConfirmed : undefined,
+        stripe_payment_intent_id: stripePaymentIntentId,
       });
       clearCart();
       localStorage.removeItem('dg_temp_postcode');
@@ -209,7 +279,12 @@ export default function Checkout() {
       navigate(`/tracking/${orderId}`);
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
-      const message = typeof detail === 'string' ? detail : getErrorMessage(err, 'Failed to place order. Please try again.');
+      // If we already have a Stripe payment intent, the card was charged
+      // before this call ever ran — don't imply otherwise.
+      const fallback = stripePaymentIntentId
+        ? "Your payment went through, but we couldn't confirm your order. Please contact support@dailygrocer.co.uk before ordering again."
+        : 'Failed to place order. Please try again.';
+      const message = typeof detail === 'string' ? detail : getErrorMessage(err, fallback);
       setError(message);
       toast.error(message);
     } finally {
@@ -219,7 +294,10 @@ export default function Checkout() {
 
   return (
     <Layout title="Checkout" showBack dark>
-      <div className="px-4 py-5 pb-40 space-y-4 md:max-w-2xl md:mx-auto w-full">
+      {/* pb-36 clears the sticky CTA bar below (~104px) plus real margin — the
+          bottom nav no longer renders on this route, so this only has to clear
+          our own CTA bar, not both. */}
+      <div className="px-4 py-5 pb-36 space-y-4 md:max-w-2xl md:mx-auto w-full">
         {/* 1. Delivery Address */}
         <CheckoutSection
           icon={<MapPin size={18} />}
@@ -324,28 +402,37 @@ export default function Checkout() {
               title="Card Payment"
               subtitle="Visa, Mastercard, Amex"
             />
-            <button
-              className="relative flex cursor-pointer rounded-md border border-outline-variant bg-surface-container-lowest p-3 items-center w-full hover:bg-surface-container-low transition-colors"
-              type="button"
-            >
-              <div className="flex items-center gap-3 w-full">
-                <Plus size={18} className="text-outline" />
-                <span className="text-label-bold text-text-main">Add a new card</span>
-              </div>
-            </button>
           </div>
 
           {paymentMethod === 'online' && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="mt-3 pt-3 border-t border-outline-variant space-y-3 overflow-hidden"
+              className="mt-3 pt-3 border-t border-outline-variant overflow-hidden"
             >
-              <Input label="Card Number" placeholder="**** **** **** ****" value={cardDetails.number} onChange={(v) => setCardDetails({ ...cardDetails, number: v })} />
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Expiry Date" placeholder="MM/YY" value={cardDetails.expiry} onChange={(v) => setCardDetails({ ...cardDetails, expiry: v })} />
-                <Input label="CVV" placeholder="***" type="password" value={cardDetails.cvv} onChange={(v) => setCardDetails({ ...cardDetails, cvv: v })} />
+              <label htmlFor="card-element" className="text-xs font-semibold text-text-main block mb-1.5">
+                Card Details
+              </label>
+              <div
+                id="card-element"
+                className="w-full bg-surface-container-lowest border border-outline-variant rounded-md px-3 py-3 focus-within:border-action-blue focus-within:ring-1 focus-within:ring-action-blue"
+              >
+                <CardElement
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: '14px',
+                        color: '#1E293B',
+                        '::placeholder': { color: '#94A3B8' },
+                      },
+                      invalid: { color: '#DC2626' },
+                    },
+                  }}
+                />
               </div>
+              {APP_CONFIG.stripePublishableKey.startsWith('pk_test_') && (
+                <p className="mt-1.5 text-[11px] text-on-surface-variant">Test mode — use 4242 4242 4242 4242, any future date, any CVC.</p>
+              )}
             </motion.div>
           )}
         </CheckoutSection>
@@ -465,8 +552,9 @@ export default function Checkout() {
         )}
       </div>
 
-      {/* Sticky Place Order CTA */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-3xl lg:max-w-5xl xl:max-w-[90rem] bg-surface-container-lowest border-t border-outline-variant p-4 z-40 mb-14">
+      {/* Sticky Place Order CTA — sits flush against the viewport bottom now that
+          the global bottom nav is hidden on this route (no more stacked bars). */}
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] md:max-w-3xl lg:max-w-5xl xl:max-w-[90rem] bg-surface-container-lowest border-t border-outline-variant px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-40">
         <div className="md:max-w-2xl md:mx-auto">
           <button
             onClick={handlePlaceOrder}

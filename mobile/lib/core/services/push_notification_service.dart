@@ -122,7 +122,9 @@ class PushNotificationService {
                 presentSound: true,
               ),
             ),
-            payload: message.data['notification_type'] ?? message.data['reference_id'],
+            // Both fields, not just one — the tap handler needs the type to
+            // know which screen to open, and the id to know which record.
+            payload: '${message.data['notification_type'] ?? ''}|${message.data['reference_id'] ?? ''}',
           );
         }
       });
@@ -205,19 +207,26 @@ class PushNotificationService {
   void _handleRemoteMessageNavigation(RemoteMessage message, GlobalKey<NavigatorState>? navigatorKey) {
     final referenceId = message.data['reference_id'];
     final notifType = message.data['notification_type'];
-
-    if (navigatorKey?.currentState != null) {
-      if (notifType == 'order_update' && referenceId != null && referenceId.isNotEmpty) {
-        navigatorKey!.currentState!.pushNamed(AppRouter.notifications);
-      } else {
-        navigatorKey?.currentState?.pushNamed(AppRouter.notifications);
-      }
-    }
+    _navigateForNotification(notifType, referenceId, navigatorKey);
   }
 
   void _handleNotificationTap(String? payload, GlobalKey<NavigatorState>? navigatorKey) {
-    if (navigatorKey?.currentState != null) {
-      navigatorKey!.currentState!.pushNamed(AppRouter.notifications);
+    final parts = (payload ?? '').split('|');
+    final notifType = parts.isNotEmpty && parts[0].isNotEmpty ? parts[0] : null;
+    final referenceId = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
+    _navigateForNotification(notifType, referenceId, navigatorKey);
+  }
+
+  /// Order-update notifications deep-link straight to that order; everything
+  /// else (or a missing/unrecognized id) falls back to the notifications list.
+  void _navigateForNotification(String? notifType, String? referenceId, GlobalKey<NavigatorState>? navigatorKey) {
+    final navigator = navigatorKey?.currentState;
+    if (navigator == null) return;
+
+    if (notifType == 'order_update' && referenceId != null && referenceId.isNotEmpty) {
+      navigator.pushNamed(AppRouter.orderTracking, arguments: {'id': referenceId});
+    } else {
+      navigator.pushNamed(AppRouter.notifications);
     }
   }
 }

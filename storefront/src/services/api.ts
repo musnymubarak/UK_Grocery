@@ -149,11 +149,25 @@ export const orderApi = {
     coupon_code?: string;
     notes?: string;
     age_confirmed?: boolean;
+    stripe_payment_intent_id?: string;
   }) => api.post(`/orders/checkout?store_id=${storeId}`, data),
 
   myOrders: () => api.get('/orders/me'),
-  
+
   getMyOrder: (id: string) => api.get(`/orders/me/${id}`),
+};
+
+// ─── Payments (auth required) ────────────────────
+// Mirrors mobile/lib/data/api/payment_api.dart — same backend contract.
+
+export const paymentApi = {
+  createPaymentIntent: (data: { amount: number; saveCard?: boolean; paymentMethodId?: string }) =>
+    api.post<{ client_secret: string; id: string; status: string }>('/payments/create-payment-intent', {
+      amount: data.amount,
+      currency: 'gbp',
+      save_card: data.saveCard ?? false,
+      payment_method_id: data.paymentMethodId,
+    }),
 };
 
 export const couponApi = {

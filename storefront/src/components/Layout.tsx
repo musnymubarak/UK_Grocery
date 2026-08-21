@@ -84,7 +84,9 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
   }, [isAuthenticated, location.pathname]);
 
   const isAuthPage = location.pathname === '/login';
-  const hideBottomNav = location.pathname === '/';
+  // Checkout renders its own sticky "Place Order" bar — showing the global nav
+  // underneath it too causes the two bars to overlap (see Checkout.tsx CTA bar).
+  const hideBottomNav = location.pathname === '/' || location.pathname.startsWith('/checkout');
 
   // Header tone
   const headerBg = dark ? 'bg-surface-dark' : 'bg-surface-container-lowest';
@@ -222,7 +224,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
 
           {/* Bottom Navigation — Modernized */}
           {!hideBottomNav && (
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-outline-variant flex justify-around items-center h-16 pb-safe z-50">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-outline-variant flex justify-around items-center min-h-16 pb-[env(safe-area-inset-bottom)] z-50">
               <BottomNavLink
                 to="/stores"
                 icon={<Store size={22} strokeWidth={2.5} />}
