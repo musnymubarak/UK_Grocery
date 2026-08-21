@@ -33,6 +33,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-this-secret-key-in-production}
       - DEBUG=${DEBUG:-False}
+      - ENABLE_API_DOCS=${ENABLE_API_DOCS:-False}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:5173}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,nginx}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}

@@ -51,9 +51,9 @@ def create_app() -> FastAPI:
         title="Daily Grocer API",
         version=settings.APP_VERSION,
         description="Multi-location online grocery platform",
-        docs_url="/docs" if settings.DEBUG else None,
-        redoc_url="/redoc" if settings.DEBUG else None,
-        openapi_url="/openapi.json" if settings.DEBUG else None,
+        docs_url="/docs" if settings.ENABLE_API_DOCS else None,
+        redoc_url="/redoc" if settings.ENABLE_API_DOCS else None,
+        openapi_url="/openapi.json" if settings.ENABLE_API_DOCS else None,
         lifespan=lifespan,
     )
 

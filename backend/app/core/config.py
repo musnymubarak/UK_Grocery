@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     APP_NAME: str = "Daily Grocer"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
+    # Separate from DEBUG on purpose: this server is publicly reachable at
+    # api.dailygrocer.co.uk with a real cert, so /docs being tied to DEBUG meant
+    # "convenient for local dev" and "world-readable API map" were the same
+    # switch. This one only controls doc exposure; DEBUG still controls the
+    # auto-create-tables dev convenience, untouched.
+    ENABLE_API_DOCS: bool = False
     CORS_ORIGINS: str = "http://localhost,http://localhost:5173"
     ALLOWED_HOSTS: str = "localhost,127.0.0.1"
     UPLOAD_DIR: str = "uploads"
