@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme/app_colors.dart';
-import '../core/theme/app_shadows.dart';
-import '../core/theme/app_spacing.dart';
 import '../state/cart_provider.dart';
-import '../state/notifications_provider.dart';
-import 'animated_press.dart';
 
 class NavItem {
   const NavItem({required this.icon, required this.activeIcon, required this.label});
