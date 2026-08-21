@@ -70,6 +70,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Analyze & test
+        run: |
+          flutter analyze
+          flutter test
+
       - name: Install the Apple certificate and provisioning profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}

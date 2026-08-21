@@ -71,6 +71,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Analyze & test
+        run: |
+          flutter analyze
+          flutter test
+
       - name: Decode Android Keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
