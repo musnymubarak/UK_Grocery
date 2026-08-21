@@ -384,14 +384,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       } catch (e, stackTrace) {
         if (!mounted) return;
         setState(() => _processing = false);
+        // Full detail stays in the debug log; the customer only ever sees a
+        // plain message — never raw exception text or a stack trace.
         debugPrint('Checkout error: $e\n$stackTrace');
-        
+
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Unexpected Error'),
-            content: SingleChildScrollView(
-              child: Text('$e\n\n$stackTrace', style: const TextStyle(fontSize: 12)),
+            title: const Text('Something went wrong'),
+            content: const Text(
+              "We couldn't place your order. Please check your connection and try again — you haven't been charged.",
             ),
             actions: [
               TextButton(
@@ -429,10 +431,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      debugPrint('Order creation error: $e\n$stackTrace');
+      // If we got here after `online`/`platform`, Stripe already succeeded above —
+      // this is a paid-but-no-order state, not a "nothing happened, try again" one.
+      final chargedAlready = _payment == 'online' || _payment == 'platform';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Couldn't place your order. Error: $e")),
+        SnackBar(
+          content: Text(
+            chargedAlready
+                ? "Your payment went through, but we couldn't confirm your order. "
+                  "Please contact support@dailygrocer.co.uk before ordering again."
+                : "We couldn't place your order. Please check your connection and try again.",
+          ),
+          duration: const Duration(seconds: 8),
+        ),
       );
     } finally {
       if (mounted) setState(() => _processing = false);

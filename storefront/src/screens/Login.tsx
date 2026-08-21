@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import Layout from '../components/Layout';
 import { 
-  Eye, EyeOff, LogIn, Facebook, Apple, 
+  Eye, EyeOff, LogIn,
   UserPlus, Gift, Zap, Tag, ChevronRight
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
@@ -85,10 +85,6 @@ export default function Login() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleSocialLogin = (provider: string) => {
-    alert(`Login with ${provider} will be available soon! We are setting up the secure OAuth connection.`);
   };
 
   const heroSrc = isSignUp ? "/images/registration_hero.png" : "/images/login_hero.png";
@@ -313,15 +309,10 @@ export default function Login() {
 
               {/* Social Logins as Outlines */}
               <div className="space-y-3 mt-4">
-                <button 
-                  type="button"
-                  onClick={() => handleSocialLogin('Facebook')}
-                  className="w-full border border-gray-300 py-3 rounded-lg font-bold text-[#1E293B] hover:bg-gray-50 transition-all flex items-center justify-center gap-3 cursor-pointer"
-                >
-                  <Facebook size={18} fill="#1877F2" className="text-[#1877F2]" />
-                  <span className="text-sm">Login with Facebook</span>
-                </button>
-                
+                {/* Facebook login removed: no backend support exists yet (only
+                    /customers/google and /customers/apple do) and there's no
+                    Facebook Developer app configured. Re-add once both exist. */}
+
                 {/* Native Google button for auth flow */}
                 <div className="w-full flex justify-center mt-3">
                   <GoogleLogin
@@ -329,7 +320,9 @@ export default function Login() {
                       if (credentialResponse.credential) {
                         googleLogin(credentialResponse.credential)
                           .then(() => navigate(redirectTo))
-                          .catch(() => {});
+                          .catch(() => {
+                            toast.error('Google Login Failed. Please try again.');
+                          });
                       }
                     }}
                     onError={() => {

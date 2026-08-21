@@ -23,4 +23,8 @@ export const APP_CONFIG = {
   deliveryFee: 3.99,
   freeDeliveryThreshold: 50,
   googleClientId: '831513497012-88u2bqs01njl5fv2f88t3q37n6e5t1fh.apps.googleusercontent.com',
+  // Publishable key — safe to ship client-side. Same Stripe test-mode account
+  // mobile already uses, so both clients hit the same sandbox. Swap for a
+  // live key as the final pre-launch step (see the readiness audit).
+  stripePublishableKey: 'pk_test_51Tn08LRt4m9309WQYxo8Ztt4txTwYIVnZIHQyZQd3cRcEnh4ivxh2meSqlnA2wVU6XuK8ohndznZwcVDNHXM2oF500hSDuhqHj',
 };
