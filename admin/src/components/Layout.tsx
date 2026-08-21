@@ -76,8 +76,8 @@ export default function Layout() {
             >
                 {/* Brand */}
                 <div className="flex items-center gap-3 h-16 px-4 border-b border-white/10 shrink-0">
-                    <div className="h-9 w-9 shrink-0 rounded-lg bg-white p-1 shadow-sm flex items-center justify-center overflow-hidden">
-                        <img src="/logo.png" alt="Daily Grocer" className="w-full h-full object-contain" />
+                    <div className="h-10 w-10 shrink-0 rounded-xl bg-white p-1.5 shadow-md flex items-center justify-center overflow-hidden ring-1 ring-white/20">
+                        <img src="/logo.svg" alt="Daily Grocer" className="w-full h-full object-contain" />
                     </div>
                     <div className={cn('min-w-0', collapsed && 'lg:hidden')}>
                         <div className="font-headline font-extrabold text-white leading-tight truncate">{selectedStore ? selectedStore.name : 'Daily Grocer'}</div>

@@ -112,7 +112,7 @@ export default function Layout({ children, title = 'Daily Grocer', showBack = fa
                 </button>
               )}
               <Link to={selectedStore ? '/browse' : '/'} className="flex items-center cursor-pointer shrink-0">
-                <img src={branding.logo_url || '/logo.png'} alt={branding.app_name} className="h-10 md:h-12 w-auto object-contain" />
+                <img src={branding.logo_url || '/logo.svg'} alt={branding.app_name} className="h-10 md:h-12 w-auto object-contain" />
               </Link>
 
               {/* Store Details Selector Block (Snappy Shopper Style) */}
