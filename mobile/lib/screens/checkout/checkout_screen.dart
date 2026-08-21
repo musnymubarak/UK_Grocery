@@ -61,7 +61,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   List<dynamic> _suggestions = [];
   bool _showSuggestions = false;
   Timer? _debounceTimer;
-  bool _locatingAddress = false;
 
   @override
   void initState() {
@@ -153,7 +152,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
-      setState(() => _locatingAddress = true);
       try {
         final url = Uri.parse(
           'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent('$val, UK')}&countrycodes=gb&format=json&addressdetails=1&limit=5',
@@ -168,8 +166,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           });
         }
       } catch (_) {
-      } finally {
-        if (mounted) setState(() => _locatingAddress = false);
       }
     });
   }
@@ -271,7 +267,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
     if (cart.items.isEmpty) return;
 
-    final defaultFee = store.defaultDeliveryFee ?? 2.99;
+    final defaultFee = store.defaultDeliveryFee;
     final baseDelivery = _serverFee ?? defaultFee;
     final delivery = cart.subtotal > store.freeDeliveryThreshold ? 0.0 : baseDelivery;
     final rawTotal = cart.subtotal + delivery - _appliedDiscount;
@@ -345,7 +341,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               throw Exception('3D Secure failed. Status: ${paymentIntent.status}');
             }
           } else {
-            final customer = Provider.of<AuthProvider>(context, listen: false).customer;
+            final customer = auth.customer;
 
             final paymentIntent = await Stripe.instance.confirmPayment(
               paymentIntentClientSecret: clientSecret,
