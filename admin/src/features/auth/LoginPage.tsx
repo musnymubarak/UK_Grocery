@@ -37,8 +37,8 @@ export default function LoginPage() {
 
             <div className="login-card">
                 <div className="login-header">
-                    <div className="login-logo">
-                        <ShoppingBag size={28} />
+                    <div className="login-logo overflow-hidden p-1.5 bg-white ring-1 ring-black/5 shadow-md">
+                        <img src="/logo.png" alt="Daily Grocer" className="w-full h-full object-contain" />
                     </div>
                     <h2>Welcome Back</h2>
                     <p>Sign in to your Daily Grocer account</p>
