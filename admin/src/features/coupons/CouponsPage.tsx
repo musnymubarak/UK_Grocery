@@ -17,6 +17,8 @@ interface Coupon {
     current_redemptions: number;
     max_per_customer: number;
     is_active: boolean;
+    valid_from?: string | null;
+    valid_until?: string | null;
 }
 
 const DISCOUNT_TYPE_LABEL: Record<string, string> = {
@@ -32,7 +34,16 @@ const EMPTY_FORM = {
     minimum_order_value: '',
     max_redemptions: '',
     max_per_customer: '1',
+    valid_from: '',
+    valid_until: '',
 };
+
+// Backend returns full ISO datetimes; a <input type="date"> only wants the
+// date part, so trim it — and only the date, never send a partial-parse.
+function toDateInputValue(iso?: string | null): string {
+    if (!iso) return '';
+    return iso.slice(0, 10);
+}
 
 function describeDiscount(c: Coupon) {
     if (c.discount_type === 'percentage_discount') return `${c.discount_value}%`;
@@ -125,6 +136,12 @@ export default function CouponsPage() {
                                         <span className="font-semibold text-on-surface">£{coupon.minimum_order_value}</span>
                                     </div>
                                 )}
+                                {coupon.valid_until && (
+                                    <div className="flex justify-between">
+                                        <span>Expires</span>
+                                        <span className="font-semibold text-on-surface">{toDateInputValue(coupon.valid_until)}</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="mt-5 pt-4 border-t border-outline-variant flex items-center justify-end gap-1">
@@ -186,6 +203,8 @@ function CouponFormModal({
         minimum_order_value: editing?.minimum_order_value != null ? String(editing.minimum_order_value) : EMPTY_FORM.minimum_order_value,
         max_redemptions: editing?.max_redemptions != null ? String(editing.max_redemptions) : EMPTY_FORM.max_redemptions,
         max_per_customer: editing?.max_per_customer != null ? String(editing.max_per_customer) : EMPTY_FORM.max_per_customer,
+        valid_from: toDateInputValue(editing?.valid_from) || EMPTY_FORM.valid_from,
+        valid_until: toDateInputValue(editing?.valid_until) || EMPTY_FORM.valid_until,
     });
 
     const saveMutation = useMutation({
@@ -208,12 +227,18 @@ function CouponFormModal({
             toast.error('Percentage discount cannot exceed 100%');
             return;
         }
+        if (formData.valid_from && formData.valid_until && formData.valid_from > formData.valid_until) {
+            toast.error('"Valid Until" must be after "Valid From"');
+            return;
+        }
         const payload = {
             ...formData,
             discount_value: discountValue,
             minimum_order_value: formData.minimum_order_value ? parseFloat(formData.minimum_order_value) : null,
             max_redemptions: formData.max_redemptions ? parseInt(formData.max_redemptions, 10) : null,
             max_per_customer: parseInt(formData.max_per_customer, 10),
+            valid_from: formData.valid_from || null,
+            valid_until: formData.valid_until || null,
         };
         saveMutation.mutate(payload);
     };
@@ -271,7 +296,14 @@ function CouponFormModal({
                     <FormField label="Max Per Customer">
                         <Input type="number" min="1" value={formData.max_per_customer} onChange={e => setFormData({ ...formData, max_per_customer: e.target.value })} />
                     </FormField>
+                    <FormField label="Valid From">
+                        <Input type="date" value={formData.valid_from} onChange={e => setFormData({ ...formData, valid_from: e.target.value })} />
+                    </FormField>
+                    <FormField label="Valid Until">
+                        <Input type="date" value={formData.valid_until} onChange={e => setFormData({ ...formData, valid_until: e.target.value })} />
+                    </FormField>
                 </div>
+                <p className="text-xs text-gray-500 mt-2">Leave either blank for no start/end restriction. For a coupon valid one year from today, set "Valid Until" to today's date next year.</p>
             </form>
         </Modal>
     );

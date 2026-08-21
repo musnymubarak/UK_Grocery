@@ -23,8 +23,13 @@ celery_app.conf.update(
     broker_connection_max_retries=0,
 )
 
-# Autodiscover tasks from app.tasks package
-celery_app.autodiscover_tasks(["app.tasks"])
+# autodiscover_tasks(["app.tasks"]) looked for a module named app.tasks.tasks,
+# which doesn't exist — every task module below (archival, assignment, maintenance,
+# rewards, search, webhooks) was silently never imported, so none of their
+# @celery_app.task-decorated functions ever registered. A worker running against
+# this app rejected every task, scheduled or not, as "unregistered". Import each
+# module explicitly so its decorators actually run at startup.
+from app.tasks import archival, assignment, maintenance, rewards, search, webhooks  # noqa: E402,F401
 
 # Celery Beat schedule
 celery_app.conf.beat_schedule = {
