@@ -42,6 +42,7 @@ services:
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/firebase-service-account.json:/app/firebase-service-account.json:ro
+      - postgres_backups:/app/backups
     depends_on:
       - db
       - redis
@@ -66,6 +67,7 @@ services:
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/firebase-service-account.json:/app/firebase-service-account.json:ro
+      - postgres_backups:/app/backups
     depends_on:
       - db
       - redis
@@ -132,6 +134,7 @@ services:
 
 volumes:
   postgres_data:
+  postgres_backups:
 
 
 

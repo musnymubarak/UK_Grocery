@@ -21,6 +21,7 @@ services:
     volumes:
       - /app
       - ./backend/uploads:/app/uploads
+      - postgres_backups:/app/backups
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
     depends_on:
       migrations:

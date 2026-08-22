@@ -1,13 +1,31 @@
 # POS Database Backup and Restore Runbook
 
 ## Overview
-This runbook covers the manual restore procedure, triggering manual backups, and retrieving backups from Azure Blob Storage. It documents the newly implemented automated backup and disaster recovery architecture.
+Nightly backups run automatically via a Celery beat task (`app.tasks.backup.create_database_backup`,
+02:00 UTC) inside the `celery-worker` container, writing to the `postgres_backups` Docker volume
+(mounted at `/app/backups` in both `backend` and `celery-worker`). Backups older than 14 days are
+pruned automatically. `Jenkinsfile.verify_backup` runs every 30 minutes, confirms a backup newer
+than 26 hours exists in that volume, and does a full restore into a throwaway Postgres container to
+confirm it's actually valid — a missing or unrestorable backup fails that pipeline (and pages Slack),
+it no longer skips silently.
+
+**Known gap:** this is local-only. There is currently no offsite/second-location copy — losing this
+server loses the backups along with the live database. Shipping a copy offsite (object storage,
+another host, etc.) is a tracked follow-up, not yet implemented.
 
 ## RPO & RTO Expectations
-* **Recovery Point Objective (RPO):** Up to 24 hours of data loss max with nightly backups. (Note: continuous WAL archiving is a tracked follow-up ticket).
-* **Recovery Time Objective (RTO):** 15–30 minutes depending on download speed.
+* **Recovery Point Objective (RPO):** Up to 24 hours of data loss max with nightly backups, *provided
+  this server survives* — the backups live on the same host as the database. (Continuous WAL
+  archiving and an offsite copy are both tracked follow-ups.)
+* **Recovery Time Objective (RTO):** A few minutes — the backup is already local, no download needed.
 
-To manually create a new backup, execute the `pg_dump` command against the running database container:
+To manually trigger a backup on demand instead of waiting for the nightly schedule:
+```bash
+docker exec daily_grocer_celery_worker python -c "from app.tasks.backup import create_database_backup; print(create_database_backup())"
+```
+
+To manually create a one-off backup outside the automated system entirely (e.g. before a risky
+migration), the direct `pg_dump` route still works:
 ```bash
 docker exec -t daily_grocer_db pg_dump -U $POSTGRES_USER -d $POSTGRES_DB -Fc > db_backup_$(date +%Y%m%d_%H%M%S).dump
 ```
@@ -15,6 +33,17 @@ docker exec -t daily_grocer_db pg_dump -U $POSTGRES_USER -d $POSTGRES_DB -Fc > d
 
 
 ## Step-by-Step Manual Restore Procedure
+
+### Restoring from the automated nightly backup (postgres_backups volume)
+
+1. **Find and copy out the backup you want:**
+   ```bash
+   docker exec daily_grocer_celery_worker ls -la /app/backups/
+   docker cp daily_grocer_celery_worker:/app/backups/dailygrocer_YYYYMMDD_HHMMSS.dump ./db_backup.dump
+   ```
+   Then continue from step 2 below using `./db_backup.dump` in place of the manually-downloaded file.
+
+### Restoring from a manually-downloaded `.dump` file
 **IMPORTANT:** This procedure assumes you have already downloaded the `.dump` file you wish to restore to the host machine.
 
 1. **Stop Application Containers**

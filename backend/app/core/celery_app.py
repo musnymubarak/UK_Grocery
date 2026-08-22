@@ -29,7 +29,7 @@ celery_app.conf.update(
 # @celery_app.task-decorated functions ever registered. A worker running against
 # this app rejected every task, scheduled or not, as "unregistered". Import each
 # module explicitly so its decorators actually run at startup.
-from app.tasks import archival, assignment, maintenance, rewards, search, webhooks  # noqa: E402,F401
+from app.tasks import archival, assignment, backup, maintenance, rewards, search, webhooks  # noqa: E402,F401
 
 # Celery Beat schedule
 celery_app.conf.beat_schedule = {
@@ -56,5 +56,9 @@ celery_app.conf.beat_schedule = {
     "cleanup-maintenance": {
         "task": "app.tasks.archival.cleanup_expired_tokens",
         "schedule": crontab(hour=4, minute=30),
+    },
+    "nightly-database-backup": {
+        "task": "app.tasks.backup.create_database_backup",
+        "schedule": crontab(hour=2, minute=0),  # Daily 02:00 UTC
     },
 }
