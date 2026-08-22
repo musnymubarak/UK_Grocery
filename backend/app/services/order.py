@@ -162,6 +162,15 @@ class OrderService:
         if not data.items:
             raise ValidationException("Order must have at least one item")
 
+        # store_id is client-supplied ("the frontend determines the closest store") and was
+        # previously never checked — a bogus id silently skipped the min-order-value check
+        # further down and only failed by the accident of stock reservation auto-creating a
+        # zero-stock row. Validate it's a real store in this org up front instead.
+        from app.models.store import Store
+        store = await self.db.get(Store, store_id)
+        if not store or store.organization_id != org_id:
+            raise NotFoundException("Store", store_id)
+
         # Age Restriction Validation
         from app.models.product import Product
         has_age_restricted = False
@@ -314,9 +323,7 @@ class OrderService:
             )
 
         # Validate Minimum Order Value
-        from app.models.store import Store
-        store = await self.db.get(Store, store_id)
-        if store and subtotal < store.min_order_value:
+        if subtotal < store.min_order_value:
             raise ValidationException(f"Order subtotal must be at least £{store.min_order_value:.2f}")
 
         # Apply Coupon
@@ -368,9 +375,7 @@ class OrderService:
                 order.delivery_fee = Decimal("0.00")
 
             # Apply Store Surge Multiplier if active
-            from app.models.store import Store
-            store = await self.db.get(Store, store_id)
-            if store and store.is_surge_active and store.surge_multiplier > 1.0:
+            if store.is_surge_active and store.surge_multiplier > 1.0:
                 order.delivery_fee = (order.delivery_fee * store.surge_multiplier).quantize(Decimal("0.01"))
 
             # Free-delivery coupon: waive the now-finalized fee, not a stale estimate
