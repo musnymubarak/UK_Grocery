@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, get_store_scope
+from app.core.dependencies import get_db, get_current_user, require_role, get_org_context, get_store_scope, enforce_store_access
 from app.models.user import User
 from app.models.store import Store
 from app.repositories.base import BaseRepository
@@ -58,12 +58,15 @@ async def get_store(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     org_id: UUID = Depends(get_org_context),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
 ):
     """Get store by ID."""
     repo = BaseRepository(Store, db)
     store = await repo.get_by_id(store_id)
     if not store or store.organization_id != org_id:
         raise NotFoundException("Store", store_id)
+    if store_scope:
+        enforce_store_access(store_id, store_scope)
     return store
 
 
@@ -74,12 +77,15 @@ async def update_store(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(["admin", "manager"])),
     org_id: UUID = Depends(get_org_context),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
 ):
-    """Update store (admin/manager only)."""
+    """Update store (admin/manager only). A manager may only update their own branch."""
     repo = BaseRepository(Store, db)
     store = await repo.get_by_id(store_id)
     if not store or store.organization_id != org_id:
         raise NotFoundException("Store", store_id)
+    if store_scope:
+        enforce_store_access(store_id, store_scope)
     return await repo.update(store_id, data.model_dump(exclude_unset=True))
 
 

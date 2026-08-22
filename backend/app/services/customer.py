@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.models.customer import Customer, CustomerAddress
+from app.models.order import Order
 from app.schemas.customer import CustomerCreate, CustomerUpdate, CustomerAddressCreate
 from app.core.security import hash_password, verify_password
 from app.core.exceptions import NotFoundException, ValidationException
@@ -31,7 +32,7 @@ class CustomerService:
         return await CustomerService.get_customer(db, customer.id)
 
     @staticmethod
-    async def get_customer(db: AsyncSession, customer_id: UUID) -> Customer:
+    async def get_customer(db: AsyncSession, customer_id: UUID, store_id: Optional[UUID] = None) -> Customer:
         stmt = select(Customer).where(Customer.id == customer_id).options(
             selectinload(Customer.addresses),
             selectinload(Customer.orders)
@@ -40,11 +41,20 @@ class CustomerService:
         customer = result.scalar_one_or_none()
         if not customer:
             raise NotFoundException("Customer not found")
+        if store_id is not None and not any(o.store_id == store_id for o in customer.orders):
+            # Branch managers only see customers who've actually ordered from their store —
+            # 404 rather than 403 so a mismatched ID doesn't confirm the customer exists elsewhere.
+            raise NotFoundException("Customer not found")
         return customer
 
     @staticmethod
-    async def get_customers(db: AsyncSession, org_id: UUID, skip: int = 0, limit: int = 100) -> List[Customer]:
-        stmt = select(Customer).where(Customer.organization_id == org_id).options(selectinload(Customer.addresses)).offset(skip).limit(limit)
+    async def get_customers(db: AsyncSession, org_id: UUID, skip: int = 0, limit: int = 100, store_id: Optional[UUID] = None) -> List[Customer]:
+        stmt = select(Customer).where(Customer.organization_id == org_id)
+        if store_id is not None:
+            stmt = stmt.where(
+                Customer.id.in_(select(Order.customer_id).where(Order.store_id == store_id))
+            )
+        stmt = stmt.options(selectinload(Customer.addresses)).offset(skip).limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars().all())
 

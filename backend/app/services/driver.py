@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.driver import DriverProfile
 from app.models.user import User
-from app.core.exceptions import NotFoundException, ValidationException
+from app.core.exceptions import NotFoundException, ValidationException, ForbiddenException
 from app.core.security import hash_password
 
 class DriverService:
@@ -161,11 +161,22 @@ class DriverService:
         store_id: Optional[UUID] = None,
         vehicle_type: Optional[str] = None,
         is_active: Optional[bool] = None,
+        store_scope: Optional[UUID] = None,
     ) -> dict:
-        """Edit a driver's profile fields. Only provided fields change."""
+        """Edit a driver's profile fields. Only provided fields change.
+
+        store_scope is the calling manager's own store (None for admins). A manager
+        can only edit a driver already in their store, and cannot reassign a driver
+        to a different one — store_id is force-pinned to store_scope when set.
+        """
         user = await self.db.get(User, user_id)
         if not user or user.role != "delivery_boy" or user.organization_id != org_id:
             raise NotFoundException("Driver not found")
+
+        if store_scope is not None:
+            if user.store_id != store_scope:
+                raise ForbiddenException("Access denied: you can only access your assigned store.")
+            store_id = store_scope
 
         if full_name is not None:
             user.full_name = full_name

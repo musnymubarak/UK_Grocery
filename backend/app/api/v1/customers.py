@@ -9,7 +9,7 @@ from app.core.rate_limiter import limiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_async_session
-from app.core.dependencies import get_current_user, require_role, get_org_context, get_current_customer
+from app.core.dependencies import get_current_user, require_role, get_org_context, get_current_customer, get_store_scope
 from app.core.security import create_access_token
 from app.core.exceptions import UnauthorizedException, NotFoundException
 from app.models.user import User
@@ -40,9 +40,10 @@ async def list_customers(
     limit: int = 100,
     org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_role(["admin", "manager"])),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
     db: AsyncSession = Depends(get_async_session)
 ):
-    return await CustomerService.get_customers(db, org_id=org_id, skip=skip, limit=limit)
+    return await CustomerService.get_customers(db, org_id=org_id, skip=skip, limit=limit, store_id=store_scope)
 
 # ====================
 # B2C CUSTOMER ROUTES
@@ -351,10 +352,11 @@ async def get_customer_by_id(
     customer_id: UUID,
     org_id: UUID = Depends(get_org_context),
     current_user: User = Depends(require_role(["admin", "manager"])),
+    store_scope: Optional[UUID] = Depends(get_store_scope),
     db: AsyncSession = Depends(get_async_session),
 ):
-    """Get a single customer's profile + addresses + wallet balance (admin only)."""
-    customer = await CustomerService.get_customer(db, customer_id)
+    """Get a single customer's profile + addresses + wallet balance (admin/manager only)."""
+    customer = await CustomerService.get_customer(db, customer_id, store_id=store_scope)
     if customer.organization_id != org_id:
         raise NotFoundException("Customer not found")
     return customer
