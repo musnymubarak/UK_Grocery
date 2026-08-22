@@ -1,0 +1,48 @@
+# Native launch screen — single source of truth for iOS + Android.
+#
+# REGENERATE WITH BOTH STEPS:
+#   dart run flutter_native_splash:create
+#   rm -rf android/app/src/main/res/*-night*
+#
+# Step 2 is required: the package always rewrites values-night/styles.xml with
+# a Theme.Black parent regardless of config. Deleting the -night variants makes
+# dark mode fall back to the light resources, which is what we want (see below).
+#
+# GEOMETRY (why the source images are the sizes they are)
+# -------------------------------------------------------
+# flutter_native_splash treats every source image as 4x, so a source W px wide
+# renders at W/4 dp on both platforms (image.width * pixelDensity ~/ 4).
+#
+#   assets/splash_logo.png    800x800 px  -> 200dp canvas, 600px glyph -> 150dp
+#   splash/android12_icon.png 1152x1152   -> 288dp canvas, 600px glyph -> 150dp
+#
+# The Android 12+ SplashScreen API fixes the icon canvas at 288dp and masks
+# one-third of the foreground, so artwork must fit inside a 768px (192dp)
+# circle. Our glyph is 600x444 px -> 746px diagonal, inside 768px with margin.
+#
+# Both surfaces therefore show the mark at 150dp, which is what
+# lib/screens/splash/splash_screen.dart draws (Image width: 200 -> 150dp glyph).
+# Change one, change all three.
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/splash_logo.png
+
+  # No *_dark keys on purpose. The app is locked to ThemeMode.light
+  # (lib/app.dart), so the -night resource variants are deleted and Android
+  # falls back to these light ones under OS dark mode. That keeps NormalTheme
+  # on Theme.Light too — setting color_dark alone would leave NormalTheme
+  # inheriting Theme.Black, i.e. a black window behind the Flutter UI.
+  # If dark mode is ever enabled, add color_dark/image_dark here and fix the
+  # parent of LaunchTheme/NormalTheme in values-night/styles.xml.
+
+  # Renders the asset at its intrinsic size (200pt) instead of stretching it.
+  ios_content_mode: center
+
+  android_12:
+    color: "#ffffff"
+    image: splash/android12_icon.png
+
+  android: true
+  ios: true
+  web: false

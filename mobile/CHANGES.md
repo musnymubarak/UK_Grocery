@@ -202,3 +202,60 @@ owner can supply:
 - `shell` now handles **hardware back**: back on a sub-tab returns to the Home tab; back on Home
   exits the app (instead of doing nothing / dropping to the marketing Landing).
 
+### Fix — splash showed the logo twice, small then large
+- The app was rendering **two** splash screens back to back. The native launch screen drew the mark
+  at ~150pt (iOS) / the launcher icon (Android 12+ shows it automatically, and `launch_background.xml`
+  had no image at all), then `splash_screen.dart` replaced it with a hardcoded `width: 250` logo that
+  faded in from opacity 0 and scaled 0.82 → 1.0 with `easeOutBack`. Net effect: small logo, blank
+  beat, then a larger logo growing in — read by users as "two different logos".
+- Adopted **`flutter_native_splash`** (dev dependency + `flutter_native_splash.yaml`) as the single
+  source of truth for the native side, replacing the hand-edited storyboard/`launch_background.xml`.
+  It now generates the iOS `LaunchImage`, the pre-12 Android drawables, **and** the previously
+  unconfigured Android 12+ `windowSplashScreenAnimatedIcon` / `windowSplashScreenBackground`.
+- **Matched the geometry across all four surfaces to 150dp.** The package treats every source image
+  as 4x (`image.width * pixelDensity ~/ 4`), and the Android 12 API fixes the icon canvas at 288dp
+  while masking one-third of the foreground (artwork must fit a 768px/192dp circle). Generated
+  `assets/splash_logo.png` (800px canvas, 600px mark) and `splash/android12_icon.png` (1152px canvas,
+  600px mark, 746px diagonal — inside the circle), and re-centred the mark, which was off-centre by
+  13px/23px in `logo_playful.png`. `splash_screen.dart` draws the same asset at `width: 200`.
+- **Seamless handoff**: removed the entrance fade and scale entirely. The logo is now held still and
+  un-composited (no `Transform`, no `ShaderMask`, so no `saveLayer` on the startup frames) for 350ms,
+  after which the existing shimmer + breathing pulse start. Also dropped the inert
+  `Padding(horizontal: 44)` and the dead `errorBuilder` fallback that used a third size (`width: 140`).
+- **Dark mode**: the launch screen no longer flashes black → white. The app is locked to
+  `ThemeMode.light`, so the `-night` resource variants are deleted after generation and Android falls
+  back to the light ones. Setting `color_dark` alone would not have fixed this — the package always
+  writes `values-night/styles.xml` with a `Theme.Black` parent, leaving `NormalTheme` painting a black
+  window behind the Flutter UI. This also drops the duplicate `drawable-night-*` splash PNGs.
+- `flutter analyze` clean. Regeneration is two steps, documented at the top of `flutter_native_splash.yaml`.
+
+### Splash — animated "Daily Grocer" wordmark
+- The logo now **lifts** as a two-tone wordmark rises in beneath it: navy leading word,
+  action-red remainder, echoing the logo's own colour split. Name comes from
+  `BrandingProvider` (split on the first space; a single-word tenant name stays all navy),
+  captured **once** in `initState` — `VersionGate` populates branding from the backend while
+  the splash is still up, so watching it would swap the text out mid-animation.
+- **The lift is derived, not a magic number.** The wordmark sits in a fixed-height slot, and
+  the whole column is translated down by `(gap + slot) / 2` at rest. That offset is exactly
+  what puts the *logo alone* at screen centre on frame one — preserving the seamless native
+  handoff from the previous change — and animating it to 0 lets the finished logo+wordmark
+  pair settle optically centred. Reserving the slot also means the text appearing never
+  triggers a relayout.
+- Timeline: 0–350ms hold (pixel match for the native splash, no `Transform`/`ShaderMask`),
+  then one controller drives lift (0–450ms) and a staggered wordmark fade+rise (100–600ms)
+  via `Interval`s. Shimmer and pulse stay on the **logo only** so the wordmark reads crisp.
+  `_kMinDisplay` 1700 → 2200ms so the finished mark holds for ~1s.
+- **Bundled Hanken Grotesk** (`assets/fonts/`, Bold + ExtraBold only — the two weights
+  `AppTypography` actually uses for headings). `google_fonts` resolves bundled assets before
+  the network and matches on filename prefix, so `app_typography.dart` is untouched and
+  `GoogleFonts.hankenGrotesk()` keeps working. Without this the wordmark rendered in a
+  fallback font on a cold first launch and then swapped. Files verified against the sha256 +
+  length in the `google_fonts` manifest; +112KB.
+- Wordmark style derives from `displayMedium` (already w800) rather than `copyWith`-ing a
+  weight onto a lighter style — `GoogleFonts` styles are bound to a variant-specific family,
+  so changing `fontWeight` alone would synthesise rather than load ExtraBold.
+- `textScaler: TextScaler.noScaling` on the wordmark, since the reserved slot assumes an
+  unscaled line box.
+- `widget_test.dart` gains `BrandingProvider` (the splash now reads it) and asserts the
+  wordmark renders. 17/17 tests pass; `flutter analyze` clean.
+
