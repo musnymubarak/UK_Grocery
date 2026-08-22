@@ -33,6 +33,11 @@ Thumbs.db
 
 # Logs
 *.log
+*_logs*.txt
+
+# Database dumps — never commit these
+*.sql
+*dump*
 
 # Local
 start-local.ps1
