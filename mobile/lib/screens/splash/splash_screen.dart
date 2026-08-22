@@ -3,7 +3,52 @@ import 'package:provider/provider.dart';
 
 import '../../core/router/app_router.dart';
 import '../../state/auth_provider.dart';
+import '../../state/branding_provider.dart';
 import '../../state/store_provider.dart';
+
+/// Width the logo is drawn at, in logical pixels.
+///
+/// This must equal the size the native launch screen draws it at, otherwise
+/// the handoff from the native splash to this screen shows the mark jumping
+/// size. `assets/splash_logo.png` is an 800px canvas holding a 600px mark, so
+/// 200 here puts the mark at 150dp — the same 150dp the native launch screens
+/// use on iOS, Android and the Android 12+ SplashScreen API. The geometry is
+/// derived in flutter_native_splash.yaml; change one, change all of them.
+const double _kLogoWidth = 200;
+
+/// Gap between the logo and the wordmark.
+const double _kWordmarkGap = 18;
+
+/// Fixed height reserved for the wordmark. Reserving it means the column is
+/// the same height on every frame, so the wordmark appearing never triggers a
+/// relayout — and it makes the lift distance below a derived value.
+const double _kWordmarkSlot = 34;
+
+const double _kWordmarkSize = 26;
+
+/// How far the wordmark slides up as it fades in.
+const double _kWordmarkRise = 14;
+
+/// How far the logo rises once the wordmark is revealed.
+///
+/// Half the space the wordmark occupies, which is exactly the offset that
+/// makes a centred logo+wordmark column put the *logo alone* at screen centre
+/// when the lift is at 0. That is what keeps the native handoff seamless: the
+/// group starts pushed down by this much (logo dead centre, matching the
+/// native splash) and settles to its natural centred position.
+const double _kGroupLift = (_kWordmarkGap + _kWordmarkSlot) / 2;
+
+/// How long the logo is held perfectly still before anything moves.
+const Duration _kSettleDelay = Duration(milliseconds: 350);
+
+/// Lift + wordmark reveal. Intervals below carve this up:
+/// lift 0–450ms, wordmark 100–600ms.
+const Duration _kRevealDuration = Duration(milliseconds: 600);
+
+/// Minimum time this screen stays up before routing onwards. The reveal
+/// finishes at 350 + 600 = 950ms, leaving the finished mark on screen for
+/// roughly a second.
+const Duration _kMinDisplay = Duration(milliseconds: 2200);
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,62 +58,73 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  // Main smooth entrance controller
-  late final AnimationController _entranceC = AnimationController(
+  // Logo lift + staggered wordmark reveal
+  late final AnimationController _revealC = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 900),
-  )..forward();
+    duration: _kRevealDuration,
+  );
 
-  // Subtle breathing pulse controller
+  // Subtle breathing pulse
   late final AnimationController _pulseC = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1600),
   );
 
-  // Shimmer light sheen controller
+  // Shimmer light sheen
   late final AnimationController _shimmerC = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
   );
 
-  // Smooth entrance fade
-  late final Animation<double> _fade = CurvedAnimation(
-    parent: _entranceC,
-    curve: const Interval(0.0, 0.65, curve: Curves.easeOutCubic),
+  // 0.0 → 0.75 of 600ms = 0–450ms
+  late final Animation<double> _lift = CurvedAnimation(
+    parent: _revealC,
+    curve: const Interval(0.0, 0.75, curve: Curves.easeOutCubic),
   );
 
-  // Smooth entrance scale
-  late final Animation<double> _scale = Tween<double>(begin: 0.82, end: 1.0).animate(
-    CurvedAnimation(parent: _entranceC, curve: const Interval(0.0, 0.85, curve: Curves.easeOutBack)),
+  // 0.167 → 1.0 of 600ms = 100–600ms (staggered behind the lift)
+  late final Animation<double> _wordmark = CurvedAnimation(
+    parent: _revealC,
+    curve: const Interval(0.167, 1.0, curve: Curves.easeOutCubic),
   );
 
-  // Subtle breathing pulse
   late final Animation<double> _pulse = Tween<double>(begin: 1.0, end: 1.045).animate(
     CurvedAnimation(parent: _pulseC, curve: Curves.easeInOutSine),
   );
 
+  /// Captured once so a mid-splash branding fetch cannot swap the text out
+  /// from under the animation — `VersionGate` populates `BrandingProvider`
+  /// from the backend while this screen is still on screen.
+  late final String _appName;
+
+  bool _ambientStarted = false;
   bool _minTimePassed = false;
   bool _navigated = false;
 
   @override
   void initState() {
     super.initState();
-    _entranceC.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _pulseC.repeat(reverse: true);
-        _shimmerC.forward();
-      }
+    _appName = context.read<BrandingProvider>().branding.appName;
+
+    // Nothing moves until the settle delay elapses: the first frames this
+    // screen paints are a pixel match for the native splash it replaced.
+    Future.delayed(_kSettleDelay, () {
+      if (!mounted) return;
+      setState(() => _ambientStarted = true);
+      _revealC.forward();
+      _pulseC.repeat(reverse: true);
+      _shimmerC.forward();
     });
 
-    Future.delayed(const Duration(milliseconds: 1700), () {
+    Future.delayed(_kMinDisplay, () {
       if (!mounted) return;
-      setState(() => _minTimePassed = true);
+      _minTimePassed = true;
       _maybeAdvance();
     });
   }
 
-  /// Navigate to Stores/Shell only when the animation has displayed for at least
-  /// 1.7s and AuthProvider has finished bootstrapping.
+  /// Navigate to Stores/Shell only when the logo has been displayed for at
+  /// least [_kMinDisplay] and AuthProvider has finished bootstrapping.
   void _maybeAdvance() {
     if (_navigated || !mounted) return;
     if (!_minTimePassed) return;
@@ -83,9 +139,66 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     }
   }
 
+  Shader _shimmerShader(Rect bounds) {
+    final sweep = (_shimmerC.value * 2.6) - 0.8;
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      stops: [
+        (sweep - 0.25).clamp(0.0, 1.0),
+        sweep.clamp(0.0, 1.0),
+        (sweep + 0.25).clamp(0.0, 1.0),
+      ],
+      colors: [
+        Colors.white.withValues(alpha: 0.0),
+        Colors.white.withValues(alpha: 0.45),
+        Colors.white.withValues(alpha: 0.0),
+      ],
+    ).createShader(bounds);
+  }
+
+  /// The brand name, split on the first space so it reads two-tone the way the
+  /// logo does: navy leading word, action-red remainder. A single-word brand
+  /// (this is multi-tenant — the name comes from admin branding) stays navy.
+  Widget _buildWordmark(ThemeData theme) {
+    // displayMedium is already Hanken Grotesk w800. Deriving from it keeps the
+    // ExtraBold font file — copyWith(fontWeight:) on a lighter GoogleFonts
+    // style would not switch families, it would only synthesise weight.
+    final base = theme.textTheme.displayMedium?.copyWith(
+      fontSize: _kWordmarkSize,
+      letterSpacing: -0.4,
+      height: 1.1,
+    );
+
+    final split = _appName.indexOf(' ');
+    final navy = theme.colorScheme.tertiary;
+    final red = theme.colorScheme.secondary;
+
+    return Text.rich(
+      TextSpan(
+        style: base,
+        children: split == -1
+            ? [TextSpan(text: _appName, style: TextStyle(color: navy))]
+            : [
+                TextSpan(
+                  text: _appName.substring(0, split),
+                  style: TextStyle(color: navy),
+                ),
+                TextSpan(
+                  text: _appName.substring(split),
+                  style: TextStyle(color: red),
+                ),
+              ],
+      ),
+      textAlign: TextAlign.center,
+      // The reserved slot height assumes an unscaled line box.
+      textScaler: TextScaler.noScaling,
+    );
+  }
+
   @override
   void dispose() {
-    _entranceC.dispose();
+    _revealC.dispose();
     _pulseC.dispose();
     _shimmerC.dispose();
     super.dispose();
@@ -98,62 +211,55 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     context.watch<StoreProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAdvance());
 
+    final theme = Theme.of(context);
+
+    final logo = Image.asset(
+      'assets/splash_logo.png',
+      width: _kLogoWidth,
+      fit: BoxFit.contain,
+    );
+    final wordmark = _buildWordmark(theme);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: FadeTransition(
-          opacity: _fade,
-          child: ScaleTransition(
-            scale: _scale,
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_pulseC, _shimmerC]),
-              builder: (context, child) {
-                final pulseScale = _entranceC.isCompleted ? _pulse.value : 1.0;
-                final shimmerVal = _shimmerC.value;
-
-                return Transform.scale(
-                  scale: pulseScale,
-                  child: ShaderMask(
-                    blendMode: BlendMode.srcATop,
-                    shaderCallback: (bounds) {
-                      if (!_entranceC.isCompleted) {
-                        return const LinearGradient(
-                          colors: [Colors.transparent, Colors.transparent],
-                        ).createShader(bounds);
-                      }
-                      final sweep = (shimmerVal * 2.6) - 0.8;
-                      return LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        stops: [
-                          (sweep - 0.25).clamp(0.0, 1.0),
-                          sweep.clamp(0.0, 1.0),
-                          (sweep + 0.25).clamp(0.0, 1.0),
-                        ],
-                        colors: [
-                          Colors.white.withValues(alpha: 0.0),
-                          Colors.white.withValues(alpha: 0.45),
-                          Colors.white.withValues(alpha: 0.0),
-                        ],
-                      ).createShader(bounds);
-                    },
-                    child: child,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_revealC, _pulseC, _shimmerC]),
+          builder: (context, _) => Transform.translate(
+            offset: Offset(0, _kGroupLift * (1 - _lift.value)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Before the settle delay the logo is drawn plainly — no
+                // scale and no ShaderMask, so there is no saveLayer on the
+                // frames that matter most for startup.
+                if (!_ambientStarted)
+                  logo
+                else
+                  Transform.scale(
+                    scale: _pulse.value,
+                    child: ShaderMask(
+                      blendMode: BlendMode.srcATop,
+                      shaderCallback: _shimmerShader,
+                      child: logo,
+                    ),
                   ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 44),
-                child: Image.asset(
-                  'assets/logo_playful.png',
-                  width: 250,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/app_logo.png',
-                    width: 140,
-                    fit: BoxFit.contain,
+                const SizedBox(height: _kWordmarkGap),
+                SizedBox(
+                  height: _kWordmarkSlot,
+                  // Centred in the slot so the slack between the reserved
+                  // height and the actual line box sits evenly above and below.
+                  child: Center(
+                    child: Opacity(
+                      opacity: _wordmark.value,
+                      child: Transform.translate(
+                        offset: Offset(0, _kWordmarkRise * (1 - _wordmark.value)),
+                        child: wordmark,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
