@@ -39,6 +39,7 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/firebase-service-account.json:/app/firebase-service-account.json:ro
