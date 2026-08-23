@@ -7,8 +7,7 @@ Usage:
     cd backend
     python seed.py
 
-All seeded users share the password: password123
-Admin login: admin@dailygrocer.co.uk / password123
+All seeded users share the password below (printed again at the end of a run).
 """
 
 import uuid
@@ -41,12 +40,25 @@ def _load_env_file():
 
 _load_env_file()
 
+# This script wipes real data (see the idempotency check in seed()) if it finds
+# an existing organization with a matching slug — refuse to even connect unless
+# DEBUG is explicitly on, so it can't be run by mistake against a prod-configured
+# shell/.env.
+if os.getenv("DEBUG", "False").strip().lower() not in ("true", "1", "yes"):
+    print("[REFUSED] DEBUG is not enabled — refusing to run.")
+    print("          This script can delete real data (see seed() below). Set DEBUG=true")
+    print("          in your environment if you really intend to run this against a dev database.")
+    raise SystemExit(1)
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL_SYNC",
     "postgresql://pos_user:pos_password@postgres:5432/pos_db",
 )
 
-PASSWORD = "password123"
+# Changed from the previous hardcoded default, which ended up matching a real admin
+# account on a live-configured database and was visible in this file's git history on
+# a public repo. Local/dev-only value; not meant to be memorable or reused.
+PASSWORD = "DevSeed-25f0c9-ChangeMe"
 HASHED_PW = bcrypt.hashpw(PASSWORD.encode(), bcrypt.gensalt()).decode()
 
 # Date range: 3 months  (Dec 1 2025 → Feb 28 2026)
@@ -185,7 +197,15 @@ def seed():
         cur.execute("SELECT id FROM organizations WHERE slug = 'daily-grocer' LIMIT 1")
         row = cur.fetchone()
         if row:
-            print("[WARN]  Seed data already exists. Wiping and re-seeding…")
+            print("[WARN]  An organization with slug 'daily-grocer' already exists.")
+            print("        Continuing will PERMANENTLY DELETE all data in these tables:")
+            print("        sync_logs, stock_movements, order_items, orders, inventory,")
+            print("        products, categories, users, stores, organizations")
+            confirm = input("        Type the slug 'daily-grocer' to confirm and wipe it, or anything else to abort: ").strip()
+            if confirm != "daily-grocer":
+                print("[ABORTED] Confirmation did not match — no data was deleted.")
+                return
+            print("   Wiping and re-seeding…")
             for tbl in ["sync_logs", "stock_movements", "order_items", "orders",
                         "inventory", "products", "categories", "users", "stores", "organizations"]:
                 cur.execute(f"DELETE FROM {tbl}")
