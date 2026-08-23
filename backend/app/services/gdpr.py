@@ -18,6 +18,7 @@ from app.models.notification import Notification
 from app.models.refresh_token import RefreshToken
 from app.models.wallet import WalletTransaction
 from app.models.refund import Refund
+from app.models.rewards import RewardEvent, CustomerMonthlySpend
 from app.core.security import hash_password
 from app.core.exceptions import NotFoundException
 
@@ -59,6 +60,8 @@ class GDPRService:
             "reviews": [],
             "wallet": {"balance": float(customer.wallet_balance), "transactions": []},
             "refunds": [],
+            "rewards": [],
+            "monthly_spend": [],
         }
 
         # Addresses — previously declared in the response shape but never
@@ -139,6 +142,37 @@ class GDPRService:
                 "delivery_rating": r.delivery_rating,
                 "comment": r.comment,
                 "created_at": r.created_at.isoformat(),
+            })
+
+        # Rewards / loyalty activity
+        from sqlalchemy.orm import selectinload
+        reward_result = await self.db.execute(
+            select(RewardEvent)
+            .options(selectinload(RewardEvent.tier), selectinload(RewardEvent.coupon))
+            .where(RewardEvent.customer_id == customer_id)
+            .order_by(RewardEvent.created_at.desc())
+        )
+        for re_ in reward_result.scalars().all():
+            data["rewards"].append({
+                "id": str(re_.id),
+                "tier": re_.tier.name if re_.tier else None,
+                "coupon_code": re_.coupon.code if re_.coupon else None,
+                "store_id": str(re_.store_id) if re_.store_id else None,
+                "created_at": re_.created_at.isoformat(),
+            })
+
+        # Monthly spend totals (used to determine loyalty tier eligibility)
+        spend_result = await self.db.execute(
+            select(CustomerMonthlySpend)
+            .where(CustomerMonthlySpend.customer_id == customer_id)
+            .order_by(CustomerMonthlySpend.year_month.desc())
+        )
+        for ms in spend_result.scalars().all():
+            data["monthly_spend"].append({
+                "id": str(ms.id),
+                "year_month": ms.year_month,
+                "spend_amount": float(ms.spend_amount),
+                "store_id": str(ms.store_id),
             })
 
         return data
