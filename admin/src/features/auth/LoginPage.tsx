@@ -48,8 +48,9 @@ export default function LoginPage() {
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label className="form-label">Email Address</label>
+                        <label className="form-label" htmlFor="login-email">Email Address</label>
                         <input
+                            id="login-email"
                             type="email"
                             className="form-input"
                             placeholder="you@company.com"
@@ -61,8 +62,9 @@ export default function LoginPage() {
                     </div>
 
                     <div className="form-group">
-                        <label className="form-label">Password</label>
+                        <label className="form-label" htmlFor="login-password">Password</label>
                         <input
+                            id="login-password"
                             type="password"
                             className="form-input"
                             placeholder="Enter your password"

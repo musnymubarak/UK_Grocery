@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface Option {
@@ -15,16 +15,24 @@ interface CustomSelectProps {
     disabled?: boolean;
 }
 
-export const CustomSelect: React.FC<CustomSelectProps> = ({ 
-    options, 
-    value, 
-    onChange, 
-    style, 
+export const CustomSelect: React.FC<CustomSelectProps> = ({
+    options,
+    value,
+    onChange,
+    style,
     className,
-    disabled 
+    disabled
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    // Which option is keyboard-highlighted while open (-1 = none). Focus stays
+    // on the trigger button the whole time — this follows the ARIA "select-only
+    // combobox" pattern (aria-activedescendant) rather than moving DOM focus
+    // into the popup, which is simpler to get right and avoids focus-trap bugs.
+    const [activeIndex, setActiveIndex] = useState(-1);
     const containerRef = useRef<HTMLDivElement>(null);
+    const baseId = useId();
+    const listboxId = `${baseId}-listbox`;
+    const getOptionId = (index: number) => `${baseId}-option-${index}`;
 
     // Previously fell back to options[0] when `value` wasn't in the list,
     // which silently displayed a WRONG option instead of the real value —
@@ -44,31 +52,111 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        if (isOpen && activeIndex >= 0) {
+            document.getElementById(getOptionId(activeIndex))?.scrollIntoView({ block: 'nearest' });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, activeIndex]);
+
     const handleSelect = (val: string | number) => {
         if (disabled) return;
         onChange(val);
         setIsOpen(false);
     };
 
+    const openWithActiveIndex = () => {
+        const selIdx = options.findIndex(opt => opt.value === value);
+        setActiveIndex(selIdx >= 0 ? selIdx : 0);
+        setIsOpen(true);
+    };
+
+    const handleTriggerClick = () => {
+        if (disabled) return;
+        if (isOpen) {
+            setIsOpen(false);
+        } else {
+            openWithActiveIndex();
+        }
+    };
+
+    const handleTriggerKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+        if (disabled) return;
+
+        if (!isOpen) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                openWithActiveIndex();
+            }
+            // Enter / Space: the native <button> click already opens it via
+            // handleTriggerClick — nothing extra needed here.
+            return;
+        }
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setActiveIndex(i => Math.min(i + 1, options.length - 1));
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setActiveIndex(i => Math.max(i - 1, 0));
+                break;
+            case 'Enter':
+            case ' ':
+                // Prevent the native button click the browser would otherwise
+                // also fire for Enter/Space, which would immediately re-toggle
+                // isOpen right after handleSelect closes it.
+                e.preventDefault();
+                if (activeIndex >= 0 && activeIndex < options.length) {
+                    handleSelect(options[activeIndex].value);
+                }
+                break;
+            case 'Escape':
+                e.preventDefault();
+                setIsOpen(false);
+                break;
+            case 'Tab':
+                setIsOpen(false);
+                break;
+        }
+    };
+
+    const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+        if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+            setIsOpen(false);
+        }
+    };
+
     return (
-        <div 
-            ref={containerRef} 
+        <div
+            ref={containerRef}
             className={`custom-select-container ${className || ''}`}
-            style={{ 
-                position: 'relative', 
+            onBlur={handleBlur}
+            style={{
+                position: 'relative',
                 width: '100%',
                 cursor: disabled ? 'not-allowed' : 'pointer',
                 opacity: disabled ? 0.6 : 1,
-                ...style 
+                ...style
             }}
         >
-            <div 
-                className="form-select" 
-                onClick={() => !disabled && setIsOpen(!isOpen)}
+            <button
+                type="button"
+                className="form-select"
+                onClick={handleTriggerClick}
+                onKeyDown={handleTriggerKeyDown}
+                disabled={disabled}
+                role="combobox"
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-controls={listboxId}
+                aria-activedescendant={isOpen && activeIndex >= 0 ? getOptionId(activeIndex) : undefined}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    width: '100%',
                     padding: '9px 14px',
                     background: 'var(--bg-input)',
                     border: isOpen ? '1px solid var(--primary)' : '1px solid var(--border)',
@@ -76,24 +164,29 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     borderRadius: 'var(--radius-md)',
                     transition: 'all 0.2s',
                     backgroundImage: 'none', // Remove native arrow
-                    userSelect: 'none'
+                    userSelect: 'none',
+                    font: 'inherit',
+                    textAlign: 'left',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
                 }}
             >
                 <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {displayLabel}
                 </span>
-                <ChevronDown 
-                    size={16} 
-                    style={{ 
+                <ChevronDown
+                    size={16}
+                    style={{
                         transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
                         transition: 'transform 0.2s',
                         color: 'var(--text-muted)'
-                    }} 
+                    }}
                 />
-            </div>
+            </button>
 
             {isOpen && (
-                <div 
+                <div
+                    id={listboxId}
+                    role="listbox"
                     style={{
                         position: 'absolute',
                         top: 'calc(100% + 4px)',
@@ -109,24 +202,26 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     }}
                 >
                     <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                        {options.map((opt) => (
-                            <div 
+                        {options.map((opt, index) => (
+                            <div
                                 key={opt.value}
+                                id={getOptionId(index)}
+                                role="option"
+                                aria-selected={value === opt.value}
                                 onClick={() => handleSelect(opt.value)}
+                                onMouseEnter={() => setActiveIndex(index)}
                                 style={{
                                     padding: '10px 14px',
                                     fontSize: '0.9rem',
                                     fontWeight: value === opt.value ? 700 : 500,
                                     color: value === opt.value ? 'var(--primary-dark)' : 'var(--text-primary)',
-                                    background: value === opt.value ? 'var(--primary-50)' : 'transparent',
+                                    background: value === opt.value
+                                        ? 'var(--primary-50)'
+                                        : activeIndex === index
+                                            ? 'var(--bg-elevated)'
+                                            : 'transparent',
                                     cursor: 'pointer',
                                     transition: 'background 0.2s'
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (value !== opt.value) e.currentTarget.style.background = 'var(--bg-elevated)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (value !== opt.value) e.currentTarget.style.background = 'transparent';
                                 }}
                             >
                                 {opt.label}

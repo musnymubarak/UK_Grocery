@@ -115,8 +115,9 @@ export default function Login() {
                   <div className="space-y-5">
                     {/* First Name Input */}
                     <div className="relative mt-2">
-                      <label className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">First Name</label>
-                      <input 
+                      <label htmlFor="signup-first-name" className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">First Name</label>
+                      <input
+                        id="signup-first-name"
                         type="text"
                         value={firstName}
                         onChange={e => setFirstName(e.target.value)}
@@ -128,8 +129,9 @@ export default function Login() {
 
                     {/* Last Name Input */}
                     <div className="relative mt-2">
-                      <label className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Last Name</label>
-                      <input 
+                      <label htmlFor="signup-last-name" className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Last Name</label>
+                      <input
+                        id="signup-last-name"
                         type="text"
                         value={lastName}
                         onChange={e => setLastName(e.target.value)}
@@ -141,8 +143,9 @@ export default function Login() {
 
                     {/* Email Input */}
                     <div className="relative mt-2">
-                      <label className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Email</label>
-                      <input 
+                      <label htmlFor="signup-email" className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Email</label>
+                      <input
+                        id="signup-email"
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
@@ -154,8 +157,9 @@ export default function Login() {
 
                     {/* Phone Number Input */}
                     <div className="relative mt-2">
-                      <label className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Phone Number</label>
-                      <input 
+                      <label htmlFor="signup-phone" className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Phone Number</label>
+                      <input
+                        id="signup-phone"
                         type="tel"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
@@ -169,8 +173,9 @@ export default function Login() {
                     <div className="pt-2">
                       <p className="text-center lg:text-left font-bold text-[#1E293B] mb-4">Create Secure Password</p>
                       <div className="relative mt-2">
-                        <label className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Password</label>
-                        <input 
+                        <label htmlFor="signup-password" className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Password</label>
+                        <input
+                          id="signup-password"
                           type={showPassword ? 'text' : 'password'}
                           value={password}
                           onChange={e => setPassword(e.target.value)}
@@ -190,8 +195,9 @@ export default function Login() {
 
                       {/* Confirm Password Input */}
                       <div className="relative mt-4">
-                        <label className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Confirm Password</label>
-                        <input 
+                        <label htmlFor="signup-confirm-password" className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Confirm Password</label>
+                        <input
+                          id="signup-confirm-password"
                           type={showConfirmPassword ? 'text' : 'password'}
                           value={confirmPassword}
                           onChange={e => setConfirmPassword(e.target.value)}
@@ -253,8 +259,9 @@ export default function Login() {
                   <div className="space-y-5">
                     {/* Email Input */}
                     <div className="relative mt-2">
-                      <label className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Email</label>
-                      <input 
+                      <label htmlFor="login-email" className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Email</label>
+                      <input
+                        id="login-email"
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
@@ -266,8 +273,9 @@ export default function Login() {
 
                     {/* Password Input */}
                     <div className="relative mt-2">
-                      <label className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Password</label>
-                      <input 
+                      <label htmlFor="login-password" className="absolute -top-2 left-3 px-1 bg-white text-xs font-semibold text-gray-500">Password</label>
+                      <input
+                        id="login-password"
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={e => setPassword(e.target.value)}

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderApi, paymentApi, couponApi, customerAuthApi, catalogApi, getErrorMessage } from '../services/api';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import React from 'react';
 import toast from 'react-hot-toast';
 import { loadStripe } from '@stripe/stripe-js';
@@ -639,10 +639,12 @@ function RadioCard({
 }
 
 function Input({ label, placeholder, type = 'text', value, onChange }: { label: string; placeholder: string; type?: string; value: string; onChange: (v: string) => void }) {
+  const id = useId();
   return (
     <div className="space-y-1">
-      <label className="text-xs font-semibold text-text-main block">{label}</label>
+      <label htmlFor={id} className="text-xs font-semibold text-text-main block">{label}</label>
       <input
+        id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
