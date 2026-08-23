@@ -1,6 +1,7 @@
 """
 Payment router - endpoints for Stripe payment processing.
 """
+import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from decimal import Decimal
@@ -10,7 +11,11 @@ from sqlalchemy.orm import Session
 from app.models.customer import Customer
 from app.services.payment import PaymentService
 
+log = structlog.get_logger()
+
 router = APIRouter(prefix="/payments", tags=["Payments"])
+
+GENERIC_PAYMENT_ERROR = "Payment could not be processed. Please try again or contact support."
 
 class PaymentIntentRequest(BaseModel):
     amount: Decimal
@@ -57,7 +62,8 @@ async def create_payment_intent(
             status=intent["status"]
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("payment.create_intent_failed", customer_id=str(current_customer.id), error=str(e))
+        raise HTTPException(status_code=500, detail=GENERIC_PAYMENT_ERROR)
 
 @router.get("/methods")
 async def get_payment_methods(
@@ -72,4 +78,5 @@ async def get_payment_methods(
         methods = await payment_service.list_payment_methods(current_customer.stripe_customer_id)
         return {"data": methods}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("payment.list_methods_failed", customer_id=str(current_customer.id), error=str(e))
+        raise HTTPException(status_code=500, detail=GENERIC_PAYMENT_ERROR)
