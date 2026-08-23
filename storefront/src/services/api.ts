@@ -22,12 +22,58 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
+// Silent refresh: on a 401, try the stored refresh token before giving up and
+// forcing a logout. The refresh token is single-use (the backend revokes and
+// replaces it on every rotation — see TokenService.rotate_token) and reusing
+// an already-rotated one revokes the whole session as a compromise signal, so
+// concurrent 401s must share one in-flight refresh rather than each spending
+// it — hence refreshPromise below instead of just calling this per-request.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem('customer_refresh_token');
+  if (!refreshToken) return null;
+  try {
+    // Plain axios, not the `api` instance — calling `api` here would recurse
+    // into this same response interceptor if the refresh call itself 401s.
+    const res = await axios.post(`${API_BASE}/customers/refresh`, { refresh_token: refreshToken });
+    const { access_token, refresh_token } = res.data;
+    localStorage.setItem('customer_token', access_token);
+    localStorage.setItem('customer_refresh_token', refresh_token);
+    return access_token;
+  } catch {
+    return null;
+  }
+}
+
+interface RetriableRequestConfig extends InternalAxiosRequestConfig {
+  _retriedAfterRefresh?: boolean;
+}
+
 // Response interceptor: handle 401 (expired token)
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    const originalRequest = error.config as RetriableRequestConfig | undefined;
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retriedAfterRefresh) {
+      originalRequest._retriedAfterRefresh = true;
+
+      if (!refreshPromise) {
+        refreshPromise = refreshAccessToken().finally(() => { refreshPromise = null; });
+      }
+      const newAccessToken = await refreshPromise;
+
+      if (newAccessToken) {
+        originalRequest.headers = originalRequest.headers ?? ({} as InternalAxiosRequestConfig['headers']);
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
+      }
+    }
+
     if (error.response?.status === 401) {
       localStorage.removeItem('customer_token');
+      localStorage.removeItem('customer_refresh_token');
       localStorage.removeItem('customer_data');
       // Don't force redirect — let the UI handle it gracefully
       window.dispatchEvent(new Event('auth_expired'));
@@ -101,7 +147,12 @@ export const customerAuthApi = {
     id_token: string;
   }) => api.post('/customers/google', data),
 
-  logout: () => api.post('/customers/logout'),
+  // Send the refresh token so the backend actually revokes it — previously
+  // called with no body, so the refresh token issued at login just sat in
+  // the database valid until its own 30-day expiry regardless of logout.
+  logout: () => api.post('/customers/logout', {
+    refresh_token: localStorage.getItem('customer_refresh_token') || undefined,
+  }),
 
   getProfile: () => api.get('/customers/me'),
 

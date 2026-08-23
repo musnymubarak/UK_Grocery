@@ -60,8 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const res = await customerAuthApi.login({ email, password });
-      const { access_token } = res.data;
+      const { access_token, refresh_token } = res.data;
       localStorage.setItem('customer_token', access_token);
+      localStorage.setItem('customer_refresh_token', refresh_token);
 
       // Fetch profile
       const profileRes = await customerAuthApi.getProfile();
@@ -87,8 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const res = await customerAuthApi.googleLogin({ id_token: credential });
-      const { access_token } = res.data;
+      const { access_token, refresh_token } = res.data;
       localStorage.setItem('customer_token', access_token);
+      localStorage.setItem('customer_refresh_token', refresh_token);
 
       // Fetch profile
       const profileRes = await customerAuthApi.getProfile();
@@ -132,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Backend logout failed:", err);
     }
     localStorage.removeItem('customer_token');
+    localStorage.removeItem('customer_refresh_token');
     localStorage.removeItem('customer_data');
     setCustomer(null);
     setError(null);

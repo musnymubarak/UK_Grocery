@@ -27,16 +27,36 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         
         # Permissions policy (restricts browser features)
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
-        
-        # Content Security Policy (simplified for typical API + SPA setup)
-        # Allows self, plus any configured CORS origins for connect-src
-        csp = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; "
-            "connect-src 'self' http://localhost:8000 http://localhost:5173"
+
+        # Content Security Policy. Note this middleware only ever runs for
+        # requests that reach FastAPI directly — the admin/storefront SPAs are
+        # served by nginx as static files and never pass through here, so this
+        # header has no effect on them at all; it only reaches plain /api/v1/*
+        # JSON responses (which render no HTML/CSS, so a strict policy costs
+        # nothing) and /docs, /redoc, /openapi.json (served directly by
+        # FastAPI, and Swagger/ReDoc need a looser policy: they load their own
+        # JS/CSS from a CDN and run an inline init script).
+        connect_src = " ".join(["'self'"] + settings.cors_origins_list)
+        is_docs_route = (
+            request.url.path in ("/docs", "/redoc", "/openapi.json")
+            or request.url.path.startswith("/docs/")
         )
+        if is_docs_route:
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https://fastapi.tiangolo.com; "
+                f"connect-src {connect_src}"
+            )
+        else:
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self'; "
+                "style-src 'self'; "
+                "img-src 'self' data:; "
+                f"connect-src {connect_src}"
+            )
         response.headers["Content-Security-Policy"] = csp
         
         # HSTS (Production only)
