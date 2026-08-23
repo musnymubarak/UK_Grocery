@@ -64,16 +64,42 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_settings(self):
-        """Refuse to start with default JWT secret in production."""
+        """Refuse to start with a weak JWT secret in production.
+
+        HS256 (this app's JWT_ALGORITHM) is specified by RFC 7518 to need a
+        signing key at least as long as its hash output — 256 bits, i.e. 32
+        bytes — or forging a valid "logged in as anyone" token becomes a
+        matter of guessing the secret, not breaking cryptography. The old
+        check only rejected two specific placeholder strings by exact match;
+        admin123, a single character, or anything else short still passed.
+        Kept alongside the length/diversity checks below (not replaced by
+        them) — the known placeholders are cheap to catch by name, and one of
+        them ("your-super-secret-key-change-in-production", 44 chars) is
+        actually long enough to slip past a length check alone.
+        """
         dangerous_secrets = {
             "change-this-secret-key",
             "your-super-secret-key-change-in-production",
         }
-        if not self.DEBUG and self.JWT_SECRET_KEY in dangerous_secrets:
-            raise ValueError(
-                "SECURITY: Default JWT secret detected in non-DEBUG mode. "
-                "Generate a real secret with: openssl rand -hex 32"
-            )
+        if not self.DEBUG:
+            secret = self.JWT_SECRET_KEY
+            if secret in dangerous_secrets:
+                raise ValueError(
+                    "SECURITY: Default JWT secret detected in non-DEBUG mode. "
+                    "Generate a real secret with: openssl rand -hex 32"
+                )
+            if len(secret) < 32:
+                raise ValueError(
+                    "SECURITY: JWT_SECRET_KEY is too short for production "
+                    f"({len(secret)} chars, need at least 32). "
+                    "Generate a real secret with: openssl rand -hex 32"
+                )
+            if len(set(secret)) < 8:
+                raise ValueError(
+                    "SECURITY: JWT_SECRET_KEY doesn't look random enough for "
+                    "production (too few distinct characters). "
+                    "Generate a real secret with: openssl rand -hex 32"
+                )
         return self
 
 
