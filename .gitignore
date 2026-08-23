@@ -44,5 +44,6 @@ start-local.ps1
 uploads/
 LOCAL_DEVELOPMENT.md
 shop.md
+.claude/TLS_HOST_SETUP.md
 
 /storefront_reference

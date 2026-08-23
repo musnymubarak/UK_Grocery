@@ -38,6 +38,10 @@ async def get_current_user(
     if not user_id:
         raise UnauthorizedException("Token missing subject")
 
+    role = payload.get("role")
+    if role != "staff":
+        raise UnauthorizedException("Invalid token role")
+
     result = await db.execute(
         select(User).where(User.id == user_id, User.is_deleted == False)
     )
