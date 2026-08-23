@@ -100,6 +100,9 @@ services:
     build:
       context: ./storefront
       dockerfile: Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY}
     container_name: daily_grocer_storefront
     restart: always
     networks:

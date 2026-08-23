@@ -22,9 +22,13 @@ export const APP_CONFIG = {
   currency: '£',
   deliveryFee: 3.99,
   freeDeliveryThreshold: 50,
-  googleClientId: '831513497012-88u2bqs01njl5fv2f88t3q37n6e5t1fh.apps.googleusercontent.com',
+  // Neither of these is a secret — both are meant to end up in the shipped
+  // JS. They're env vars (not hardcoded) so switching to live values before
+  // launch is a one-line change in .env, not a code edit someone has to
+  // remember to make. See .env at the repo root.
+  googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID as string,
   // Publishable key — safe to ship client-side. Same Stripe test-mode account
   // mobile already uses, so both clients hit the same sandbox. Swap for a
   // live key as the final pre-launch step (see the readiness audit).
-  stripePublishableKey: 'pk_test_51Tn08LRt4m9309WQYxo8Ztt4txTwYIVnZIHQyZQd3cRcEnh4ivxh2meSqlnA2wVU6XuK8ohndznZwcVDNHXM2oF500hSDuhqHj',
+  stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string,
 };
