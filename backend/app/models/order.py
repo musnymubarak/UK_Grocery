@@ -12,19 +12,23 @@ class Order(TimestampMixin, Base):
 
     organization_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("organizations.id", ondelete="CASCADE"),
+        # RESTRICT (not CASCADE): orders are financial records that must never be
+        # hard-deleted just because their parent org/store/customer row was. A real
+        # DELETE against one of those tables should be blocked, not cascade-destroy
+        # every order — matching the pattern already used on OrderItem.product_id.
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
     store_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("stores.id", ondelete="CASCADE"),
+        ForeignKey("stores.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
     customer_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("customers.id", ondelete="CASCADE"),
+        ForeignKey("customers.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )

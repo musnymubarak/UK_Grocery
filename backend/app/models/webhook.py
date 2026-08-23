@@ -1,14 +1,19 @@
 """
 Webhook models for outbound event integration.
 """
-from sqlalchemy import Column, String, Boolean, Text, Integer
+from sqlalchemy import Column, String, Boolean, Text, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from app.core.database import Base, TimestampMixin
 
 class WebhookEndpoint(TimestampMixin, Base):
     __tablename__ = "webhook_endpoints"
 
-    organization_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
     url = Column(String(500), nullable=False)
     secret = Column(String(255), nullable=False)  # For HMAC-SHA256 signing
     
@@ -23,7 +28,12 @@ class WebhookEndpoint(TimestampMixin, Base):
 class WebhookDelivery(TimestampMixin, Base):
     __tablename__ = "webhook_deliveries"
 
-    endpoint_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    endpoint_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("webhook_endpoints.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
     event_type = Column(String(100), nullable=False)
     payload = Column(Text, nullable=False) # JSON string
     

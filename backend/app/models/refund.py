@@ -12,25 +12,27 @@ class Refund(TimestampMixin, Base):
 
     organization_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("organizations.id", ondelete="CASCADE"),
+        # RESTRICT (not CASCADE): refunds are financial records — see the same
+        # note on Order above. Matches OrderItem.product_id's existing pattern.
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
     store_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("stores.id", ondelete="CASCADE"),
+        ForeignKey("stores.id", ondelete="RESTRICT"),
         nullable=True,
         index=True,
     )
     order_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("orders.id", ondelete="CASCADE"),
+        ForeignKey("orders.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
     customer_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("customers.id", ondelete="CASCADE"),
+        ForeignKey("customers.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
