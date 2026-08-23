@@ -29,7 +29,7 @@ celery_app.conf.update(
 # @celery_app.task-decorated functions ever registered. A worker running against
 # this app rejected every task, scheduled or not, as "unregistered". Import each
 # module explicitly so its decorators actually run at startup.
-from app.tasks import archival, assignment, backup, maintenance, rewards, search, webhooks  # noqa: E402,F401
+from app.tasks import archival, assignment, backup, gdpr, maintenance, rewards, search, webhooks  # noqa: E402,F401
 
 # Celery Beat schedule
 celery_app.conf.beat_schedule = {
@@ -60,5 +60,9 @@ celery_app.conf.beat_schedule = {
     "nightly-database-backup": {
         "task": "app.tasks.backup.create_database_backup",
         "schedule": crontab(hour=2, minute=0),  # Daily 02:00 UTC
+    },
+    "gdpr-redact-expired-order-addresses": {
+        "task": "app.tasks.gdpr.redact_expired_order_addresses",
+        "schedule": crontab(hour=5, minute=0),  # Daily 05:00 UTC
     },
 }

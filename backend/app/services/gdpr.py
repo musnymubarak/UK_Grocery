@@ -4,10 +4,11 @@ GDPR Compliance service — Data Export and Account Erasure (Anonymization).
 import hashlib
 import logging
 import uuid as uuid_lib
+from datetime import datetime, timezone, timedelta
 from uuid import UUID
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.customer import Customer, CustomerAddress
@@ -21,6 +22,15 @@ from app.core.security import hash_password
 from app.core.exceptions import NotFoundException
 
 logger = logging.getLogger(__name__)
+
+# How long an order's delivery-address snapshot must be kept for tax/accounting
+# purposes (UK HMRC financial record-keeping guidance) before it can be scrubbed
+# even for an anonymized customer. The Order row itself is kept indefinitely for
+# accounting — only the free-text address/instructions fields get redacted.
+ORDER_ADDRESS_RETENTION_YEARS = 6
+REDACTED_TEXT = "[redacted]"
+ANONYMIZED_EMAIL_PATTERN = "deleted-%@anonymized.invalid"
+
 
 class GDPRService:
     def __init__(self, db: AsyncSession):
@@ -152,6 +162,8 @@ class GDPRService:
         customer.full_name = "Deleted User"
         customer.email = anon_email
         customer.phone = None
+        customer.dob = None
+        customer.referral_code = None
         # Previously set customer.password_hash — the actual column is
         # hashed_password, so that assignment silently did nothing and the
         # real bcrypt hash survived anonymization. Hashing a random, unknown,
@@ -189,8 +201,54 @@ class GDPRService:
         )
 
         # 4. Reviews - could either delete or anonymize
-        # We'll keep them but mark as 'Anonymous' if we had a name field in Review, 
+        # We'll keep them but mark as 'Anonymous' if we had a name field in Review,
         # but Review links to Customer, and Customer is now "Deleted User".
+
+        # 5. Redact this customer's order address snapshots that are already past
+        # the retention window — no need to wait for the nightly sweep below if
+        # the legal retention period has already elapsed by the time of the request.
+        await self.redact_expired_order_addresses(customer_id=customer_id)
 
         await self.db.commit()
         return True
+
+    async def redact_expired_order_addresses(self, customer_id: Optional[UUID] = None) -> int:
+        """Scrub Order.delivery_address / delivery_instructions once
+        ORDER_ADDRESS_RETENTION_YEARS has passed since the order was placed.
+
+        The Order row itself is never touched — orders are kept indefinitely for
+        accounting. Only the free-text address snapshot gets redacted, since that's
+        the part that's actually personal data.
+
+        Pass customer_id to redact one customer's orders immediately (called from
+        anonymize_customer for orders already past retention at request time).
+        With no customer_id, sweeps every anonymized customer's orders — used by
+        the nightly app.tasks.gdpr task to catch orders that cross the retention
+        threshold later, after the customer was already forgotten.
+        """
+        cutoff = datetime.now(timezone.utc) - timedelta(days=ORDER_ADDRESS_RETENTION_YEARS * 365)
+        stmt = (
+            update(Order)
+            .where(
+                Order.created_at < cutoff,
+                or_(
+                    Order.delivery_address.isnot(None),
+                    Order.delivery_instructions.isnot(None),
+                ),
+                # is_distinct_from (not !=) so a NULL delivery_address doesn't get
+                # silently excluded — plain `!=` against NULL is unknown/false in SQL,
+                # which would skip redacting delivery_instructions on that row forever.
+                Order.delivery_address.is_distinct_from(REDACTED_TEXT),
+            )
+            .values(delivery_address=REDACTED_TEXT, delivery_instructions=REDACTED_TEXT)
+        )
+        if customer_id is not None:
+            stmt = stmt.where(Order.customer_id == customer_id)
+        else:
+            stmt = stmt.where(
+                Order.customer_id.in_(
+                    select(Customer.id).where(Customer.email.like(ANONYMIZED_EMAIL_PATTERN))
+                )
+            )
+        result = await self.db.execute(stmt)
+        return result.rowcount or 0
