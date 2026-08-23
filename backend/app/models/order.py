@@ -81,6 +81,21 @@ class Order(TimestampMixin, Base):
     estimated_delivery_at = Column(DateTime(timezone=True), nullable=True)
     delivered_at = Column(DateTime(timezone=True), nullable=True)
 
+    # DB-level backstop for a value set the Python layer already enforces via
+    # VALID_TRANSITIONS in OrderService — this only matters if something ever
+    # writes to this column directly, bypassing that service (a raw fix, a
+    # bad migration, a bug elsewhere). Values mirror VALID_TRANSITIONS' keys
+    # exactly; update both together if a new status is ever introduced.
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('placed', 'confirmed', 'picking', 'substitution_pending', "
+            "'ready_for_collection', 'assigned_to_driver', 'out_for_delivery', "
+            "'delivered', 'rejected', 'delivery_failed', 'refund_requested', "
+            "'refunded', 'cancelled')",
+            name='check_order_status_valid',
+        ),
+    )
+
     # Relationships
     organization = relationship("Organization")
     store = relationship("Store", back_populates="orders")

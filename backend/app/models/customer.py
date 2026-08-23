@@ -1,7 +1,7 @@
 """
 Customer model — B2C users who purchase products.
 """
-from sqlalchemy import Column, String, ForeignKey, Boolean, Text, Numeric, Date
+from sqlalchemy import Column, String, ForeignKey, Boolean, Text, Numeric, Date, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from decimal import Decimal
@@ -38,6 +38,13 @@ class Customer(TimestampMixin, Base):
         nullable=True,
     )
     stripe_customer_id = Column(String(255), nullable=True, index=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "membership_tier IN ('standard', 'premium', 'vip')",
+            name='check_customer_membership_tier_valid',
+        ),
+    )
 
     # Relationships
     organization = relationship("Organization")
