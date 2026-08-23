@@ -2,22 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Shield, X, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const CONSENT_KEY = 'dg_consent_given';
+import { getConsentStatus, setConsentStatus } from '../lib/cookieConsent';
 
 export default function CookieBanner() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const consent = localStorage.getItem(CONSENT_KEY);
-    if (!consent) {
+    if (!getConsentStatus()) {
       const timer = setTimeout(() => setIsVisible(true), 1500);
       return () => clearTimeout(timer);
     }
   }, []);
 
   const accept = () => {
-    localStorage.setItem(CONSENT_KEY, 'true');
+    setConsentStatus('accepted');
+    setIsVisible(false);
+  };
+
+  const reject = () => {
+    setConsentStatus('rejected');
     setIsVisible(false);
   };
 
@@ -54,14 +57,20 @@ export default function CookieBanner() {
                 </p>
                 
                 <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <button 
+                  <button
                     onClick={accept}
                     className="w-full sm:w-auto px-8 py-3 bg-primary text-on-primary rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                   >
                     Accept & Close
                   </button>
-                  <Link 
-                    to="/cookies" 
+                  <button
+                    onClick={reject}
+                    className="w-full sm:w-auto px-8 py-3 bg-transparent border border-outline-variant/50 text-on-surface rounded-xl font-bold text-sm hover:border-primary/40 transition-all"
+                  >
+                    Reject
+                  </button>
+                  <Link
+                    to="/cookies"
                     className="text-xs font-bold text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 group/link"
                   >
                     View Policy <ArrowRight size={14} className="group-hover/link:translate-x-0.5 transition-transform" />

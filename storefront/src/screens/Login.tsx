@@ -9,7 +9,57 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
+import { APP_CONFIG } from '../constants';
+import { getConsentStatus, setConsentStatus, CONSENT_CHANGED_EVENT } from '../lib/cookieConsent';
+
+// Google's Identity Services script (and its cookies) must not load until the
+// visitor has actively consented — see the cookie banner. This gate keeps
+// GoogleOAuthProvider, and the script it injects, out of the tree entirely
+// until then, and offers a direct opt-in for anyone who reaches this screen
+// without having decided yet.
+function GoogleSignIn({ onCredential }: { onCredential: (credential: string) => void }) {
+  const [consented, setConsented] = useState(() => getConsentStatus() === 'accepted');
+
+  useEffect(() => {
+    const handler = () => setConsented(getConsentStatus() === 'accepted');
+    window.addEventListener(CONSENT_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, handler);
+  }, []);
+
+  if (!consented) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConsentStatus('accepted')}
+        className="w-full border border-outline-variant/50 rounded-lg py-3 text-sm font-bold text-on-surface-variant hover:border-primary/40 hover:text-primary transition-all"
+      >
+        Enable Google Sign-In (accepts cookies)
+      </button>
+    );
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={APP_CONFIG.googleClientId}>
+      <GoogleLogin
+        onSuccess={credentialResponse => {
+          if (credentialResponse.credential) {
+            onCredential(credentialResponse.credential);
+          }
+        }}
+        onError={() => {
+          toast.error('Google Login Failed');
+        }}
+        useOneTap
+        shape="rectangular"
+        theme="outline"
+        size="large"
+        text="signin_with"
+        width="100%"
+      />
+    </GoogleOAuthProvider>
+  );
+}
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -323,25 +373,14 @@ export default function Login() {
 
                 {/* Native Google button for auth flow */}
                 <div className="w-full flex justify-center mt-3">
-                  <GoogleLogin
-                    onSuccess={credentialResponse => {
-                      if (credentialResponse.credential) {
-                        googleLogin(credentialResponse.credential)
-                          .then(() => navigate(redirectTo))
-                          .catch(() => {
-                            toast.error('Google Login Failed. Please try again.');
-                          });
-                      }
+                  <GoogleSignIn
+                    onCredential={(credential) => {
+                      googleLogin(credential)
+                        .then(() => navigate(redirectTo))
+                        .catch(() => {
+                          toast.error('Google Login Failed. Please try again.');
+                        });
                     }}
-                    onError={() => {
-                      toast.error('Google Login Failed');
-                    }}
-                    useOneTap
-                    shape="rectangular"
-                    theme="outline"
-                    size="large"
-                    text="signin_with"
-                    width="100%"
                   />
                 </div>
               </div>
