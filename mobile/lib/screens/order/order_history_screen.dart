@@ -143,14 +143,19 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            const PremiumAppBar(title: 'Your orders'),
+            const PremiumAppBar(title: 'Your orders', background: Colors.white, showBack: false),
             if (auth.isAuthenticated && _orders != null && _orders!.isNotEmpty)
               _buildFilterAndSearchSection(),
-            Expanded(child: _body(auth)),
+            Expanded(
+              child: Container(
+                color: const Color(0xFFF8FAFC),
+                child: _body(auth),
+              ),
+            ),
           ],
         ),
       ),
@@ -159,9 +164,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
   Widget _buildFilterAndSearchSection() {
     final allOrders = _orders ?? const [];
+    final theme = Theme.of(context);
 
     return Container(
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+      ),
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 4, AppSpacing.lg, 12),
       child: Column(
         children: [

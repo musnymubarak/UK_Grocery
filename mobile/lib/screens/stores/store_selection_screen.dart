@@ -250,7 +250,7 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
     return PopScope(
       canPop: canGoBack,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: Colors.white,
         body: SafeArea(
           child: Stack(
             clipBehavior: Clip.none,
@@ -309,16 +309,18 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
 
                   // Stores List
                   Expanded(
-                    child: provider.isLoading && provider.all.isEmpty
-                        ? const Center(child: CircularProgressIndicator())
-                        : decorated.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  'No stores found near your location.',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                              )
-                            : ListView(
+                    child: Container(
+                      color: const Color(0xFFF8FAFC),
+                      child: provider.isLoading && provider.all.isEmpty
+                          ? const Center(child: CircularProgressIndicator())
+                          : decorated.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'No stores found near your location.',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                )
+                              : ListView(
                                 physics: const BouncingScrollPhysics(),
                                 padding: const EdgeInsets.all(AppSpacing.base),
                                 children: [
@@ -362,6 +364,7 @@ class _StoreSelectionScreenState extends State<StoreSelectionScreen> {
                                   ],
                                 ],
                               ),
+                    ),
                   ),
                 ],
               ),

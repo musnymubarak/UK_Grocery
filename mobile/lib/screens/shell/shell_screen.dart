@@ -66,10 +66,11 @@ class _ShellScreenState extends State<ShellScreen> {
       },
       child: Scaffold(
         extendBody: true,
-      body: IndexedStack(
-        index: _index,
-        children: _pages,
-      ),
+        backgroundColor: Colors.white,
+        body: IndexedStack(
+          index: _index,
+          children: _pages,
+        ),
       bottomNavigationBar: PremiumBottomNav(
         currentIndex: _index,
         onTap: (i) {

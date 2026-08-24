@@ -180,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final store = storeProvider.selected!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Colors.white,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -251,7 +251,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            Expanded(child: _body(theme, store.minOrderValue)),
+            Expanded(
+              child: Container(
+                color: const Color(0xFFF8FAFC),
+                child: _body(theme, store.minOrderValue),
+              ),
+            ),
           ],
         ),
       ),
