@@ -17,17 +17,17 @@ import '../../state/store_provider.dart';
 const double _kLogoWidth = 200;
 
 /// Gap between the logo and the wordmark.
-const double _kWordmarkGap = 18;
+const double _kWordmarkGap = 2;
 
 /// Fixed height reserved for the wordmark. Reserving it means the column is
 /// the same height on every frame, so the wordmark appearing never triggers a
 /// relayout — and it makes the lift distance below a derived value.
-const double _kWordmarkSlot = 34;
+const double _kWordmarkSlot = 32;
 
 const double _kWordmarkSize = 26;
 
 /// How far the wordmark slides up as it fades in.
-const double _kWordmarkRise = 14;
+const double _kWordmarkRise = 10;
 
 /// How far the logo rises once the wordmark is revealed.
 ///
@@ -157,9 +157,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     ).createShader(bounds);
   }
 
-  /// The brand name, split on the first space so it reads two-tone the way the
-  /// logo does: navy leading word, action-red remainder. A single-word brand
-  /// (this is multi-tenant — the name comes from admin branding) stays navy.
+  /// The brand name, split on the first space so it reads two-tone matching the
+  /// logo's palette: Navy (#001D3D) leading word, Vibrant Red (#E6203A) remainder.
   Widget _buildWordmark(ThemeData theme) {
     // displayMedium is already Hanken Grotesk w800. Deriving from it keeps the
     // ExtraBold font file — copyWith(fontWeight:) on a lighter GoogleFonts
@@ -167,26 +166,28 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     final base = theme.textTheme.displayMedium?.copyWith(
       fontSize: _kWordmarkSize,
       letterSpacing: -0.4,
+      fontWeight: FontWeight.w800,
       height: 1.1,
     );
 
     final split = _appName.indexOf(' ');
-    final navy = theme.colorScheme.tertiary;
-    final red = theme.colorScheme.secondary;
+    // Logo Brand Palette: Navy (#001D3D) and Vibrant Red (#E6203A)
+    const logoNavy = Color(0xFF001D3D);
+    const logoRed = Color(0xFFE6203A);
 
     return Text.rich(
       TextSpan(
         style: base,
         children: split == -1
-            ? [TextSpan(text: _appName, style: TextStyle(color: navy))]
+            ? [TextSpan(text: _appName, style: const TextStyle(color: logoNavy))]
             : [
                 TextSpan(
                   text: _appName.substring(0, split),
-                  style: TextStyle(color: navy),
+                  style: const TextStyle(color: logoNavy),
                 ),
                 TextSpan(
                   text: _appName.substring(split),
-                  style: TextStyle(color: red),
+                  style: const TextStyle(color: logoRed),
                 ),
               ],
       ),

@@ -634,7 +634,7 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         titleSpacing: 0,
-        title: Image.asset('assets/logo_playful.png', height: 28, errorBuilder: (_,__,___) => const Text('Daily Grocer', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+        title: Image.asset('assets/logo_playful.png', height: 32, errorBuilder: (_,__,___) => const Text('Daily Grocer', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(color: theme.colorScheme.outlineVariant, height: 1),

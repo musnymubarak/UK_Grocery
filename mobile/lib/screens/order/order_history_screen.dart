@@ -142,12 +142,17 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const PremiumAppBar(title: 'Your orders', background: Colors.white, showBack: false),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 12, AppSpacing.lg, 8),
+              child: Text('Your orders', style: theme.textTheme.displaySmall),
+            ),
             if (auth.isAuthenticated && _orders != null && _orders!.isNotEmpty)
               _buildFilterAndSearchSection(),
             Expanded(

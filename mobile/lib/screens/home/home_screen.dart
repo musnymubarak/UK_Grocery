@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               width: double.infinity,
               height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
@@ -231,23 +231,37 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             // Admin-controlled announcement strip (hidden when none is active)
             const AnnouncementBar(),
-            // Store name banner
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: AppSpacing.base),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
-              ),
-              child: Text(
-                store.name.isNotEmpty ? store.name : 'Daily Grocer Local',
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
-                  fontSize: 15,
+            // Store name banner (tappable to switch stores)
+            InkWell(
+              onTap: () => Navigator.of(context).pushNamed(AppRouter.stores),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: AppSpacing.base),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.storefront_rounded, size: 16, color: Color(0xFF005EB8)),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        store.name.isNotEmpty ? store.name : 'Daily Grocer Local',
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.grey.shade600),
+                  ],
                 ),
               ),
             ),
@@ -269,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _logo(ThemeData theme, BrandingConfig branding) {
     final asset = Image.asset(
       'assets/logo_playful.png',
-      height: 30,
+      height: 32,
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) => Text(
         branding.appName,
@@ -284,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (url.isEmpty) return asset;
     return CachedNetworkImage(
       imageUrl: url,
-      height: 30,
+      height: 32,
       fit: BoxFit.contain,
       placeholder: (_, __) => asset,
       errorWidget: (_, __, ___) => asset,

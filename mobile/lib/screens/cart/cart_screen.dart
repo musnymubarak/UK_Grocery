@@ -25,6 +25,7 @@ class CartScreen extends StatelessWidget {
     final empty = cart.itemCount == 0;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,6 +33,7 @@ class CartScreen extends StatelessWidget {
             if (!embedded)
               PremiumAppBar(
                 title: 'Your cart',
+                background: Colors.white,
                 actions: [
                   if (!empty)
                     TextButton(
@@ -42,7 +44,7 @@ class CartScreen extends StatelessWidget {
               ),
             if (embedded)
               Padding(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 12, AppSpacing.lg, 0),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 12, AppSpacing.lg, 8),
                 child: Row(
                   children: [
                     Expanded(child: Text('Your cart', style: theme.textTheme.displaySmall)),

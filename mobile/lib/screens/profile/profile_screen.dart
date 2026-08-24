@@ -197,39 +197,24 @@ class _UnauthenticatedLoginViewState extends State<_UnauthenticatedLoginView> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            // Can go back to menu since it's an account tab. 
-            // The shell has logic to pop back to index 1 (menu).
-            Navigator.of(context).maybePop();
-          },
-        ),
-        titleSpacing: 0,
-        title: Image.asset('assets/logo_playful.png', height: 28, errorBuilder: (_,__,___) => const Text('Daily Grocer', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: theme.colorScheme.outlineVariant, height: 1),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Login to your account',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: const Color(0xFF0F172A), // Very dark navy
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 12, AppSpacing.lg, AppSpacing.xxxl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Account', style: theme.textTheme.displaySmall),
+              const SizedBox(height: AppSpacing.xxl),
+              Text(
+                'Login to your account',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: const Color(0xFF0F172A), // Very dark navy
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
             const SizedBox(height: 8),
             Text(
               'Checkout quickly and earn member rewards',
