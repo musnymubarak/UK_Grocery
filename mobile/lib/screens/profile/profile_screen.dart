@@ -365,8 +365,9 @@ class _UnauthenticatedLoginViewState extends State<_UnauthenticatedLoginView> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _SignedInHero extends StatelessWidget {
