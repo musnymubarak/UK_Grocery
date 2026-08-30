@@ -2,7 +2,7 @@ import os
 import json
 from PIL import Image
 
-ROOT = "/var/www/UK_Grocery"
+ROOT = "/var/www/DailyGrocer"
 SOURCE_LOGO_PATH = os.path.join(ROOT, "logo.png")
 
 print(f"Loading master logo from {SOURCE_LOGO_PATH}...")

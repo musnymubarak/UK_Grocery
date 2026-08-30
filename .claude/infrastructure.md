@@ -131,7 +131,7 @@ Documented in [BACKUP_RUNBOOK.md](../BACKUP_RUNBOOK.md). DB dumps live alongside
 
 ## Uploads / Static Files
 
-- Path: `/var/www/UK_Grocery/backend/uploads/` (mounted into backend container).
+- Path: `/var/www/DailyGrocer/backend/uploads/` (mounted into backend container).
 - Served by nginx at `/uploads/...` with 30-day cache.
 - Max single upload: 50 MB.
 - Product images go through `PUT /api/v1/products/{id}/image` which pipelines through Pillow for resize/optimisation.

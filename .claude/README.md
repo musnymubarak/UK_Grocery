@@ -1,6 +1,6 @@
 # .claude — Project Notes
 
-Local-only documentation for working on **UK_Grocery / Daily Grocer**, a multi-location online grocery platform. This folder is gitignored — keep it for context, not for shared docs.
+Local-only documentation for working on **Daily Grocer**, a multi-location online grocery platform. This folder is gitignored — keep it for context, not for shared docs.
 
 ## Files
 

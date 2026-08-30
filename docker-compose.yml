@@ -1,5 +1,10 @@
 version: '3.8'
 
+# Pinned so the compose project (and its named volumes, e.g. uk_grocery_postgres_data)
+# stays stable even though the directory was renamed to DailyGrocer — do not change
+# this to match the folder name without migrating the existing volume data first.
+name: uk_grocery
+
 services:
   db:
     image: postgres:15-alpine

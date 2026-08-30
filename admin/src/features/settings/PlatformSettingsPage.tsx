@@ -122,7 +122,7 @@ export default function PlatformSettingsPage() {
                             <input 
                                 type="email" 
                                 className="form-input" 
-                                value={getValue('SUPPORT_EMAIL', 'support@ukgrocery.co.uk')}
+                                value={getValue('SUPPORT_EMAIL', 'support@dailygrocer.co.uk')}
                                 onChange={e => handleConfigChange('SUPPORT_EMAIL', e.target.value)}
                             />
                             <button className="btn btn-primary" onClick={() => saveConfig('SUPPORT_EMAIL', getValue('SUPPORT_EMAIL', ''))}><Save size={16} /> Save</button>

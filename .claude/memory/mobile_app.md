@@ -1,6 +1,6 @@
 ---
 name: Mobile app in monorepo
-description: UK_Grocery now contains a Flutter mobile app in mobile/ alongside backend/storefront/admin
+description: Daily Grocer now contains a Flutter mobile app in mobile/ alongside backend/storefront/admin
 type: project
 ---
 

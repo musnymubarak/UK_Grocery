@@ -34,7 +34,7 @@ async def _send_webhook_event(self, endpoint_id: str, url: str, secret: str, eve
         "Content-Type": "application/json",
         "X-Webhook-Event": event_type,
         "X-Webhook-Signature": signature,
-        "User-Agent": "UK-Grocery-Webhook/1.1"
+        "User-Agent": "DailyGrocer-Webhook/1.1"
     }
 
     # Re-checked at delivery time, not just at registration — a URL that

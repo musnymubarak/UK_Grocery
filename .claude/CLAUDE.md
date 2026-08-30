@@ -1,6 +1,6 @@
-# UK Grocery — Project Context for Claude
+# Daily Grocer — Project Context for Claude
 
-This file is the entry-point context document for the UK Grocery (DailyGrocer) multi-tier e-commerce platform. Always read the linked module docs in this folder when working on a specific area.
+This file is the entry-point context document for the Daily Grocer multi-tier e-commerce platform. Always read the linked module docs in this folder when working on a specific area.
 
 ## What This Project Is
 
@@ -17,7 +17,7 @@ Multi-store, multi-tenant via the `Organization` entity. Built features: catalog
 ## Repository Layout
 
 ```
-/var/www/UK_Grocery/
+/var/www/DailyGrocer/
 ├── backend/         FastAPI app, Alembic migrations, Celery tasks → see backend.md
 ├── admin/           React 18 + Vite admin dashboard → see admin.md
 ├── storefront/      React 19 + Vite customer SPA → see storefront.md

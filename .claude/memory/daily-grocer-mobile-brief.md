@@ -6,7 +6,7 @@
 
 ## Context (load this first)
 
-You are working in **UK_Grocery / "Daily Grocer"**, a multi-store UK online-grocery monorepo:
+You are working in **Daily Grocer**, a multi-store UK online-grocery monorepo:
 
 - `backend/` — FastAPI + Postgres 15 + Redis + Celery. API under `/api/v1`. Stripe, Google OAuth, dual JWT auth.
 - `storefront/` — React 19 customer web app (the reference for flows/content).

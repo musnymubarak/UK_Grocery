@@ -3,7 +3,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 from PIL import Image
 
-ROOT = "/var/www/UK_Grocery"
+ROOT = "/var/www/DailyGrocer"
 SOURCE_LOGO_PATH = os.path.join(ROOT, "logo.png")
 
 img = Image.open(SOURCE_LOGO_PATH).convert('RGBA')
