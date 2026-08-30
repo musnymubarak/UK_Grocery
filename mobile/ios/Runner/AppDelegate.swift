@@ -9,11 +9,17 @@ import UserNotifications
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
 
-    let controller = window?.rootViewController as! FlutterViewController
+  // Called from SceneDelegate once `window` (and its FlutterViewController)
+  // actually exists — this app uses the UIScene lifecycle, so `self.window`
+  // here in AppDelegate is nil for the entire didFinishLaunchingWithOptions
+  // call (see the matching note in SceneDelegate.swift for the Stripe case).
+  func registerBadgeChannel(messenger: FlutterBinaryMessenger) {
     let badgeChannel = FlutterMethodChannel(
       name: "com.dailygrocer.app/badge",
-      binaryMessenger: controller.binaryMessenger
+      binaryMessenger: messenger
     )
     badgeChannel.setMethodCallHandler { call, result in
       guard call.method == "clearBadge" else {
@@ -27,7 +33,5 @@ import UserNotifications
       }
       result(nil)
     }
-
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

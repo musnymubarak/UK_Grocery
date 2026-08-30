@@ -10,6 +10,9 @@ class SceneDelegate: FlutterSceneDelegate {
     if let window = self.window {
       if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
         appDelegate.window = window
+        if let controller = window.rootViewController as? FlutterViewController {
+          appDelegate.registerBadgeChannel(messenger: controller.binaryMessenger)
+        }
       }
     }
   }
