@@ -12,6 +12,7 @@ import '../../screens/order/order_success_screen.dart';
 import '../../screens/order/order_tracking_screen.dart';
 import '../../screens/product/product_details_screen.dart';
 import '../../screens/refund/refund_status_screen.dart';
+import '../../screens/rewards/rewards_screen.dart';
 import '../../screens/search/search_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../screens/shell/shell_screen.dart';
@@ -39,6 +40,7 @@ class AppRouter {
   static const orders = '/orders';
   static const stores = '/stores';
   static const refunds = '/refunds';
+  static const rewards = '/rewards';
   static const privacy = '/privacy';
   static const terms = '/terms';
   static const cookies = '/cookies';
@@ -75,7 +77,8 @@ class AppRouter {
         final args = s.arguments as Map<String, dynamic>? ?? {};
         return _slide(SearchScreen(initialQuery: args['query'] as String?, categoryId: args['categoryId'] as String?), s);
       case offers:
-        return _slide(const OffersScreen(), s);
+        final args = s.arguments as Map<String, dynamic>? ?? {};
+        return _slide(OffersScreen(highlightId: args['highlightId'] as String?), s);
       case checkout:
         return _slide(const CheckoutScreen(), s);
       case orderSuccess:
@@ -89,7 +92,11 @@ class AppRouter {
       case stores:
         return _slide(const StoreSelectionScreen(), s);
       case refunds:
-        return _slide(const RefundStatusScreen(), s);
+        final args = s.arguments as Map<String, dynamic>? ?? {};
+        return _slide(RefundStatusScreen(highlightId: args['highlightId'] as String?), s);
+      case rewards:
+        final args = s.arguments as Map<String, dynamic>? ?? {};
+        return _slide(RewardsScreen(highlightId: args['highlightId'] as String?), s);
       case privacy:
         return _slide(const PrivacyPolicyScreen(), s);
       case terms:

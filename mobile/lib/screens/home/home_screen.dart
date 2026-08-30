@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/api_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/router/app_router.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/api/api_registry.dart';
@@ -17,6 +18,7 @@ import '../../data/models/home_layout.dart';
 import '../../state/branding_provider.dart';
 import '../../state/content_provider.dart';
 import '../../state/home_layout_provider.dart';
+import '../../state/notifications_provider.dart';
 import '../../state/store_provider.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/announcement_bar.dart';
@@ -226,6 +228,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  const _NotificationBell(),
                 ],
               ),
             ),
@@ -647,7 +651,7 @@ class _RewardsCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           InkWell(
-            onTap: () {},
+            onTap: () => Navigator.of(context).pushNamed(AppRouter.rewards),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
@@ -825,4 +829,53 @@ class _CategoryTile extends StatelessWidget {
         filterQuality: FilterQuality.high,
         errorBuilder: (_, __, ___) => Icon(category.icon, size: 40),
       );
+}
+
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell();
+
+  @override
+  Widget build(BuildContext context) {
+    final unreadCount = context.watch<NotificationsProvider>().unreadCount;
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () async {
+        await Navigator.of(context).pushNamed(AppRouter.notifications);
+        if (context.mounted) context.read<NotificationsProvider>().loadCount();
+      },
+      child: SizedBox(
+        height: 40,
+        width: 40,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(Icons.notifications_outlined, color: Colors.grey.shade700, size: 24),
+            if (unreadCount > 0)
+              Positioned(
+                top: 2,
+                right: 4,
+                child: Container(
+                  height: 16,
+                  width: 16,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: AppColors.red500,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    unreadCount > 9 ? '9+' : '$unreadCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }

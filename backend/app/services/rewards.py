@@ -123,6 +123,15 @@ class RewardsService:
         self.db.add(event)
         await self.db.flush()
 
+        from app.services.notification import NotificationService
+        await NotificationService(self.db).send(
+            customer_id=customer_id,
+            title="Reward unlocked!",
+            body=f"You've unlocked {tier.name} — a new reward is waiting for you.",
+            notification_type="reward",
+            reference_id=event.id,
+        )
+
     # --- Customer Access ---
     async def get_customer_progress(self, customer_id: UUID):
         now = datetime.now(timezone.utc)

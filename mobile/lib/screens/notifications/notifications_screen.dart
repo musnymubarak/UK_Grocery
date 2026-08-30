@@ -5,6 +5,7 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/notification_router.dart';
 import '../../data/models/notification.dart';
 import '../../state/auth_provider.dart';
 import '../../state/notifications_provider.dart';
@@ -39,11 +40,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _onTap(AppNotification n) {
     context.read<NotificationsProvider>().markRead(n.id);
-    if (n.type == 'order_update' && (n.referenceId?.isNotEmpty ?? false)) {
-      Navigator.of(context).pushNamed(
-        AppRouter.orderTracking,
-        arguments: {'id': n.referenceId},
-      );
+    final target = notificationRouteFor(type: n.type, referenceId: n.referenceId);
+    if (target != null) {
+      Navigator.of(context).pushNamed(target.name, arguments: target.arguments);
     }
   }
 

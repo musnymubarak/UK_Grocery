@@ -17,7 +17,11 @@ import '../../widgets/product_card.dart';
 import '../../widgets/skeleton.dart';
 
 class OffersScreen extends StatefulWidget {
-  const OffersScreen({super.key});
+  const OffersScreen({super.key, this.highlightId});
+
+  /// A product id to scroll to and briefly highlight, e.g. when opened from
+  /// a "promo" notification.
+  final String? highlightId;
 
   @override
   State<OffersScreen> createState() => _OffersScreenState();
@@ -27,10 +31,13 @@ class _OffersScreenState extends State<OffersScreen> {
   List<Product>? _promos;
   bool _loading = true;
   String? _error;
+  String? _highlightedId;
+  final Map<String, GlobalKey> _itemKeys = {};
 
   @override
   void initState() {
     super.initState();
+    _highlightedId = widget.highlightId;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -45,8 +52,13 @@ class _OffersScreenState extends State<OffersScreen> {
       if (!mounted) return;
       setState(() {
         _promos = list;
+        _itemKeys.clear();
+        for (final p in list) {
+          _itemKeys[p.id] = GlobalKey();
+        }
         _loading = false;
       });
+      _scrollToHighlighted();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -60,6 +72,25 @@ class _OffersScreenState extends State<OffersScreen> {
         _loading = false;
       });
     }
+  }
+
+  void _scrollToHighlighted() {
+    final id = _highlightedId;
+    if (id == null) return;
+    final key = _itemKeys[id];
+    if (key == null) {
+      _highlightedId = null;
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = key.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 400), alignment: 0.2);
+      }
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _highlightedId = null);
+      });
+    });
   }
 
   @override
@@ -202,7 +233,21 @@ class _OffersScreenState extends State<OffersScreen> {
         childAspectRatio: 0.66,
       ),
       itemCount: promos.length,
-      itemBuilder: (_, i) => ProductCard(product: promos[i]),
+      itemBuilder: (_, i) {
+        final p = promos[i];
+        final isHighlighted = p.id == _highlightedId;
+        return AnimatedContainer(
+          key: _itemKeys[p.id],
+          duration: const Duration(milliseconds: 400),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            border: isHighlighted
+                ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
+                : null,
+          ),
+          child: ProductCard(product: p),
+        );
+      },
     );
   }
 }

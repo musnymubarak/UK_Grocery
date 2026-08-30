@@ -16,7 +16,11 @@ import '../../widgets/premium_button.dart';
 import '../../widgets/skeleton.dart';
 
 class RefundStatusScreen extends StatefulWidget {
-  const RefundStatusScreen({super.key});
+  const RefundStatusScreen({super.key, this.highlightId});
+
+  /// A refund item id to scroll to and briefly highlight, e.g. when opened
+  /// from a "refund" notification.
+  final String? highlightId;
 
   @override
   State<RefundStatusScreen> createState() => _RefundStatusScreenState();
@@ -26,10 +30,13 @@ class _RefundStatusScreenState extends State<RefundStatusScreen> {
   List<RefundRecord>? _items;
   bool _loading = true;
   String? _error;
+  String? _highlightedId;
+  final Map<String, GlobalKey> _itemKeys = {};
 
   @override
   void initState() {
     super.initState();
+    _highlightedId = widget.highlightId;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -50,8 +57,13 @@ class _RefundStatusScreenState extends State<RefundStatusScreen> {
       if (!mounted) return;
       setState(() {
         _items = list;
+        _itemKeys.clear();
+        for (final r in list) {
+          _itemKeys[r.id] = GlobalKey();
+        }
         _loading = false;
       });
+      _scrollToHighlighted();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -106,6 +118,27 @@ class _RefundStatusScreenState extends State<RefundStatusScreen> {
         return status.isNotEmpty ? status[0].toUpperCase() + status.substring(1) : 'Pending';
     }
   }
+
+  void _scrollToHighlighted() {
+    final id = _highlightedId;
+    if (id == null) return;
+    final key = _itemKeys[id];
+    if (key == null) {
+      _highlightedId = null;
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = key.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 400), alignment: 0.2);
+      }
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _highlightedId = null);
+      });
+    });
+  }
+
+  String _shortId(String id) => id.isEmpty ? '—' : id.substring(0, id.length < 8 ? id.length : 8).toUpperCase();
 
   String _formatDate(DateTime t) {
     final d = DateTime.now().difference(t);
@@ -183,12 +216,18 @@ class _RefundStatusScreenState extends State<RefundStatusScreen> {
           final r = items[i];
           final c = _accent(r.status);
           final label = _statusLabel(r.status);
-          return Container(
+          final isHighlighted = r.id == _highlightedId;
+          return AnimatedContainer(
+            key: _itemKeys[r.id],
+            duration: const Duration(milliseconds: 400),
             padding: const EdgeInsets.all(AppSpacing.base),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              border: Border.all(color: theme.colorScheme.outlineVariant),
+              border: Border.all(
+                color: isHighlighted ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+                width: isHighlighted ? 2 : 1,
+              ),
               boxShadow: AppShadows.soft(context),
             ),
             child: Column(
@@ -196,7 +235,7 @@ class _RefundStatusScreenState extends State<RefundStatusScreen> {
               children: [
                 Row(
                   children: [
-                    Text('Refund ${r.id}', style: theme.textTheme.titleMedium),
+                    Text('Refund #${_shortId(r.id)}', style: theme.textTheme.titleMedium),
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -224,7 +263,7 @@ class _RefundStatusScreenState extends State<RefundStatusScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${r.orderNumber.isEmpty ? 'Order' : 'Order ${r.orderNumber}'} · ${_formatDate(r.createdAt)}',
+                  'Order #${_shortId(r.orderId)} · ${_formatDate(r.createdAt)}',
                   style: theme.textTheme.bodySmall,
                 ),
                 if (r.reason.isNotEmpty) ...[

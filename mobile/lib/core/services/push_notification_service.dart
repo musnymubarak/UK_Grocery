@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../../data/api/api_registry.dart';
 import '../../firebase_options.dart';
-import '../router/app_router.dart';
+import '../utils/notification_router.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -29,6 +30,9 @@ class PushNotificationService {
 
   final FlutterLocalNotificationsPlugin _localNotifs =
       FlutterLocalNotificationsPlugin();
+
+  static const MethodChannel _badgeChannel =
+      MethodChannel('com.dailygrocer.app/badge');
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'high_importance_channel',
@@ -202,31 +206,32 @@ class PushNotificationService {
       final token = _fcmToken;
       await Api.instance.notifications.unregisterDeviceToken(fcmToken: token);
     } catch (_) {}
+    await clearBadge();
+  }
+
+  /// Clear the OS-level notification badge (iOS home-screen icon count).
+  /// No-op on Android, which has no equivalent persistent icon badge here.
+  Future<void> clearBadge() async {
+    if (!Platform.isIOS) return;
+    try {
+      await _badgeChannel.invokeMethod('clearBadge');
+    } catch (_) {}
   }
 
   void _handleRemoteMessageNavigation(RemoteMessage message, GlobalKey<NavigatorState>? navigatorKey) {
     final referenceId = message.data['reference_id'];
     final notifType = message.data['notification_type'];
-    _navigateForNotification(notifType, referenceId, navigatorKey);
+    final navigator = navigatorKey?.currentState;
+    if (navigator == null) return;
+    routeForNotification(navigator, type: notifType, referenceId: referenceId);
   }
 
   void _handleNotificationTap(String? payload, GlobalKey<NavigatorState>? navigatorKey) {
     final parts = (payload ?? '').split('|');
     final notifType = parts.isNotEmpty && parts[0].isNotEmpty ? parts[0] : null;
     final referenceId = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
-    _navigateForNotification(notifType, referenceId, navigatorKey);
-  }
-
-  /// Order-update notifications deep-link straight to that order; everything
-  /// else (or a missing/unrecognized id) falls back to the notifications list.
-  void _navigateForNotification(String? notifType, String? referenceId, GlobalKey<NavigatorState>? navigatorKey) {
     final navigator = navigatorKey?.currentState;
     if (navigator == null) return;
-
-    if (notifType == 'order_update' && referenceId != null && referenceId.isNotEmpty) {
-      navigator.pushNamed(AppRouter.orderTracking, arguments: {'id': referenceId});
-    } else {
-      navigator.pushNamed(AppRouter.notifications);
-    }
+    routeForNotification(navigator, type: notifType, referenceId: referenceId);
   }
 }

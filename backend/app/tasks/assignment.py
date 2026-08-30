@@ -73,20 +73,10 @@ async def _auto_assign_orders():
                     notes="Automatically assigned via round-robin logic.",
                 )
                 db.add(history)
-                
-                # Notify driver (in-app)
-                from app.services.notification import NotificationService
-                notif_service = NotificationService(db)
-                await notif_service.send(
-                    customer_id=None, # This service seems to be for customers, I might need to extend it for Users later.
-                    # Wait, let's check notification.py model to see if it supports user_id.
-                    title="New Order Assigned 📦",
-                    body=f"You have been assigned order {order.order_number}.",
-                    notification_type="order_assigned",
-                    reference_id=order.id,
-                )
-                # Actually, our notification model currently only has customer_id.
-                # For Phase 4, we'll keep it simple or expand later if needed.
-                # For now, let's just complete the assignment.
+
+                # Driver notifications aren't implemented yet — Notification.customer_id
+                # is NOT NULL and only supports customers, not driver Users. Sending here
+                # would raise on insert. Needs a schema change (nullable customer_id +
+                # a recipient-type/user column) before this can notify the driver.
         
         await db.commit()

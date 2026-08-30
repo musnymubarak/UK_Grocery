@@ -175,9 +175,17 @@ class RefundService:
 
         # 4. Recalculate Parent State
         await self._recalc_parent_refund(parent_refund)
-        
-        # 5. TODO: Hook for customer notification (approved/rejected)
-        
+
+        # 5. Notify the customer of the approval/rejection
+        from app.services.notification import NotificationService
+        await NotificationService(self.db).send(
+            customer_id=parent_refund.customer_id,
+            title="Refund approved" if status == "approved" else "Refund update",
+            body=f"Your refund for {order_item.product_name} has been {status}.",
+            notification_type="refund",
+            reference_id=refund_item.id,
+        )
+
         await self.db.flush()
         
         # 5. Fire Webhook
@@ -352,6 +360,16 @@ class RefundService:
 
         # 5. Update Order Payment Status
         order.payment_status = "refunded"
-        
+
+        # 6. Notify the customer
+        from app.services.notification import NotificationService
+        await NotificationService(self.db).send(
+            customer_id=order.customer_id,
+            title="Refund approved",
+            body=f"Your refund for order {order.order_number} has been approved.",
+            notification_type="refund",
+            reference_id=refund.id,
+        )
+
         await self.db.flush()
         return refund

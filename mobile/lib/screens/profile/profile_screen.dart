@@ -8,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../state/auth_provider.dart';
+import '../../state/notifications_provider.dart';
 import '../../widgets/animated_press.dart';
 
 /// Mirrors storefront `/profile`. For unauthenticated visitors it shows a
@@ -65,6 +66,12 @@ class ProfileScreen extends StatelessWidget {
               caption: 'Switch delivery location',
               onTap: () => Navigator.of(context).pushNamed(AppRouter.stores),
             ),
+            _Tile(
+              icon: Icons.card_giftcard_rounded,
+              title: 'Rewards',
+              caption: 'Your monthly spend & unlocked rewards',
+              onTap: () => Navigator.of(context).pushNamed(AppRouter.rewards),
+            ),
             const SizedBox(height: AppSpacing.xl),
             Text('Account', style: theme.textTheme.titleLarge),
             const SizedBox(height: 10),
@@ -78,6 +85,7 @@ class ProfileScreen extends StatelessWidget {
             AnimatedPress(
               onTap: () {
                 context.read<AuthProvider>().signOut();
+                context.read<NotificationsProvider>().reset();
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),

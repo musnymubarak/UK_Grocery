@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/network/api_exception.dart';
+import '../core/services/push_notification_service.dart';
 import '../data/api/api_registry.dart';
 import '../data/models/notification.dart';
 
@@ -56,6 +57,7 @@ class NotificationsProvider extends ChangeNotifier {
         list[idx] = list[idx].copyWith(isRead: true);
         if (_unreadCount > 0) _unreadCount--;
         notifyListeners();
+        if (_unreadCount == 0) PushNotificationService.instance.clearBadge();
       }
     }
     try {
@@ -72,6 +74,7 @@ class NotificationsProvider extends ChangeNotifier {
     }
     _unreadCount = 0;
     notifyListeners();
+    PushNotificationService.instance.clearBadge();
     try {
       await Api.instance.notifications.markAllRead();
     } catch (_) {
